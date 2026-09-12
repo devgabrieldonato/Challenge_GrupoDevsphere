@@ -1,0 +1,5 @@
+Imagem criada com a ferramenta integrada de geração de imagens.
+Arquivo: joao-atendimento.png
+
+Prompt utilizado:
+Use case: illustration-story. Asset type: illustration for an educational clinical simulation patient card. Create a tasteful editorial digital illustration of fictional João, a 54-year-old man with obesity and short graying hair, arriving for urgent medical attention with chest discomfort, seated and holding a hand to his chest while a triage nurse attentively welcomes him. Human, respectful portrayal, concerned but not melodramatic. Modern Brazilian clinic reception backdrop, clean restrained navy blue and teal palette, soft daylight, professional medical education aesthetic. Landscape composition, waist-up patient prominent, nurse visible, no text, no logos, no charts suggesting a diagnosis, no watermark.

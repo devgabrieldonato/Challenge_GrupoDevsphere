@@ -1,41 +1,55 @@
 <!doctype html>
 <html lang="pt-BR">
-  <!-- Configuração da página: idioma no elemento raiz, codificação, adaptação à tela e folha de estilos. -->
+  <!-- Página principal do projeto. Aqui ficam as configurações básicas do HTML. -->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Paciente Virtual · Challenge FIAP</title>
+
+    <!-- Arquivo com o estilo da página -->
     <link rel="stylesheet" href="style.css">
   </head>
+
   <body>
-    <!-- Cabeçalho com a identidade do projeto e as ações disponíveis durante o atendimento. -->
+    <!-- Cabeçalho do projeto -->
     <header>
       <div class="brand">FIAP</div>
       <div class="divider" aria-hidden="true"></div>
+
       <div>
         <h1>Paciente Virtual</h1>
         <small>Challenge · Laboratório de raciocínio clínico</small>
       </div>
+
+      <!-- Esses botões aparecem depois que um caso é iniciado -->
       <div class="header-actions" id="caseActions" hidden>
         <button class="btn" id="reset" type="button">Reiniciar</button>
-        <button class="btn primary" id="diagnose" type="button">Formular hipótese ↗</button>
+        <button class="btn primary" id="diagnose" type="button">
+          Formular hipótese ↗
+        </button>
       </div>
     </header>
-    <!-- Conteúdo principal: escolha do paciente e sessão de investigação clínica. -->
+
     <main>
-      <!-- Seleção inicial do paciente; o formulário inicia o caso escolhido pelo estudante. -->
+      <!--
+        Primeira tela do sistema.
+        O aluno escolhe qual paciente quer atender antes de começar.
+      -->
       <section
         class="case-choice"
         id="caseChoice"
         aria-labelledby="caseChoiceTitle"
       >
         <h2 id="caseChoiceTitle">Qual paciente você vai atender?</h2>
+
         <p>
-          Escolha um caso para iniciar sua investigação. Cada atendimento tem 18
-          perguntas e 22 exames.
+          Escolha um caso para começar sua investigação.
+          Cada atendimento tem 18 perguntas e 22 exames.
         </p>
+
         <form id="caseForm">
           <label for="caseSelect">Caso clínico</label>
+
           <select id="caseSelect" required>
             <option value="">Selecione um paciente</option>
             <option value="joao">João, 54 anos — dor no peito</option>
@@ -43,61 +57,118 @@
               Marina, 23 anos — dor abdominal e vômitos
             </option>
           </select>
+
           <div class="actions">
-            <button class="btn primary" type="submit">Iniciar atendimento</button>
+            <button class="btn primary" type="submit">
+              Iniciar atendimento
+            </button>
           </div>
         </form>
       </section>
-      <!-- Área do atendimento, exibida pelo JavaScript após a seleção do caso. -->
+
+      <!--
+        Área principal do caso.
+        Ela começa escondida e é mostrada pelo JavaScript depois que o
+        usuário escolhe um paciente.
+      -->
       <div id="caseSession" hidden>
-        <!-- Apresentação do caso e indicação da quantidade de opções de investigação. -->
+
+        <!-- Introdução do caso -->
         <section class="intro" aria-labelledby="caseIntroTitle">
           <div>
             <div class="eyebrow">Caso 01 / Pronto atendimento</div>
-            <h2 id="caseIntroTitle">Uma queixa. Mais possibilidades.</h2>
+
+            <h2 id="caseIntroTitle">
+              Uma queixa. Mais possibilidades.
+            </h2>
+
             <p>
-              Compare hipóteses, escolha as prioridades e conecte as evidências.
+              Compare as possibilidades, faça suas perguntas e tente
+              entender o que está acontecendo com o paciente.
             </p>
           </div>
+
           <span class="badge">Nível avançado · 40 opções</span>
         </section>
-        <!-- Espaço de investigação organizado em biblioteca, mapa de raciocínio e histórico. -->
+
+        <!--
+          Área onde acontece a investigação.
+          De um lado ficam as opções, no meio o mapa e do outro o histórico.
+        -->
         <div class="workspace">
-          <!-- Biblioteca de perguntas e exames; os blocos disponíveis são preenchidos pelo JavaScript. -->
+
+          <!-- Lista de perguntas e exames disponíveis -->
           <aside class="panel library" aria-labelledby="libraryTitle">
             <h3 id="libraryTitle">Blocos de investigação</h3>
+
             <p class="sub">
-              Arraste para o mapa ou clique em +. A pertinência será discutida
-              no feedback final.
+              Você pode arrastar uma opção para o mapa ou clicar no +.
+              No final, o sistema mostra um feedback sobre suas escolhas.
             </p>
-            <!-- Filtros para exibir todas as opções, apenas perguntas ou apenas exames. -->
-            <div class="filters" role="group" aria-label="Filtrar opções">
-              <button class="filter active" data-filter="all" aria-pressed="true" type="button">
+
+            <!-- Botões usados para filtrar as opções -->
+            <div
+              class="filters"
+              role="group"
+              aria-label="Filtrar opções"
+            >
+              <button
+                class="filter active"
+                data-filter="all"
+                aria-pressed="true"
+                type="button"
+              >
                 Todos
               </button>
-              <button class="filter" data-filter="question" aria-pressed="false" type="button">
+
+              <button
+                class="filter"
+                data-filter="question"
+                aria-pressed="false"
+                type="button"
+              >
                 Perguntas
               </button>
-              <button class="filter" data-filter="exam" aria-pressed="false" type="button">
+
+              <button
+                class="filter"
+                data-filter="exam"
+                aria-pressed="false"
+                type="button"
+              >
                 Exames
               </button>
             </div>
+
+            <!-- O JavaScript coloca as perguntas e exames aqui -->
             <div id="blocks" class="blocks"></div>
           </aside>
-          <!-- Mapa que reúne a apresentação do paciente e as respostas às escolhas do estudante. -->
+
+          <!-- Parte central, onde o raciocínio vai sendo montado -->
           <section class="center" aria-labelledby="mapTitle">
+
             <div class="mapbar">
               <h3 id="mapTitle">Mapa de raciocínio</h3>
-              <div class="legend"><span>Pergunta</span><span>Exame</span></div>
+
+              <div class="legend">
+                <span>Pergunta</span>
+                <span>Exame</span>
+              </div>
             </div>
+
             <div
               class="map"
               id="map"
               role="region"
               aria-label="Área para adicionar blocos clínicos"
             >
-              <!-- Cartão do paciente; imagem, identificação e queixa são atualizadas conforme o caso selecionado. -->
+
+              <!--
+                Informações iniciais do paciente.
+                O JavaScript troca esses dados de acordo com o caso escolhido.
+              -->
               <article class="patient">
+
                 <figure class="patient-scene">
                   <img
                     src="images/joao-atendimento.png"
@@ -105,140 +176,404 @@
                     width="1536"
                     height="1024"
                   />
+
                   <figcaption>
                     João na chegada ao atendimento · imagem gerada por IA
                   </figcaption>
                 </figure>
+
                 <div class="patient-head">
                   <div class="avatar" aria-hidden="true">JS</div>
+
                   <div>
                     <div class="meta">PACIENTE · NÍVEL 0</div>
                     <h3>João, 54 anos</h3>
                   </div>
                 </div>
-                <div class="tags"><span>Fumante</span><span>Obesidade</span></div>
+
+                <div class="tags">
+                  <span>Fumante</span>
+                  <span>Obesidade</span>
+                </div>
+
                 <p>“Estou com uma dor no peito.”</p>
-                <div class="meta">Início há cerca de 40 minutos.</div>
+
+                <div class="meta">
+                  Início há cerca de 40 minutos.
+                </div>
               </article>
-              <!-- Orientação inicial enquanto nenhuma pergunta ou exame foi adicionado ao mapa. -->
+
+              <!-- Mensagem que aparece antes de o usuário adicionar alguma opção -->
               <div id="empty" class="empty">
-                <b>Por onde você começaria?</b>Adicione uma pergunta ou um
-                exame. Cada resposta abre possibilidades de investigação.
+                <b>Por onde você começaria?</b>
+                Adicione uma pergunta ou um exame.
+                Cada resposta pode abrir um novo caminho na investigação.
               </div>
-              <!-- Contêiner dos blocos de resposta e das conexões montados durante a investigação. -->
+
+              <!--
+                Aqui o JavaScript vai colocar as respostas e as conexões
+                feitas durante o atendimento.
+              -->
               <div id="branches" class="branches"></div>
             </div>
+
             <div class="mapfoot">
-              Conexões indicam relações entre as informações. Você escolhe a
-              ordem da investigação.
+              As conexões ajudam a visualizar as relações entre as informações.
+              Você decide a ordem da investigação.
             </div>
           </section>
-          <!-- Histórico cronológico das ações realizadas e contador de evidências coletadas. -->
+
+          <!-- Histórico das ações feitas pelo usuário -->
           <aside class="panel journey" aria-labelledby="journeyTitle">
+
             <div class="eyebrow">Seu percurso</div>
-            <h3 id="journeyTitle">Evidências coletadas</h3>
+
+            <h3 id="journeyTitle">
+              Evidências coletadas
+            </h3>
+
             <div class="counter" id="count">00</div>
+
             <small>ações realizadas</small>
+
+            <!-- O JavaScript adiciona as ações do usuário nesta lista -->
             <ol class="timeline" id="timeline"></ol>
+
+            <!-- Mensagem exibida enquanto nenhuma ação foi feita -->
             <p id="historyEmpty" class="placeholder">
-              Suas escolhas aparecerão aqui, na ordem em que forem feitas.
+              Suas escolhas vão aparecer aqui na ordem em que você fizer.
             </p>
+
             <div class="tip">
-              Uma hipótese ganha força quando você conecta a história do
-              paciente aos resultados dos exames.
+              Uma hipótese fica mais forte quando conseguimos relacionar
+              a história do paciente com os resultados dos exames.
             </div>
           </aside>
         </div>
-        <!-- Contexto educacional, referências do caso e orientação sobre a exportação do percurso. -->
+
+        <!--
+          Informações extras sobre o projeto.
+          Também deixamos claro que os resultados são simulados.
+        -->
+
+        <!-- SPRINT 3 — CÁLCULO APLICADO -->
+        <section class="math-lab" id="mathLab" aria-labelledby="mathTitle">
+          <div class="math-head">
+            <div>
+              <div class="eyebrow">Sprint 3 · Cálculo aplicado</div>
+              <h2 id="mathTitle">Evolução da troponina no caso do João</h2>
+              <p class="sub">Observe como o tempo influencia a concentração de troponina e por que uma coleta muito precoce pode ainda não mostrar uma elevação importante.</p>
+            </div>
+            <span class="math-badge">Limite + derivada</span>
+          </div>
+
+          <div class="math-grid">
+            <div class="math-card math-controls">
+              <h3>Simulador</h3>
+              <p class="math-muted">Modelo matemático didático da evolução da troponina. Os valores da curva não substituem dados clínicos reais.</p>
+
+              <label for="mathTime">Tempo desde o início da dor: <strong><span id="mathTimeValue">0,67</span> h</strong></label>
+              <input id="mathTime" type="range" min="0" max="12" step="0.01" value="0.67" />
+
+              <div class="math-reference">
+                <span><strong>João:</strong> coleta inicial em aproximadamente 40 min</span>
+                <span><strong>Resultado:</strong> 12 ng/L</span>
+              </div>
+
+              <div class="math-metrics">
+                <div><span>Troponina T(t)</span><strong id="mathValue">12,0</strong><small>ng/L</small></div>
+                <div><span>Derivada T'(t)</span><strong id="mathDerivative">17,1</strong><small>ng/L por hora</small></div>
+                <div><span>Limite da função</span><strong>120</strong><small>ng/L · platô do modelo</small></div>
+              </div>
+            </div>
+
+            <div class="math-card math-chart-card">
+              <div class="chart-title-row">
+                <div>
+                  <h3>Comportamento da função</h3>
+                  <p class="math-muted">T(t) = 120(1 − e<sup>−0,158t</sup>)</p>
+                </div>
+                <span class="chart-dot">● T(t)</span>
+              </div>
+              <div class="math-chart-wrap">
+                <svg id="mathChart" viewBox="0 0 720 320" role="img" aria-label="Gráfico da evolução matemática da troponina ao longo do tempo">
+                  <line class="math-chart-axis" x1="54" y1="20" x2="54" y2="278"></line>
+                  <line class="math-chart-axis" x1="54" y1="278" x2="702" y2="278"></line>
+                  <path class="math-chart-line" d="M54,278 C140,220 230,174 324,139 C430,100 548,72 702,55"></path>
+                  <line class="math-chart-marker initial" x1="90" y1="20" x2="90" y2="278"></line>
+                  <line class="math-chart-marker repeat" x1="216" y1="20" x2="216" y2="278"></line>
+                  <circle class="math-chart-point" cx="90" cy="252" r="7"></circle>
+                  <circle class="math-chart-point repeat-point" cx="216" cy="196" r="6"></circle>
+                  <text class="math-chart-label" x="62" y="32">Troponina (ng/L)</text>
+                  <text class="math-chart-marker-label" x="95" y="42">João · 40 min</text>
+                  <text class="math-chart-marker-label" x="221" y="58">Recoleta · 3 h</text>
+                  <text class="math-chart-label" x="52" y="300">0h</text>
+                  <text class="math-chart-label" x="216" y="300">3h</text>
+                  <text class="math-chart-label" x="378" y="300">6h</text>
+                  <text class="math-chart-label" x="540" y="300">9h</text>
+                  <text class="math-chart-label" x="686" y="300">12h</text>
+                </svg>
+              </div>
+              <div class="math-legend">
+                <span><i class="legend-line"></i>Curva T(t)</span>
+                <span><i class="legend-initial"></i>Coleta do João: 0,67 h</span>
+                <span><i class="legend-repeat"></i>Exemplo de recoleta: 3 h</span>
+              </div>
+            </div>
+
+            <div class="math-card math-explanation">
+              <h3>O que a matemática mostra?</h3>
+              <div class="formula-box">
+                <strong>Limite</strong>
+                <span>lim T(t), quando t → ∞ = 120 ng/L</span>
+              </div>
+              <div class="formula-box">
+                <strong>Derivada</strong>
+                <span>T'(t) = 18,96e<sup>−0,158t</sup></span>
+              </div>
+              <p id="mathInterpretation">Na coleta de aproximadamente 40 minutos, o modelo mostra 12 ng/L. A derivada ainda é positiva, indicando que a curva continua subindo.</p>
+              <div class="decision-box">
+                <strong>Apoio à decisão</strong>
+                <span id="mathDecision">Um resultado inicial baixo pode estar em um ponto precoce da curva. No simulador, compare o ponto de 40 minutos com uma recoleta posterior para visualizar a mudança.</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <footer>
-          Caso fictício com resultados simulados. MVP educacional; conteúdo
-          sujeito à validação docente. Exames com resultado são apresentados
-          sem espera; solicitações registradas sem execução não constituem
-          evidência negativa. Referência:
+          Caso fictício com resultados simulados.
+          Este é um MVP educacional e o conteúdo ainda pode passar por
+          validação dos professores.
+
+          Exames que possuem resultado aparecem sem tempo de espera.
+          Quando uma solicitação é apenas registrada e não possui resultado,
+          ela não deve ser considerada como uma evidência negativa.
+
+          Referências:
+
           <a
             href="https://www.acc.org/latest-in-cardiology/ten-points-to-remember/2021/10/27/14/06/2021-guideline-for-chest-pain-gl_chestpain"
             target="_blank"
             rel="noopener"
-          >Diretriz de avaliação da dor torácica · AHA/ACC</a>
+          >
+            Diretriz de avaliação da dor torácica · AHA/ACC
+          </a>
+
           e
+
           <a
             href="https://www.escardio.org/guidelines/clinical-practice-guidelines/all-esc-practice-guidelines/acute-pulmonary-embolism/"
             target="_blank"
             rel="noopener"
-          >diretriz de embolia pulmonar · ESC</a>. O percurso fica nesta sessão; use “Exportar percurso” ao concluir.
+          >
+            Diretriz de embolia pulmonar · ESC
+          </a>.
+
+          O percurso fica salvo apenas nesta sessão.
+          Use “Exportar percurso” quando terminar.
         </footer>
       </div>
     </main>
-    <!-- Janela para formular a hipótese diagnóstica e justificar o raciocínio. -->
-    <dialog id="diagnosis" aria-labelledby="diagnosisTitle" aria-describedby="diagnosisDescription">
+
+    <!--
+      Janela usada quando o usuário quer informar sua hipótese diagnóstica.
+    -->
+    <dialog
+      id="diagnosis"
+      aria-labelledby="diagnosisTitle"
+      aria-describedby="diagnosisDescription"
+    >
       <div class="dialog-head">
-        <h2 id="diagnosisTitle">Sua hipótese diagnóstica</h2>
-        <button class="btn" data-close="diagnosis" aria-label="Fechar" type="button">
+        <h2 id="diagnosisTitle">
+          Sua hipótese diagnóstica
+        </h2>
+
+        <button
+          class="btn"
+          data-close="diagnosis"
+          aria-label="Fechar"
+          type="button"
+        >
           ×
         </button>
       </div>
-      <p class="sub" id="diagnosisDescription">Considere as evidências que você reuniu até aqui.</p>
-      <!-- Formulário com seleção obrigatória de hipótese e justificativa; o envio abre o feedback. -->
+
+      <p class="sub" id="diagnosisDescription">
+        Pense nas evidências que você encontrou durante a investigação.
+      </p>
+
+      <!-- Formulário para escolher e justificar a hipótese -->
       <form id="diagnosisForm">
-        <label for="hypothesis">Qual é a principal hipótese?</label>
+
+        <label for="hypothesis">
+          Qual é a principal hipótese?
+        </label>
+
         <select id="hypothesis" required>
           <option value="">Selecione uma hipótese</option>
-          <option value="reflux">Refluxo gastroesofágico</option>
+
+          <option value="reflux">
+            Refluxo gastroesofágico
+          </option>
+
           <option value="stemi">
             Infarto agudo do miocárdio com supradesnivelamento de ST
           </option>
-          <option value="anxiety">Crise de ansiedade</option>
-          <option value="stable">Angina estável</option>
-          <option value="embolism">Tromboembolismo pulmonar</option>
-          <option value="aortic">Síndrome aórtica aguda</option>
-          <option value="pericarditis">Pericardite aguda</option>
-          <option value="muscular">Dor musculoesquelética</option>
+
+          <option value="anxiety">
+            Crise de ansiedade
+          </option>
+
+          <option value="stable">
+            Angina estável
+          </option>
+
+          <option value="embolism">
+            Tromboembolismo pulmonar
+          </option>
+
+          <option value="aortic">
+            Síndrome aórtica aguda
+          </option>
+
+          <option value="pericarditis">
+            Pericardite aguda
+          </option>
+
+          <option value="muscular">
+            Dor musculoesquelética
+          </option>
+
           <option value="nstemi">
             Síndrome coronariana aguda sem supra de ST
           </option>
         </select>
+
         <label for="reason">
           Quais achados sustentam sua escolha e enfraquecem as alternativas?
         </label>
+
         <textarea
           id="reason"
           required
-          placeholder="Relacione os achados, considere uma hipótese alternativa e explique por que ela é menos provável…"
+          placeholder="Relacione os achados, cite uma hipótese alternativa e explique por que ela parece menos provável..."
         ></textarea>
+
         <div class="actions">
-          <button type="button" class="btn" data-close="diagnosis">
+
+          <button
+            type="button"
+            class="btn"
+            data-close="diagnosis"
+          >
             Continuar investigando
           </button>
-          <button class="btn primary" type="submit">
+
+          <button
+            class="btn primary"
+            type="submit"
+          >
             Concluir e ver feedback
           </button>
+
         </div>
       </form>
     </dialog>
-    <!-- Janela de feedback com revisão das escolhas, exportação do percurso e retorno ao mapa. -->
+
+    <!--
+      Janela que mostra o resultado e o feedback depois da conclusão.
+    -->
     <dialog id="result" aria-labelledby="resultTitle">
+
       <div class="dialog-head">
-        <h2 id="resultTitle">Revisão do raciocínio</h2>
-        <button class="btn" data-close="result" aria-label="Fechar" type="button">×</button>
+        <h2 id="resultTitle">
+          Revisão do raciocínio
+        </h2>
+
+        <button
+          class="btn"
+          data-close="result"
+          aria-label="Fechar"
+          type="button"
+        >
+          ×
+        </button>
       </div>
+
+      <!-- O JavaScript coloca o feedback neste espaço -->
       <div id="feedback"></div>
+
       <div class="actions">
-        <button class="btn" id="export" type="button">Exportar percurso</button>
-        <button class="btn primary" data-close="result" type="button">Voltar ao mapa</button>
+
+        <button
+          class="btn"
+          id="export"
+          type="button"
+        >
+          Exportar percurso
+        </button>
+
+        <button
+          class="btn primary"
+          data-close="result"
+          type="button"
+        >
+          Voltar ao mapa
+        </button>
+
       </div>
     </dialog>
-    <!-- Confirmação antes de apagar o percurso atual e reiniciar o mesmo caso. -->
-    <dialog id="restart" aria-labelledby="restartTitle" aria-describedby="restartDescription">
-      <h2 id="restartTitle">Recomeçar este caso?</h2>
-      <p id="restartDescription">O percurso atual será apagado desta sessão.</p>
+
+    <!--
+      Confirmação mostrada antes de reiniciar o caso.
+      Isso evita que o usuário apague o progresso sem querer.
+    -->
+    <dialog
+      id="restart"
+      aria-labelledby="restartTitle"
+      aria-describedby="restartDescription"
+    >
+      <h2 id="restartTitle">
+        Recomeçar este caso?
+      </h2>
+
+      <p id="restartDescription">
+        O percurso atual será apagado desta sessão.
+      </p>
+
       <div class="actions">
-        <button class="btn" data-close="restart" type="button">Cancelar</button>
-        <button class="btn primary" id="confirmReset" type="button">Reiniciar caso</button>
+
+        <button
+          class="btn"
+          data-close="restart"
+          type="button"
+        >
+          Cancelar
+        </button>
+
+        <button
+          class="btn primary"
+          id="confirmReset"
+          type="button"
+        >
+          Reiniciar caso
+        </button>
+
       </div>
     </dialog>
-    <!-- Área de avisos breves, anunciados de forma acessível às tecnologias assistivas. -->
-    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-    <!-- Carrega os casos clínicos e a lógica de interação após a estrutura da página. -->
+
+    <!-- Área usada para mostrar mensagens rápidas -->
+    <div
+      id="toast"
+      class="toast hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <!--
+      Arquivo JavaScript responsável pela interação da página.
+      Ele é carregado por último para garantir que o HTML já esteja pronto.
+    -->
     <script src="script.js"></script>
   </body>
 </html>

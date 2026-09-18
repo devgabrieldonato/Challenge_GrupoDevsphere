@@ -1145,3 +1145,124 @@ $("caseForm").onsubmit = (event) => {
   heading.tabIndex = -1;
   heading.focus();
 };
+
+
+// SPRINT 3 — LIMITES E DERIVADAS: CINÉTICA DIDÁTICA DA TROPONINA
+// O modelo é usado apenas para demonstrar limite e derivada no contexto do caso do João.
+const TROPONIN_MAX = 120;
+const TROPONIN_K = 0.158;
+const JOAO_TROPONIN_TIME = 40 / 60;
+const REPEAT_TROPONIN_TIME = 3;
+
+function mathModel(t) {
+  const value = TROPONIN_MAX * (1 - Math.exp(-TROPONIN_K * t));
+  const derivative = TROPONIN_MAX * TROPONIN_K * Math.exp(-TROPONIN_K * t);
+  return { value, derivative };
+}
+
+function renderMathChart(t) {
+  const svg = $("mathChart");
+  if (!svg) return;
+
+  const width = 720, height = 320;
+  const left = 54, right = 18, top = 20, bottom = 42;
+  const plotW = width - left - right;
+  const plotH = height - top - bottom;
+  const maxY = 120;
+
+  const point = (x, y) => ({
+    x: left + (x / 12) * plotW,
+    y: top + (1 - y / maxY) * plotH,
+  });
+
+  const points = [];
+  for (let i = 0; i <= 240; i++) {
+    const x = (i / 240) * 12;
+    const y = mathModel(x).value;
+    points.push(point(x, y));
+  }
+
+  const pathD = points
+    .map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
+
+  const current = mathModel(t);
+  const currentPoint = point(t, current.value);
+  const initial = mathModel(JOAO_TROPONIN_TIME);
+  const initialPoint = point(JOAO_TROPONIN_TIME, initial.value);
+  const repeat = mathModel(REPEAT_TROPONIN_TIME);
+  const repeatPoint = point(REPEAT_TROPONIN_TIME, repeat.value);
+
+  const grid = [0, 30, 60, 90, 120]
+    .map((v) => {
+      const y = point(0, v).y;
+      return `<line class="math-chart-grid" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"/>` +
+        `<text class="math-chart-label" x="8" y="${y + 4}">${v}</text>`;
+    })
+    .join("");
+
+  const xLabels = [0, 3, 6, 9, 12]
+    .map((v) => {
+      const x = point(v, 0).x;
+      return `<line class="math-chart-axis" x1="${x}" y1="${top + plotH}" x2="${x}" y2="${top + plotH + 5}"/>` +
+        `<text class="math-chart-label" text-anchor="middle" x="${x}" y="${height - 12}">${v}h</text>`;
+    })
+    .join("");
+
+  const currentLabelX = Math.min(currentPoint.x + 10, width - 120);
+  const currentLabelY = Math.max(currentPoint.y - 12, 18);
+
+  svg.innerHTML =
+    grid +
+    `<line class="math-chart-axis" x1="${left}" y1="${top}" x2="${left}" y2="${top + plotH}"/>` +
+    `<line class="math-chart-axis" x1="${left}" y1="${top + plotH}" x2="${width - right}" y2="${top + plotH}"/>` +
+    xLabels +
+    `<path class="math-chart-line" d="${pathD}"/>` +
+    `<line class="math-chart-marker initial" x1="${initialPoint.x}" y1="${top}" x2="${initialPoint.x}" y2="${top + plotH}"/>` +
+    `<line class="math-chart-marker repeat" x1="${repeatPoint.x}" y1="${top}" x2="${repeatPoint.x}" y2="${top + plotH}"/>` +
+    `<circle class="math-chart-point" cx="${initialPoint.x}" cy="${initialPoint.y}" r="6"/>` +
+    `<circle class="math-chart-point repeat-point" cx="${repeatPoint.x}" cy="${repeatPoint.y}" r="6"/>` +
+    `<line class="math-chart-current" x1="${currentPoint.x}" y1="${top}" x2="${currentPoint.x}" y2="${top + plotH}"/>` +
+    `<circle class="math-chart-current-point" cx="${currentPoint.x}" cy="${currentPoint.y}" r="8"/>` +
+    `<text class="math-chart-label" x="${left}" y="14">Troponina (ng/L)</text>` +
+    `<text class="math-chart-marker-label" x="${Math.min(initialPoint.x + 7, width - 130)}" y="40">João · 40 min</text>` +
+    `<text class="math-chart-marker-label" x="${Math.min(repeatPoint.x + 7, width - 125)}" y="58">Recoleta · 3 h</text>` +
+    `<text class="math-chart-current-label" x="${currentLabelX}" y="${currentLabelY}">t=${t.toFixed(2).replace(".", ",")}h</text>`;
+}
+
+function updateMath() {
+  const input = $("mathTime");
+  if (!input) return;
+
+  const t = Number(input.value);
+  const { value, derivative } = mathModel(t);
+  $("mathTimeValue").textContent = t.toFixed(2).replace(".", ",");
+  $("mathValue").textContent = value.toFixed(1).replace(".", ",");
+  $("mathDerivative").textContent = derivative.toFixed(1).replace(".", ",");
+  renderMathChart(t);
+
+  const interpretation = $("mathInterpretation");
+  const decision = $("mathDecision");
+  if (!interpretation || !decision) return;
+
+  if (Math.abs(t - JOAO_TROPONIN_TIME) < 0.015) {
+    interpretation.textContent = "Na coleta de aproximadamente 40 minutos, o modelo reproduz os 12 ng/L registrados no caso do João. A derivada ainda é positiva, então a curva continua subindo.";
+    decision.textContent = "Este ponto inicial está no começo da curva. O simulador ajuda a visualizar por que um resultado baixo e precoce precisa ser interpretado junto ao quadro clínico e à evolução temporal.";
+  } else if (t < 1.5) {
+    interpretation.textContent = "O tempo ainda é curto e a derivada permanece alta. A concentração está subindo rapidamente em relação ao início da curva.";
+    decision.textContent = "A coleta está em uma fase precoce do modelo. Compare o valor atual com uma nova coleta em momento posterior para observar a tendência.";
+  } else if (t < 5) {
+    interpretation.textContent = "A troponina continua aumentando, mas a derivada já caiu em relação ao início. A curva está crescendo com velocidade menor.";
+    decision.textContent = "A comparação entre momentos diferentes fica mais informativa: o valor absoluto e a velocidade de mudança ajudam a enxergar a evolução representada pelo modelo.";
+  } else {
+    interpretation.textContent = "A derivada está mais próxima de zero: a curva ainda cresce, porém cada hora acrescenta uma variação menor. Isso representa a aproximação ao limite de 120 ng/L.";
+    decision.textContent = "Neste trecho, o modelo está se aproximando do platô. A mudança instantânea é menor do que nas primeiras horas.";
+  }
+}
+
+// Atualiza o gráfico mesmo quando a sessão é carregada diretamente ou o usuário mexe no slider.
+const mathTimeInput = $("mathTime");
+if (mathTimeInput) {
+  mathTimeInput.addEventListener("input", updateMath);
+  updateMath();
+}

@@ -711,3 +711,120 @@ textarea {
 .case-choice p {
   color: var(--muted);
 }
+
+
+/* SPRINT 3 — laboratório de limites e derivadas integrado ao projeto. */
+.math-lab {
+  margin: 0 20px 24px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: white;
+}
+.math-head { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:20px; }
+.math-head h2 { margin:3px 0 4px; font-size:23px; }
+.math-head p { margin:0; }
+.math-badge { background:#eef2ff; color:#3153af; padding:7px 11px; border-radius:7px; font-size:12px; font-weight:750; white-space:nowrap; }
+.math-grid { display:grid; grid-template-columns:300px minmax(0,1fr); gap:16px; }
+.math-card { border:1px solid var(--line); border-radius:10px; padding:18px; background:#fbfcff; }
+.math-controls { grid-row:span 2; }
+.math-card h3 { margin:0 0 6px; }
+.math-muted { color:var(--muted); font-size:13px; }
+.math-controls label { margin-top:22px; }
+.math-controls input[type=range] { width:100%; accent-color:var(--blue); margin:10px 0 18px; }
+.math-metrics { display:grid; gap:10px; }
+.math-metrics div { background:white; border:1px solid var(--line); border-radius:8px; padding:11px 12px; }
+.math-metrics span, .math-metrics small { display:block; color:var(--muted); font-size:12px; }
+.math-metrics strong { display:inline-block; font-size:24px; margin:1px 5px 0 0; }
+.math-chart-card { min-height:330px; }
+.chart-title-row { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.chart-title-row p { margin:0; }
+.chart-dot { font-size:12px; color:var(--purple); font-weight:700; }
+.math-chart-wrap { width:100%; overflow:hidden; margin-top:8px; }
+.math-chart-wrap svg { width:100%; height:auto; display:block; }
+.math-chart-grid { stroke:#dce4ed; stroke-width:1; }
+.math-chart-axis { stroke:#9aaabd; stroke-width:1.2; }
+.math-chart-line { fill:none; stroke:#7950bd; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+.math-chart-point { fill:#315bdf; stroke:white; stroke-width:3; }
+.math-chart-label { fill:#607187; font:12px system-ui,sans-serif; }
+.math-explanation { grid-column:2; }
+.formula-box { display:flex; justify-content:space-between; gap:14px; padding:10px 12px; margin-top:9px; background:white; border:1px solid var(--line); border-radius:8px; font-size:13px; }
+.formula-box strong { color:var(--ink); }
+.formula-box span { text-align:right; color:#50337f; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.math-explanation > p { font-size:13px; color:#4b6077; margin:14px 0; }
+.decision-box { border-left:4px solid var(--blue); background:#edf3ff; padding:12px 14px; border-radius:7px; display:grid; gap:3px; font-size:13px; }
+.decision-box span { color:#4b6077; }
+@media (max-width:900px) { .math-grid { grid-template-columns:1fr; } .math-controls { grid-row:auto; } .math-explanation { grid-column:auto; } }
+@media (max-width:650px) { .math-lab { margin:0 10px 18px; padding:16px; } .math-head { flex-direction:column; } .math-badge { display:none; } .formula-box { flex-direction:column; } .formula-box span { text-align:left; } }
+
+/* Sprint 3 — estilos específicos da curva de troponina e seus marcadores. */
+.math-reference {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f5f8ff;
+  color: #4b6077;
+  font-size: 12px;
+}
+.math-reference strong { color: var(--ink); }
+.math-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.math-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.math-legend i {
+  display: inline-block;
+  width: 22px;
+  height: 3px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+.legend-line { background: #7950bd; }
+.legend-initial { background: #315bdf; border-left: 2px dashed #315bdf; width: 20px !important; height: 0 !important; }
+.legend-repeat { background: #7a8797; border-left: 2px dashed #7a8797; width: 20px !important; height: 0 !important; }
+.math-chart-marker {
+  stroke-width: 1.5;
+  stroke-dasharray: 6 5;
+}
+.math-chart-marker.initial { stroke: #315bdf; }
+.math-chart-marker.repeat { stroke: #7a8797; }
+.math-chart-current {
+  stroke: #1f8a70;
+  stroke-width: 2;
+  stroke-dasharray: 3 4;
+}
+.math-chart-point {
+  fill: #315bdf;
+  stroke: white;
+  stroke-width: 3;
+}
+.math-chart-point.repeat-point { fill: #7a8797; }
+.math-chart-current-point {
+  fill: #1f8a70;
+  stroke: white;
+  stroke-width: 3;
+}
+.math-chart-marker-label,
+.math-chart-current-label {
+  font: 600 11px system-ui, sans-serif;
+}
+.math-chart-marker-label { fill: #315bdf; }
+.math-chart-current-label { fill: #1f8a70; }
+
+@media (max-width: 650px) {
+  .math-legend { display: grid; gap: 7px; }
+  .math-reference { font-size: 11px; }
+  .math-chart-marker-label,
+  .math-chart-current-label { font-size: 10px; }
+}

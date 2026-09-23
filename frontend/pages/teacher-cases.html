@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Casos clínicos · Paciente Virtual
+    </title>
+    <link rel="stylesheet" href="../styles/teacher.css">
+  </head>
+  <body class="auth-pending" data-required-role="teacher">
+    <a class="skip-link" href="#conteudo">
+      Ir para o conteúdo
+    </a>
+    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
+    <header class="site-header">
+      <div class="brand">
+        FIAP
+      </div>
+      <div>
+        <p class="site-title">
+          Paciente Virtual
+        </p>
+        <p class="site-subtitle">
+          Casos clínicos
+        </p>
+      </div>
+      <nav class="site-nav">
+        <ul>
+          <li>
+            <a href="teacher-dashboard.html">
+              Painel
+            </a>
+          </li>
+          <li>
+            <a aria-current="page" href="teacher-cases.html">
+              Casos
+            </a>
+          </li>
+          <li>
+            <a href="teacher-case-editor.html">
+              Criar caso
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- Conteúdo principal específico desta etapa da jornada. -->
+    <main id="conteudo" class="page-main">
+      <header class="page-header">
+        <span class="eyebrow">
+          Biblioteca docente
+        </span>
+        <h1>
+          Casos clínicos
+        </h1>
+        <p>
+          Consulte versões publicadas e rascunhos autorizados para sua conta.
+        </p>
+      </header>
+      <div id="caseStatus" class="status" role="status" aria-live="polite">
+        Carregando casos…
+      </div>
+      <section id="caseList" class="grid two section-gap" aria-label="Lista de casos">
+      </section>
+      <div class="cluster section-gap">
+        <a class="button primary" href="teacher-case-editor.html">
+          Criar novo caso
+        </a>
+        <a class="button" href="teacher-pdf-import.html">
+          Gerar a partir de PDF
+        </a>
+      </div>
+    </main>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <!-- Controlador da página e integração com os serviços da API. -->
+    <script type="module" src="../scripts/cases/case-list.js">
+    </script>
+  </body>
+</html>

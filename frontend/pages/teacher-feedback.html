@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Devolutiva · Paciente Virtual
+    </title>
+    <link rel="stylesheet" href="../styles/teacher.css">
+  </head>
+  <body class="auth-pending" data-required-role="teacher">
+    <a class="skip-link" href="#conteudo">
+      Ir para o conteúdo
+    </a>
+    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
+    <header class="site-header">
+      <div class="brand">
+        FIAP
+      </div>
+      <div>
+        <p class="site-title">
+          Paciente Virtual
+        </p>
+        <p class="site-subtitle">
+          Devolutiva docente
+        </p>
+      </div>
+      <nav class="site-nav">
+        <ul>
+          <li>
+            <a href="teacher-dashboard.html">
+              Painel
+            </a>
+          </li>
+          <li>
+            <a href="teacher-review.html">
+              Revisões
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- Conteúdo principal específico desta etapa da jornada. -->
+    <main id="conteudo" class="page-main narrow">
+      <header class="page-header">
+        <span class="eyebrow">
+          Etapa 5
+        </span>
+        <h1>
+          Preparar devolutiva
+        </h1>
+        <p>
+          A avaliação docente fica separada do percurso original do aluno.
+        </p>
+      </header>
+      <div id="feedbackStatus" class="status" role="status" aria-live="polite">
+        Carregando atendimento…
+      </div>
+      <!-- Avaliação docente persistida separadamente da submissão imutável. -->
+      <form id="feedbackForm" class="card stack" hidden>
+        <input type="hidden" id="submissionId" name="submissionId">
+        <div class="field">
+          <label for="strengths">
+            Pontos fortes
+          </label>
+          <textarea id="strengths" name="strengths" required></textarea>
+        </div>
+        <div class="field">
+          <label for="difficulties">
+            Dificuldades identificadas
+          </label>
+          <textarea id="difficulties" name="difficulties" required></textarea>
+        </div>
+        <div class="field">
+          <label for="missedEvidence">
+            Evidências relevantes não consideradas
+          </label>
+          <textarea id="missedEvidence" name="missedEvidence"></textarea>
+        </div>
+        <div class="field">
+          <label for="prioritizationComment">
+            Comentário sobre priorização
+          </label>
+          <textarea id="prioritizationComment" name="prioritizationComment"></textarea>
+        </div>
+        <div class="field">
+          <label for="justificationComment">
+            Comentário sobre a justificativa
+          </label>
+          <textarea id="justificationComment" name="justificationComment"></textarea>
+        </div>
+        <div class="field">
+          <label for="nextAttemptGuidance">
+            Orientações para a próxima tentativa
+          </label>
+          <textarea id="nextAttemptGuidance" name="nextAttemptGuidance" required></textarea>
+        </div>
+        <div class="field">
+          <label for="generalObservation">
+            Observação geral
+          </label>
+          <textarea id="generalObservation" name="generalObservation"></textarea>
+        </div>
+        <div class="cluster">
+          <button class="button" name="action" value="draft" type="submit">
+            Salvar rascunho
+          </button>
+          <button class="button primary" name="action" value="complete" type="submit">
+            Concluir devolutiva
+          </button>
+          <button class="button" id="exportFeedback" type="button">
+            Exportar devolutiva em PDF
+          </button>
+          <a class="button" id="backToReview" href="teacher-review.html">
+            Voltar à revisão
+          </a>
+        </div>
+      </form>
+    </main>
+    <!-- Biblioteca local usada para exportar a devolutiva sem enviar dados a terceiros. -->
+    <script src="../vendor/pdfmake/pdfmake.min.js"></script>
+    <script src="../vendor/pdfmake/vfs_fonts.js"></script>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <!-- Controlador da página e integração com os serviços da API. -->
+    <script type="module" src="../scripts/teacher/feedback.js">
+    </script>
+  </body>
+</html>

@@ -1,0 +1,625 @@
+openapi: 3.1.0
+info:
+  title: API Paciente Virtual
+  version: 1.0.0-draft
+  description: >-
+    Contrato da futura API C++20. Autenticação usa cookie de sessão; geração
+    assistida e publicação exigem autorização de professor.
+servers:
+  - url: /api/v1
+tags:
+  - name: Autenticação
+  - name: Administração
+  - name: Casos
+  - name: Geração de casos
+  - name: Atendimentos
+  - name: Devolutivas
+paths:
+  /auth/login:
+    post:
+      tags: [Autenticação]
+      summary: Inicia uma sessão segura
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Sessão iniciada; o cookie é emitido pelo servidor.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Cookie HttpOnly, SameSite e Secure em produção.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /auth/logout:
+    post:
+      tags: [Autenticação]
+      summary: Encerra a sessão atual
+      responses:
+        '204': { description: Sessão encerrada. }
+  /auth/session:
+    get:
+      tags: [Autenticação]
+      summary: Retorna a sessão atual
+      responses:
+        '200':
+          description: Sessão válida.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Session' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/register/{role}:
+    post:
+      tags: [Autenticação]
+      summary: Solicita uma conta acadêmica institucional
+      security: []
+      parameters:
+        - name: role
+          in: path
+          required: true
+          schema: { enum: [student, teacher] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegistrationRequest' }
+      responses:
+        '201': { description: Solicitação pendente de análise administrativa. }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /admin/registrations:
+    get:
+      tags: [Administração]
+      summary: Lista solicitações pendentes
+      responses:
+        '200':
+          description: Cadastros aguardando decisão.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PendingRegistration' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/registrations/{requestId}/{decision}:
+    post:
+      tags: [Administração]
+      summary: Aprova ou recusa uma solicitação
+      parameters:
+        - name: requestId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: decision
+          in: path
+          required: true
+          schema: { enum: [approve, reject] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string }
+      responses:
+        '200': { description: Decisão registrada e notificação enfileirada. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/configuration:
+    get:
+      tags: [Administração]
+      summary: Consulta domínios, notificações e contadores administrativos
+      responses:
+        '200': { description: Configuração administrativa atual. }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /cases:
+    get:
+      tags: [Casos]
+      summary: Lista casos visíveis ao usuário autenticado
+      responses:
+        '200':
+          description: Casos disponíveis.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ClinicalCaseSummary' }
+    post:
+      tags: [Casos]
+      summary: Cria um caso em rascunho
+      description: Requer papel teacher. Nunca publica automaticamente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClinicalCase' }
+      responses:
+        '201':
+          description: Rascunho criado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClinicalCase' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /cases/{caseId}:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    get:
+      tags: [Casos]
+      summary: Consulta uma versão de caso autorizada
+      responses:
+        '200':
+          description: Caso encontrado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClinicalCase' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Casos]
+      summary: Atualiza um rascunho e cria histórico de versão
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClinicalCase' }
+      responses:
+        '200':
+          description: Rascunho atualizado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClinicalCase' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /cases/{caseId}/publish:
+    parameters:
+      - $ref: '#/components/parameters/CaseId'
+    post:
+      tags: [Casos]
+      summary: Publica uma versão aprovada por revisão humana
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version, clinicalReviewConfirmed]
+              properties:
+                version: { type: integer, minimum: 1 }
+                clinicalReviewConfirmed: { const: true }
+      responses:
+        '200': { description: Versão publicada. }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /case-generation/structured:
+    post:
+      tags: [Geração de casos]
+      summary: Solicita proposta a partir de formulário estruturado
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StructuredCaseInput' }
+      responses:
+        '202':
+          description: Trabalho enfileirado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GenerationJob' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /case-generation/pdf:
+    post:
+      tags: [Geração de casos]
+      summary: Envia PDF para extração controlada e geração de rascunho
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: PDF validado inicialmente e trabalho enfileirado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GenerationJob' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '413': { description: Arquivo excede o limite configurado. }
+        '415': { description: Arquivo não é um PDF aceito. }
+  /case-generation/{jobId}:
+    get:
+      tags: [Geração de casos]
+      summary: Consulta estado, lacunas e proposta de um trabalho
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Estado atual.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GenerationJob' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /submissions:
+    get:
+      tags: [Atendimentos]
+      summary: Lista atendimentos autorizados
+      parameters:
+        - name: status
+          in: query
+          schema: { enum: [submitted, awaiting_review, reviewed] }
+      responses:
+        '200':
+          description: Lista paginada.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Submission' }
+    post:
+      tags: [Atendimentos]
+      summary: Envia percurso imutável do aluno
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmissionReport' }
+      responses:
+        '201':
+          description: Atendimento registrado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+  /submissions/import-pdf:
+    post:
+      tags: [Atendimentos]
+      summary: Importa relatório PDF emitido pela plataforma
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Relatório compatível importado e PDF original preservado.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: { type: integer, format: int64 }
+                  status: { type: string, enum: [imported] }
+        '400': { description: Tipo, assinatura ou esquema incompatível. }
+        '413': { description: Arquivo vazio ou acima de 10 MB. }
+  /submissions/{submissionId}:
+    get:
+      tags: [Atendimentos]
+      summary: Consulta percurso e tentativas para revisão
+      parameters:
+        - $ref: '#/components/parameters/SubmissionId'
+      responses:
+        '200':
+          description: Atendimento encontrado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Submission' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /submissions/{submissionId}/feedback:
+    post:
+      tags: [Devolutivas]
+      summary: Cria devolutiva separada do atendimento original
+      parameters:
+        - $ref: '#/components/parameters/SubmissionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeacherFeedback' }
+      responses:
+        '201':
+          description: Rascunho criado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherFeedback' }
+  /feedback/{feedbackId}:
+    put:
+      tags: [Devolutivas]
+      summary: Atualiza devolutiva ainda em rascunho
+      parameters:
+        - $ref: '#/components/parameters/FeedbackId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeacherFeedback' }
+      responses:
+        '200': { description: Rascunho atualizado. }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /feedback/{feedbackId}/complete:
+    post:
+      tags: [Devolutivas]
+      summary: Conclui a devolutiva
+      parameters:
+        - $ref: '#/components/parameters/FeedbackId'
+      responses:
+        '200': { description: Devolutiva concluída e bloqueada para edição comum. }
+  /students/{studentId}/feedback:
+    get:
+      tags: [Devolutivas]
+      summary: Lista devolutivas visíveis ao aluno autenticado
+      parameters:
+        - name: studentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Devolutivas autorizadas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TeacherFeedback' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: pv_session
+  parameters:
+    CaseId:
+      name: caseId
+      in: path
+      required: true
+      schema: { type: string }
+    SubmissionId:
+      name: submissionId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    FeedbackId:
+      name: feedbackId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Unauthorized:
+      description: Sessão ausente, inválida ou expirada.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Usuário autenticado sem autorização.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Recurso não encontrado ou não visível ao usuário.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Conflict:
+      description: Estado ou versão incompatível com a operação.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationError:
+      description: Entrada inválida.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    TooManyRequests:
+      description: Muitas tentativas; aguarde antes de repetir.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+  schemas:
+    Problem:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details:
+          type: array
+          items: { type: string }
+    RegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 3, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 12, maxLength: 1024, writeOnly: true }
+        className: { type: string, maxLength: 80 }
+        professionalRegistration: { type: string, maxLength: 80 }
+    PendingRegistration:
+      type: object
+      required: [id, userId, name, email, role, submittedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { enum: [student, teacher] }
+        className: { type: [string, 'null'] }
+        professionalRegistration: { type: [string, 'null'] }
+        submittedAt: { type: string }
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 1024, writeOnly: true }
+    Session:
+      type: object
+      required: [userId, fullName, role, expiresAt]
+      properties:
+        userId: { type: string, format: uuid }
+        fullName: { type: string }
+        role: { enum: [student, teacher, admin] }
+        expiresAt: { type: string, format: date-time }
+    ClinicalCaseSummary:
+      type: object
+      required: [id, version, title, status]
+      properties:
+        id: { type: string }
+        version: { type: integer }
+        title: { type: string }
+        status: { $ref: '#/components/schemas/ReviewState' }
+    ClinicalCase:
+      type: object
+      required: [schemaVersion, id, version, status, patient, learningObjectives, items, hypotheses, outcome, references]
+      properties:
+        schemaVersion: { const: '1.0' }
+        id: { type: string, pattern: '^[a-z0-9][a-z0-9_-]*$' }
+        version: { type: integer, minimum: 1 }
+        status: { $ref: '#/components/schemas/ReviewState' }
+        patient:
+          type: object
+          required: [displayName, age, chiefComplaint, context]
+          properties:
+            displayName: { type: string }
+            age: { type: integer, minimum: 0, maximum: 130 }
+            chiefComplaint: { type: string }
+            context: { type: string }
+        learningObjectives: { type: array, minItems: 1, items: { type: string } }
+        items:
+          type: array
+          minItems: 40
+          maxItems: 40
+          items: { $ref: '#/components/schemas/CaseItem' }
+        hypotheses:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/Hypothesis' }
+        priorityEvidenceIds: { type: array, items: { type: string } }
+        outcome:
+          type: object
+          required: [hypothesisId, explanation]
+          properties:
+            hypothesisId: { type: string }
+            explanation: { type: string }
+        references: { type: array, minItems: 1, items: { type: string } }
+        assumptions: { type: array, items: { type: string } }
+        missingData: { type: array, items: { type: string } }
+    CaseItem:
+      type: object
+      required: [id, type, title, answer, quality, why]
+      properties:
+        id: { type: string }
+        type: { enum: [question, exam] }
+        title: { type: string }
+        answer: { type: string }
+        quality: { type: string }
+        why: { type: string }
+        parent: { type: string }
+    Hypothesis:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string }
+        label: { type: string }
+    ReviewState:
+      enum: [draft, awaiting_human_review, changes_requested, approved, published, rejected]
+    StructuredCaseInput:
+      type: object
+      required: [title, patient, chiefComplaint, clinicalHistory, expectedOutcome, learningObjectives, references]
+      properties:
+        title: { type: string }
+        patient: { type: object, additionalProperties: true }
+        chiefComplaint: { type: string }
+        clinicalHistory: { type: string }
+        expectedOutcome: { type: string }
+        learningObjectives: { type: array, items: { type: string } }
+        references: { type: array, items: { type: string } }
+        pedagogicalNotes: { type: string }
+    GenerationJob:
+      type: object
+      required: [id, status, createdAt, warnings, missingData]
+      properties:
+        id: { type: string, format: uuid }
+        status:
+          enum: [queued, validating_source, extracting, requires_ocr, generating, validation_failed, awaiting_human_review, changes_requested, approved, rejected, failed]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        warnings: { type: array, items: { type: string } }
+        assumptions: { type: array, items: { type: string } }
+        missingData: { type: array, items: { type: string } }
+        generatedCase: { $ref: '#/components/schemas/ClinicalCase' }
+    SubmissionReport:
+      type: object
+      required: [schemaVersion, reportType, caseId, caseVersion, studentId, activityId, exportedAt, path, attempts]
+      properties:
+        schemaVersion: { const: '1.0' }
+        reportType: { const: clinical-case-submission }
+        caseId: { type: string }
+        caseVersion: { type: integer, minimum: 1 }
+        studentId: { type: string, format: uuid }
+        activityId: { type: string, format: uuid }
+        exportedAt: { type: string, format: date-time }
+        path:
+          type: array
+          items: { $ref: '#/components/schemas/SubmissionStep' }
+        attempts:
+          type: array
+          items: { $ref: '#/components/schemas/DiagnosticAttempt' }
+    SubmissionStep:
+      type: object
+      required: [sequence, itemId, type, selectedAt, answer, quality, comment]
+      properties:
+        sequence: { type: integer, minimum: 1 }
+        itemId: { type: string }
+        type: { enum: [question, exam] }
+        selectedAt: { type: string, format: date-time }
+        answer: { type: string }
+        quality: { type: string }
+        comment: { type: string }
+    DiagnosticAttempt:
+      type: object
+      required: [sequence, hypothesisId, justification, submittedAt, availableEvidenceIds]
+      properties:
+        sequence: { type: integer, minimum: 1 }
+        hypothesisId: { type: string }
+        justification: { type: string }
+        submittedAt: { type: string, format: date-time }
+        availableEvidenceIds: { type: array, items: { type: string } }
+    Submission:
+      allOf:
+        - $ref: '#/components/schemas/SubmissionReport'
+        - type: object
+          required: [id, status]
+          properties:
+            id: { type: string, format: uuid }
+            status: { enum: [submitted, awaiting_review, reviewed] }
+    TeacherFeedback:
+      type: object
+      required: [strengths, difficulties, missedEvidence, prioritizationComment, justificationComment, nextAttemptGuidance, generalObservation, status]
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        strengths: { type: string }
+        difficulties: { type: string }
+        missedEvidence: { type: string }
+        prioritizationComment: { type: string }
+        justificationComment: { type: string }
+        nextAttemptGuidance: { type: string }
+        generalObservation: { type: string }
+        status: { enum: [draft, completed] }
+security:
+  - sessionCookie: []

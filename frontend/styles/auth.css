@@ -1,0 +1,86 @@
+/* Layout das páginas de escolha de perfil e autenticação. */
+@import url("./components.css");
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: 2rem;
+  align-items: center;
+  min-height: calc(100vh - 190px);
+}
+.auth-copy h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  margin: .35rem 0 1rem;
+  line-height: 1.05;
+}
+.auth-card {
+  padding: 2rem;
+}
+.auth-card form {
+  display: grid;
+  gap: 1rem;
+}
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.role-card {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+.role-card .button {
+  margin-top: auto;
+}
+@media (max-width: 760px) {
+  .auth-layout, .role-grid {
+    grid-template-columns: 1fr;
+  }
+  .auth-layout {
+    padding-top: 1rem;
+  }
+}
+
+/* Componentes do painel responsável pela validação institucional. */
+.registration-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.registration-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--color-border);
+}
+.registration-item h3 {
+  margin: .5rem 0;
+}
+.registration-item p {
+  margin: .3rem 0;
+}
+.decision-box {
+  display: grid;
+  gap: .5rem;
+}
+.decision-box label {
+  font-weight: 720;
+}
+.decision-box textarea {
+  width: 100%;
+  padding: .72rem .8rem;
+  border: 1px solid #b9c6d4;
+  border-radius: var(--radius-small);
+  resize: vertical;
+}
+.optional {
+  color: var(--color-muted);
+  font-size: .85rem;
+  font-weight: 500;
+}
+@media (max-width: 900px) {
+  .role-grid, .registration-item {
+    grid-template-columns: 1fr;
+  }
+}

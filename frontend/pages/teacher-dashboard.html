@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Painel do professor · Paciente Virtual
+    </title>
+    <link rel="stylesheet" href="../styles/teacher.css">
+  </head>
+  <body class="app-shell auth-pending" data-required-role="teacher">
+    <a class="skip-link" href="#conteudo">
+      Ir para o conteúdo
+    </a>
+    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
+    <header class="site-header">
+      <div class="brand">
+        FIAP
+      </div>
+      <div>
+        <p class="site-title">
+          Paciente Virtual
+        </p>
+        <p class="site-subtitle">
+          Área do professor
+        </p>
+      </div>
+      <nav class="site-nav" aria-label="Conta">
+        <ul>
+          <li>
+            <button class="button" id="logoutButton" type="button">
+              Sair
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- Conteúdo principal específico desta etapa da jornada. -->
+    <main id="conteudo" class="page-main teacher-layout">
+      <aside class="card teacher-sidebar" aria-label="Navegação do professor">
+        <nav>
+          <ul>
+            <li>
+              <a aria-current="page" href="teacher-dashboard.html">
+                Visão geral
+              </a>
+            </li>
+            <li>
+              <a href="teacher-review.html">
+                Revisar atendimento
+              </a>
+            </li>
+            <li>
+              <a href="teacher-cases.html">
+                Casos clínicos
+              </a>
+            </li>
+            <li>
+              <a href="teacher-case-editor.html">
+                Criar caso
+              </a>
+            </li>
+            <li>
+              <a href="teacher-pdf-import.html">
+                Importar PDF
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+      <section class="teacher-content">
+        <header class="page-header">
+          <span class="eyebrow">
+            Painel do professor
+          </span>
+          <h1>
+            Visão geral
+          </h1>
+          <p>
+            Os indicadores abaixo refletem apenas dados disponíveis na API.
+          </p>
+        </header>
+        <div id="dashboardStatus" class="status" role="status" aria-live="polite">
+          <span class="loading">
+            Carregando informações…
+          </span>
+        </div>
+        <!-- Indicadores carregados exclusivamente da API, sem valores inventados. -->
+        <section class="grid three section-gap" aria-label="Indicadores">
+          <article class="card metric">
+            <span>
+              Aguardando revisão
+            </span>
+            <strong id="pendingCount">
+              —
+            </strong>
+          </article>
+          <article class="card metric">
+            <span>
+              Devolutivas em rascunho
+            </span>
+            <strong id="draftCount">
+              —
+            </strong>
+          </article>
+          <article class="card metric">
+            <span>
+              Casos disponíveis
+            </span>
+            <strong id="caseCount">
+              —
+            </strong>
+          </article>
+        </section>
+        <section class="card section-gap" aria-labelledby="recentTitle">
+          <div class="split">
+            <div>
+              <h2 id="recentTitle">
+                Atendimentos recentes
+              </h2>
+              <p class="muted">
+                Selecione um atendimento para revisar o percurso.
+              </p>
+            </div>
+            <a class="button" href="teacher-review.html">
+              Importar relatório PDF
+            </a>
+          </div>
+          <div id="recentSubmissions" class="empty-state">
+            <h3>
+              Nenhum atendimento carregado
+            </h3>
+            <p>
+              Quando a API retornar envios autorizados, eles aparecerão aqui.
+            </p>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <!-- Controlador da página e integração com os serviços da API. -->
+    <script type="module" src="../scripts/teacher/dashboard.js">
+    </script>
+  </body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paciente-virtual.local/schemas/submission-report-v1.json",
+  "title": "Relatório de atendimento versionado",
+  "type": "object",
+  "required": ["schemaVersion", "reportType", "caseId", "caseVersion", "studentId", "activityId", "exportedAt", "path", "attempts"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "reportType": { "const": "clinical-case-submission" },
+    "caseId": { "type": "string", "minLength": 1 },
+    "caseVersion": { "type": "integer", "minimum": 1 },
+    "studentId": { "type": "string", "minLength": 1 },
+    "activityId": { "type": "string", "minLength": 1 },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "path": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sequence", "itemId", "type", "selectedAt", "answer", "quality", "comment"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1 },
+          "itemId": { "type": "string" },
+          "type": { "enum": ["question", "exam"] },
+          "selectedAt": { "type": "string", "format": "date-time" },
+          "answer": { "type": "string" },
+          "quality": { "type": "string" },
+          "comment": { "type": "string" }
+        }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sequence", "hypothesisId", "justification", "submittedAt", "availableEvidenceIds"],
+        "properties": {
+          "sequence": { "type": "integer", "minimum": 1 },
+          "hypothesisId": { "type": "string" },
+          "justification": { "type": "string" },
+          "submittedAt": { "type": "string", "format": "date-time" },
+          "availableEvidenceIds": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

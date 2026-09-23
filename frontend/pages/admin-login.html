@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Login administrativo · Paciente Virtual</title>
+    <link rel="stylesheet" href="../styles/auth.css">
+  </head>
+  <body class="app-shell">
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+    <!-- Identidade da área usada pela secretaria e pela equipe responsável. -->
+    <header class="site-header">
+      <div class="brand" aria-label="FIAP">FIAP</div>
+      <div><p class="site-title">Paciente Virtual</p><p class="site-subtitle">Administração institucional</p></div>
+    </header>
+    <!-- O administrador usa a mesma autenticação segura das jornadas acadêmicas. -->
+    <main id="conteudo" class="page-main auth-layout">
+      <section class="auth-copy" aria-labelledby="page-title">
+        <span class="eyebrow">Administrador</span>
+        <h1 id="page-title">Acompanhe acessos e valide cadastros.</h1>
+        <p class="muted">Entre com a conta administrativa criada diretamente no servidor.</p>
+      </section>
+      <section class="card auth-card" aria-labelledby="form-title">
+        <h2 id="form-title">Entrar</h2>
+        <form id="loginForm" data-role="admin" data-success-url="./admin-dashboard.html">
+          <div class="field"><label for="email">E-mail administrativo</label><input id="email" name="email" type="email" autocomplete="username" required></div>
+          <div class="field"><label for="password">Senha</label><div class="password-field"><input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required><button type="button" data-toggle-password aria-controls="password">Mostrar</button></div></div>
+          <div id="formStatus" role="status" aria-live="polite"></div>
+          <button class="button primary" type="submit">Entrar como administrador</button>
+          <a class="button" href="../index.html">Voltar à escolha de perfil</a>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="../scripts/auth/login-page.js"></script>
+  </body>
+</html>

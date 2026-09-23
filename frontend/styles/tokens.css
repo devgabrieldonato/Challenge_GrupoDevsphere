@@ -1,0 +1,18 @@
+/* Variáveis visuais compartilhadas por todas as jornadas da plataforma. */
+:root {
+  --color-brand: #ed145b;
+  --color-primary: #315bdf;
+  --color-primary-dark: #2447b7;
+  --color-ink: #15283e;
+  --color-muted: #607187;
+  --color-border: #dce4ed;
+  --color-surface: #ffffff;
+  --color-background: #f5f7fb;
+  --color-success: #147d58;
+  --color-warning: #a45c00;
+  --color-danger: #b42318;
+  --shadow-card: 0 12px 34px rgba(21, 40, 62, 0.1);
+  --radius-small: 8px;
+  --radius-medium: 14px;
+  --content-width: 1180px;
+}

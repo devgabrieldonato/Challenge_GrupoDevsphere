@@ -142,6 +142,20 @@
             <h3 id="journeyTitle">Evidências coletadas</h3>
             <div class="counter" id="count">00</div>
             <small>ações realizadas</small>
+            <!-- Placar pedagógico: mostra o resultado atual sem antecipar o valor das opções disponíveis. -->
+            <section class="score-card" aria-labelledby="scoreTitle">
+              <div class="score-card-head">
+                <h4 id="scoreTitle">Pontuação</h4>
+                <strong><span id="scoreValue">50</span>/100</strong>
+              </div>
+              <dl>
+                <div><dt>Total bruto</dt><dd id="scoreRaw">50</dd></div>
+                <div><dt>Orçamento de investigação</dt><dd id="scoreBudget">0 de 12</dd></div>
+              </dl>
+              <p id="scoreChange" class="score-change" role="status" aria-live="polite">
+                O placar começa em 50 pontos.
+              </p>
+            </section>
             <ol class="timeline" id="timeline"></ol>
             <p id="historyEmpty" class="placeholder">
               Suas escolhas aparecerão aqui, na ordem em que forem feitas.
@@ -168,7 +182,7 @@
             href="https://www.escardio.org/guidelines/clinical-practice-guidelines/all-esc-practice-guidelines/acute-pulmonary-embolism/"
             target="_blank"
             rel="noopener"
-          >diretriz de embolia pulmonar · ESC</a>. O percurso fica nesta sessão; use “Exportar percurso em PDF” ao concluir.
+          >diretriz de embolia pulmonar · ESC</a>. Ao finalizar, o percurso e o PDF são enviados automaticamente ao professor.
         </footer>
       </div>
     </main>
@@ -225,10 +239,24 @@
         <button class="btn" data-close="result" aria-label="Fechar" type="button">×</button>
       </div>
       <div id="feedback"></div>
-      <div class="actions">
-        <button class="btn" id="export" type="button">Exportar percurso em PDF</button>
+      <!-- Entrega automática: mantém o aluno informado sobre geração, envio e retry do relatório. -->
+      <section class="submission-summary" aria-labelledby="submissionTitle">
+        <h3 id="submissionTitle">Enviar atendimento para revisão</h3>
+        <p>
+          O percurso, as hipóteses, a pontuação e o PDF serão enviados diretamente
+          ao professor. Você não precisa importar um arquivo manualmente.
+        </p>
+        <p id="submissionStatus" class="submission-status" data-state="idle" role="status" aria-live="polite">
+          Finalize o caso para enviá-lo automaticamente ao professor.
+        </p>
+      </section>
+      <div class="actions result-actions">
+        <button class="btn" id="export" type="button">Baixar cópia em PDF</button>
         <a class="btn" id="downloadPdf" hidden>Baixar PDF</a>
-        <button class="btn primary" data-close="result" type="button">Voltar ao mapa</button>
+        <button class="btn" data-close="result" type="button">Voltar ao mapa</button>
+        <button class="btn primary" id="finalizeSubmission" type="button">
+          Finalizar caso e enviar ao professor
+        </button>
       </div>
     </dialog>
     <!-- Confirmação antes de apagar o percurso atual e reiniciar o mesmo caso. -->

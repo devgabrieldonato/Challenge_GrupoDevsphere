@@ -87,17 +87,43 @@ Variáveis disponíveis: `DEVSPHERE_HOST`, `DEVSPHERE_PORT`,
 `DEVSPHERE_ENV=production`, `DEVSPHERE_DB_PATH`,
 `DEVSPHERE_MIGRATIONS_DIR`, `DEVSPHERE_FRONTEND_DIR` e
 `DEVSPHERE_ALLOWED_ORIGINS`. Em desenvolvimento, as origens locais do Live
-Server na porta 5501 já são aceitas. Em produção, informe uma lista separada
-por vírgulas em `DEVSPHERE_ALLOWED_ORIGINS`, use HTTPS e ative
+Server na porta 5501 já são aceitas. O preflight permite `Content-Type` e
+`Idempotency-Key`. Use o mesmo host em ambas as portas: `localhost` com
+`localhost`, ou `127.0.0.1` com `127.0.0.1`, para preservar o cookie. Em
+produção, informe uma lista separada por vírgulas em
+`DEVSPHERE_ALLOWED_ORIGINS`, use HTTPS e ative
 `DEVSPHERE_ENV=production`; a API então acrescenta `Secure` ao cookie.
 
 ## Escopo implementado
 
 A API aplica migrations, autentica usuários, cria sessões em cookie
 `HttpOnly` e `SameSite=Strict`, limita tentativas de login e aplica RBAC.
-Professores consultam somente atendimentos associados às atividades que
-ministram. O percurso enviado pelo aluno é imutável e a devolutiva fica em
-entidade separada.
+Professores consultam somente atendimentos sob sua responsabilidade. O percurso
+enviado pelo aluno é imutável e a devolutiva fica em entidade separada.
+
+## Finalização automática e PDF
+
+`POST /api/v1/submissions` recebe `multipart/form-data` com
+`clientSubmissionId`, `report`, `pdf` e `activityId` opcional. O relatório
+usa o schema v2 em `docs/schemas/submission-report.schema.json`. A mesma chave
+e o mesmo conteúdo retornam a submissão existente; conteúdo diferente com a
+mesma chave responde conflito.
+
+O endpoint aceita aluno e administrador. A identidade acadêmica vem da sessão,
+e uma execução administrativa é marcada como teste. O backend recalcula a
+pontuação, compara o JSON incorporado no PDF com o campo `report`, valida o
+arquivo e grava tudo na mesma transação. O limite do PDF é 20 MiB.
+
+`GET /api/v1/submissions/{id}/pdf` entrega o documento ao aluno proprietário,
+professor responsável ou administrador. Outros usuários recebem `404`. A
+importação manual em `POST /api/v1/submissions/import-pdf` continua disponível
+somente para relatórios legados ou externos.
+
+Veja também:
+
+- `docs/RELATORIO_PDF_VERSIONADO.md`;
+- `docs/PONTUACAO_PEDAGOGICA.md`;
+- `backend/openapi/openapi.yaml`.
 
 As rotas de geração por IA respondem `501 ai_not_configured` até um provedor
 ser ligado a `AIClinicalCaseService`. A importação persistente do relatório PDF preserva o original e registra

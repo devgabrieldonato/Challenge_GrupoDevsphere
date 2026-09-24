@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 struct sqlite3;
 
@@ -22,6 +23,32 @@ struct SessionUser {
   std::string fullName;
   std::string email;
   std::string role;
+};
+
+// Dados recebidos na conclusão. A identidade acadêmica é sempre derivada da
+// sessão; nenhum identificador de aluno enviado pelo navegador é confiável.
+struct PlatformSubmissionInput {
+  std::string clientSubmissionId;
+  std::optional<std::int64_t> activityId;
+  std::string originalPdfName;
+  std::string pdfData;
+  std::string pdfSha256;
+  std::string reportJson;
+};
+
+struct PlatformSubmissionResult {
+  std::int64_t id{};
+  bool created{};
+  int initialScore{};
+  int rawScore{};
+  int displayedScore{};
+  std::string reviewStatus;
+};
+
+struct SubmissionPdf {
+  std::string originalName;
+  std::string sha256;
+  std::string data;
 };
 
 class Database {
@@ -66,6 +93,10 @@ class Database {
                                    std::int64_t byteSize,
                                    const std::string& reportJson,
                                    const std::string& schemaVersion);
+  PlatformSubmissionResult submitPlatform(const SessionUser& actor,
+                                           const PlatformSubmissionInput& input);
+  std::optional<SubmissionPdf> getSubmissionPdf(std::int64_t id,
+                                                 const SessionUser& user);
   std::string listSubmissions(const SessionUser& user);
   std::optional<std::string> getSubmission(std::int64_t id,
                                            const SessionUser& user);

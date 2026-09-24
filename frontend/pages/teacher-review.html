@@ -55,31 +55,12 @@
           Revisar atendimento
         </h1>
         <p>
-          Importe um relatório da plataforma ou abra um atendimento disponibilizado pela API.
+          Abra um atendimento enviado automaticamente pela plataforma ou consulte a fila no painel.
         </p>
       </header>
-      <!-- Entrada exclusiva de relatórios PDF emitidos pela plataforma. -->
-      <section id="importCard" class="card" aria-labelledby="importTitle">
-        <h2 id="importTitle">
-          Importar relatório do aluno
-        </h2>
-        <p class="muted">
-          Somente PDFs exportados pelo Paciente Virtual, com até 10 MB e esquema compatível.
-        </p>
-        <div class="upload-zone">
-          <div class="field">
-            <label for="reportFile">
-              Relatório em PDF
-            </label>
-            <input id="reportFile" type="file" accept="application/pdf,.pdf" aria-describedby="reportRules">
-            <span id="reportRules" class="hint">
-              O arquivo será validado antes de qualquer envio.
-            </span>
-          </div>
-        </div>
-        <div id="importStatus" role="status" aria-live="polite" class="section-gap">
-        </div>
-      </section>
+      <!-- Estado de carregamento da submissão automática ou da importação legada. -->
+      <div id="importStatus" role="status" aria-live="polite">
+      </div>
       <!-- Revisão cronológica e tentativas reconstruídas do relatório validado. -->
       <section id="reviewContent" hidden class="section-gap">
         <article class="card">
@@ -99,6 +80,27 @@
           <dl id="reviewMeta" class="definition-list">
           </dl>
         </article>
+        <!-- Resumo auditável da pontuação recalculada e validada pela plataforma. -->
+        <section id="scoreSection" class="card section-gap" aria-labelledby="scoreTitle" hidden>
+          <div class="split">
+            <div>
+              <span class="eyebrow">
+                Desempenho da investigação
+              </span>
+              <h2 id="scoreTitle">
+                Pontuação pedagógica
+              </h2>
+            </div>
+            <strong id="scoreTotal" class="score-total">
+              —
+            </strong>
+          </div>
+          <dl id="scoreSummary" class="score-summary">
+          </dl>
+          <p id="scoreUnavailable" class="muted" hidden>
+            Pontuação não disponível para este relatório.
+          </p>
+        </section>
         <section class="grid two section-gap">
           <article class="card" aria-labelledby="pathTitle">
             <h2 id="pathTitle">
@@ -116,6 +118,12 @@
           </article>
         </section>
         <div class="cluster section-gap">
+          <button id="viewPdfButton" class="button" type="button" hidden>
+            Visualizar PDF
+          </button>
+          <button id="downloadPdfButton" class="button" type="button" hidden>
+            Baixar PDF
+          </button>
           <a id="feedbackLink" class="button primary" hidden>
             Preparar devolutiva
           </a>
@@ -124,6 +132,28 @@
           </a>
         </div>
       </section>
+      <!-- Importação preservada apenas para documentos antigos ou externos. -->
+      <details id="legacyImport" class="card legacy-import section-gap">
+        <summary>
+          Importar relatório legado ou externo
+        </summary>
+        <div class="legacy-import-content">
+          <p class="muted">
+            Use esta opção somente para PDFs antigos que não chegaram automaticamente à plataforma.
+          </p>
+          <div class="upload-zone">
+            <div class="field">
+              <label for="reportFile">
+                Relatório em PDF
+              </label>
+              <input id="reportFile" type="file" accept="application/pdf,.pdf" aria-describedby="reportRules">
+              <span id="reportRules" class="hint">
+                Somente PDFs do Paciente Virtual, com até 10 MB e esquema compatível.
+              </span>
+            </div>
+          </div>
+        </div>
+      </details>
     </main>
     <script type="module" src="../scripts/auth/route-guard.js"></script>
     <!-- Controlador da página e integração com os serviços da API. -->

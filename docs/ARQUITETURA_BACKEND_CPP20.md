@@ -1,54 +1,65 @@
-# Arquitetura preparada para a API C++20
+# Arquitetura da API C++20
 
 ## Limite entre navegador e servidor
 
-O navegador acessa somente a API HTTP. Credenciais, banco, extração de PDF e provedores de IA permanecem no servidor. Cookies de sessão devem ser `HttpOnly`, `SameSite=Lax` e `Secure` em produção. O papel do usuário é lido da sessão persistida e nunca aceito como autoridade a partir do corpo enviado pelo navegador.
+O navegador acessa somente a API HTTP. Credenciais, banco, documentos e regras autoritativas permanecem no servidor. O papel e a identidade são obtidos do cookie de sessão; campos enviados pelo cliente nunca concedem acesso.
 
-O contrato HTTP está em `backend/openapi/openapi.yaml`. A abstração da futura integração de IA está em `backend/include/ai/AIClinicalCaseService.hpp`. Não há chamada real de IA nem chave no repositório.
+O contrato HTTP está em `backend/openapi/openapi.yaml`. O schema do atendimento atual está em `docs/schemas/submission-report.schema.json`.
 
-## Módulos propostos
+## Módulos
 
-- `auth`: login, logout, sessão, limitação de tentativas e autorização por papel.
-- `cases`: casos versionados, itens, hipóteses, revisão e publicação.
-- `submissions`: percurso imutável, tentativas e importação do relatório PDF.
-- `feedback`: rascunho e conclusão da devolutiva, sempre separada do percurso.
-- `ai`: geração assistida, extração controlada e registro de alertas.
-- `documents`: quarentena, validação e retenção do PDF original.
-- `audit`: autoria, transições de estado e ações administrativas.
+- `auth`: login, logout, sessão, limitação de tentativas e autorização por papel;
+- `cases`: casos e versões clínicas;
+- `scoring`: regras versionadas e recálculo da pontuação;
+- `submissions`: conclusão idempotente, percurso, tentativas e relatório v2;
+- `documents`: validação, hash, armazenamento e acesso protegido ao PDF;
+- `feedback`: devolutiva separada do atendimento imutável;
+- `ai`: contratos de geração assistida ainda sem provedor real;
+- `audit`: autoria e ações administrativas.
+
+## Fluxo de conclusão
+
+1. O frontend congela um retrato da tentativa e cria `clientSubmissionId`.
+2. O PDF e o JSON v2 são enviados juntos em `POST /api/v1/submissions`.
+3. O backend identifica o usuário pela sessão, valida o relatório e recalcula a pontuação.
+4. A gravação do atendimento, dos passos, das tentativas, da pontuação e do documento ocorre na mesma transação.
+5. A mesma chave e o mesmo conteúdo recuperam a submissão anterior; a mesma chave com conteúdo diferente gera `409 idempotency_conflict`.
+6. O PDF fica disponível apenas pela rota autorizada da submissão.
+
+A API aceita aluno ou administrador nessa conclusão e recusa professor. Uma simulação administrativa usa aluno técnico, guarda o administrador como autor e recebe `isTest: true`.
+
+O backend armazena o PDF como BLOB. Essa escolha mantém documento e registros na mesma transação e evita referências a arquivos ausentes.
+
+## CORS e desenvolvimento local
+
+A aplicação completa usa `http://127.0.0.1:8080` ou `http://localhost:8080`. Com Live Server, o frontend usa a porta `5501` e chama a API na porta `8080` com `credentials: "include"`.
+
+Em desenvolvimento, a API permite explicitamente:
+
+- `http://127.0.0.1:5501`;
+- `http://localhost:5501`.
+
+O preflight da submissão aceita `Content-Type` e `Idempotency-Key`. A resposta inclui `Access-Control-Allow-Credentials: true` e reflete somente uma origem autorizada. Durante uma sessão, mantenha o mesmo host (`localhost` ou `127.0.0.1`) para que o cookie seja enviado corretamente.
+
+Produção exige HTTPS, origens explícitas em `DEVSPHERE_ALLOWED_ORIGINS`, limites de upload, logs estruturados e uma camada HTTP revisada.
 
 ## Persistência e evolução SQLite → PostgreSQL
 
-SQLite atende ao MVP local. A camada de repositórios deve usar transações, parâmetros vinculados e tipos da aplicação, sem SQL dentro dos controladores HTTP. Isso permite trocar o adaptador de persistência quando houver acesso concorrente de turmas.
+SQLite atende ao MVP local. A camada de banco usa parâmetros vinculados, transações e migrations incrementais. Uma evolução para PostgreSQL deve preservar chaves únicas de idempotência, chaves estrangeiras, hashes dos documentos e imutabilidade dos atendimentos.
 
-Para facilitar a migração:
+Um atendimento concluído é imutável. A devolutiva do professor permanece em entidade separada. Relatórios v1 importados continuam legíveis e não recebem pontuação retroativa.
 
-1. Use identificadores UUID gerados pela aplicação, datas ISO 8601 em UTC e valores booleanos representados pela camada de acesso.
-2. Não dependa de `rowid`, pragmas ou funções exclusivas do SQLite na regra de negócio.
-3. Mantenha migrations incrementais e registre a versão aplicada.
-4. Crie restrições, chaves estrangeiras e índices equivalentes nos dois bancos.
-5. Execute uma exportação consistente, importe em PostgreSQL, compare contagens e chaves, e faça a troca durante uma janela sem gravações.
-6. Após a migração, valide autenticação, autorizações, versões de casos e imutabilidade dos atendimentos antes de liberar escrita.
+## Autorização do professor
 
-## Entidades e regras de integridade
-
-As entidades previstas são `users`, `classes`, `class_enrollments`, `clinical_cases`, `case_versions`, `case_items`, `case_hypotheses`, `activities`, `activity_assignments`, `submissions`, `submission_steps`, `diagnostic_attempts`, `teacher_feedback`, `uploaded_documents`, `ai_generation_jobs` e `audit_logs`.
-
-- Uma versão publicada de caso é imutável. Edições geram nova versão.
-- Um atendimento enviado é imutável; correções docentes ficam em `teacher_feedback`.
-- Cada tentativa guarda a sequência de evidências disponível naquele instante.
-- Publicação exige revisão humana aprovada e confirmação explícita da responsabilidade clínica.
-- O professor acessa apenas turmas e atividades autorizadas; o aluno acessa somente seus dados.
-
-## Estados de revisão
-
-`draft` → `awaiting_human_review` → `approved` → `published`
-
-De `awaiting_human_review`, o professor pode seguir para `changes_requested` ou `rejected`. Um caso gerado por IA nunca transita diretamente para `published`. Toda transição registra autor, horário, origem, versão do prompt, modelo, alertas e documento associado.
-
-## Segurança de autenticação
-
-Senhas são armazenadas somente com Argon2id ou bcrypt e salt individual. E-mails são normalizados e únicos. O login usa mensagem genérica para credenciais inválidas, limitação progressiva de tentativas e rotação da sessão após autenticação. Tokens sensíveis não são gravados em `localStorage`.
+O aluno consulta os próprios registros. O professor consulta somente submissões em que seja o revisor responsável ou que estejam ligadas às suas atividades. O administrador possui visão global para administração e testes. A API responde `404` para uma submissão ou PDF sem vínculo autorizado.
 
 ## Observabilidade e privacidade
 
-Logs técnicos não devem conter senhas, cookies, texto clínico completo nem chaves. O registro de auditoria referencia artefatos por ID e inclui o mínimo necessário para rastrear autoria e estado. Políticas de retenção e acesso ao PDF original precisam ser definidas antes do uso com dados pessoais reais.
+Logs técnicos não devem conter senha, cookie, PDF, relatório completo ou texto clínico livre. Auditoria referencia artefatos por identificador e registra somente o necessário para rastrear autoria e estado.
+
+## Limites atuais
+
+- A classificação dos itens e os valores de pontuação aguardam homologação clínica humana.
+- O provedor real de IA, OCR e extração clínica de PDFs não está configurado.
+- O servidor HTTP embutido é destinado ao desenvolvimento local.
+- A política institucional de retenção dos PDFs deve ser definida antes do uso com dados pessoais reais.

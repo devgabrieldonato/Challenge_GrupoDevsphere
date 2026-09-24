@@ -2,7 +2,8 @@
 
 Plataforma educacional com jornadas separadas para estudantes e professores de
 Medicina. João e Marina continuam disponíveis no atendimento do aluno, com 18
-perguntas, 22 exames e exportação do percurso em PDF.
+perguntas, 22 exames, pontuação pedagógica e entrega automática do percurso em
+PDF para revisão docente.
 
 ## Estrutura
 
@@ -35,13 +36,19 @@ web apropriado no lugar do Live Server.
 ## Jornadas
 
 O aluno escolhe seu perfil, autentica, seleciona João ou Marina, investiga o
-caso, registra hipótese e justificativa e exporta um PDF legível. O mesmo PDF
-contém um bloco interno versionado (`PV_REPORT_V1`) usado pela importação no
-painel docente. A API preserva o original e não executa conteúdo incorporado.
+caso e registra hipótese e justificativa. Perguntas e exames alteram uma
+pontuação pedagógica versionada; escolhas além do orçamento recomendado recebem
+penalidade progressiva. Consulte [docs/PONTUACAO_PEDAGOGICA.md](docs/PONTUACAO_PEDAGOGICA.md).
 
-O professor autentica em uma área separada, consulta indicadores e atendimentos
-autorizados, revisa a ordem das escolhas e tentativas, salva ou conclui a
-devolutiva e pode exportá-la em PDF. Há formulários para autoria manual e envio
+Ao finalizar, o navegador envia automaticamente o relatório v2 e o PDF para a
+API. O mesmo protocolo é reutilizado quando há retry, evitando duplicação. O
+download manual continua disponível como cópia pessoal. O contrato está em
+[docs/RELATORIO_PDF_VERSIONADO.md](docs/RELATORIO_PDF_VERSIONADO.md).
+
+O professor autentica em uma área separada, consulta os atendimentos
+autorizados, revisa a ordem das escolhas, as tentativas, a pontuação e o PDF,
+salva ou conclui a devolutiva e pode exportá-la. A importação manual permanece
+como recurso para relatórios legados. Há formulários para autoria manual e envio
 de casos em PDF. A geração clínica real permanece bloqueada até a configuração
 de um provedor de IA no backend e sempre exige revisão humana.
 
@@ -62,8 +69,9 @@ o navegador não possui rota para promover usuários.
 Credenciais não são armazenadas em XML, CSV, JSON nem no navegador. O SQLite
 guarda somente hashes Argon2id com salt. Tokens de sessão ficam em cookie
 `HttpOnly`; o papel é obtido da sessão no backend. Professores só acessam
-submissões de atividades sob sua responsabilidade, e alunos só acessam os
-próprios registros.
+submissões sob sua responsabilidade, alunos acessam os próprios registros e o
+administrador pode produzir simulações marcadas como teste. A API recalcula a
+pontuação e ignora a identidade informada pelo navegador.
 
 As migrations modelam usuários, turmas, versões de casos, atividades,
 submissões imutáveis, tentativas, devolutivas, documentos, trabalhos de IA e

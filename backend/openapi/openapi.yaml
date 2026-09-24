@@ -257,29 +257,77 @@ paths:
       parameters:
         - name: status
           in: query
-          schema: { enum: [submitted, awaiting_review, reviewed] }
+          schema: { enum: [submitted, awaiting_assignment, awaiting_review, reviewed] }
       responses:
         '200':
-          description: Lista paginada.
+          description: Atendimentos visíveis conforme a sessão.
           content:
             application/json:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Submission' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     post:
       tags: [Atendimentos]
-      summary: Envia percurso imutável do aluno
+      summary: Finaliza e envia o atendimento com seu PDF
+      description: >-
+        Aceita aluno ou administrador. A identidade acadêmica vem da sessão.
+        Professor recebe 403. O backend recalcula a pontuação e compara o JSON
+        incorporado no PDF com o campo report. Um retry com a mesma chave e o
+        mesmo conteúdo retorna a submissão existente.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: Deve repetir o mesmo UUID enviado em clientSubmissionId.
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
-          application/json:
-            schema: { $ref: '#/components/schemas/SubmissionReport' }
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [clientSubmissionId, report, pdf]
+              properties:
+                clientSubmissionId:
+                  type: string
+                  format: uuid
+                report:
+                  type: string
+                  contentMediaType: application/json
+                  description: JSON textual conforme submission-report.schema.json v2.
+                activityId:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                pdf:
+                  type: string
+                  format: binary
+            encoding:
+              report:
+                contentType: application/json; charset=utf-8
+              pdf:
+                contentType: application/pdf
       responses:
         '201':
-          description: Atendimento registrado.
+          description: Nova submissão criada.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Submission' }
+              schema: { $ref: '#/components/schemas/SubmissionCreateResponse' }
+        '200':
+          description: Retry idempotente; a submissão existente foi recuperada.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubmissionCreateResponse' }
+        '400':
+          description: Relatório, PDF, atividade ou correspondência entre PDF e JSON inválidos.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /submissions/import-pdf:
     post:
       tags: [Atendimentos]
@@ -318,6 +366,35 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Submission' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /submissions/{submissionId}/pdf:
+    get:
+      tags: [Atendimentos]
+      summary: Exibe o PDF associado ao atendimento
+      description: >-
+        Disponível ao aluno proprietário, professor responsável e administrador.
+        Para outros usuários, responde 404 sem revelar a existência do documento.
+      parameters:
+        - $ref: '#/components/parameters/SubmissionId'
+      responses:
+        '200':
+          description: PDF preservado na conclusão.
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+              description: inline; filename="atendimento.pdf"
+            ETag:
+              schema: { type: string }
+              description: Hash SHA-256 do documento.
+            Cache-Control:
+              schema: { type: string }
+              description: private, no-store
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /submissions/{submissionId}/feedback:
     post:
@@ -391,7 +468,7 @@ components:
       name: submissionId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema: { type: integer, format: int64, minimum: 1 }
     FeedbackId:
       name: feedbackId
       in: path
@@ -564,22 +641,25 @@ components:
         missingData: { type: array, items: { type: string } }
         generatedCase: { $ref: '#/components/schemas/ClinicalCase' }
     SubmissionReport:
+      $ref: '../../docs/schemas/submission-report.schema.json'
+    SubmissionCreateResponse:
       type: object
-      required: [schemaVersion, reportType, caseId, caseVersion, studentId, activityId, exportedAt, path, attempts]
+      additionalProperties: false
+      required: [id, created, status, score]
       properties:
-        schemaVersion: { const: '1.0' }
-        reportType: { const: clinical-case-submission }
-        caseId: { type: string }
-        caseVersion: { type: integer, minimum: 1 }
-        studentId: { type: string, format: uuid }
-        activityId: { type: string, format: uuid }
-        exportedAt: { type: string, format: date-time }
-        path:
-          type: array
-          items: { $ref: '#/components/schemas/SubmissionStep' }
-        attempts:
-          type: array
-          items: { $ref: '#/components/schemas/DiagnosticAttempt' }
+        id: { type: integer, format: int64, minimum: 1 }
+        created:
+          type: boolean
+          description: Verdadeiro apenas quando esta requisição criou o registro.
+        status: { enum: [submitted, awaiting_assignment] }
+        score:
+          type: object
+          additionalProperties: false
+          required: [initial, raw, displayed]
+          properties:
+            initial: { type: integer }
+            raw: { type: integer }
+            displayed: { type: integer, minimum: 0, maximum: 100 }
     SubmissionStep:
       type: object
       required: [sequence, itemId, type, selectedAt, answer, quality, comment]
@@ -601,13 +681,20 @@ components:
         submittedAt: { type: string, format: date-time }
         availableEvidenceIds: { type: array, items: { type: string } }
     Submission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionReport'
-        - type: object
-          required: [id, status]
+      type: object
+      additionalProperties: true
+      required: [id]
+      properties:
+        id: { type: integer, format: int64, minimum: 1 }
+        status: { enum: [submitted, awaiting_assignment, awaiting_review, reviewed, imported] }
+        isTest: { type: boolean }
+        scoreAvailable: { type: boolean }
+        score:
+          type: object
           properties:
-            id: { type: string, format: uuid }
-            status: { enum: [submitted, awaiting_review, reviewed] }
+            initial: { type: integer }
+            raw: { type: integer }
+            displayed: { type: integer, minimum: 0, maximum: 100 }
     TeacherFeedback:
       type: object
       required: [strengths, difficulties, missedEvidence, prioritizationComment, justificationComment, nextAttemptGuidance, generalObservation, status]

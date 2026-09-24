@@ -716,3 +716,122 @@ textarea {
 .auth-pending main {
   visibility: hidden;
 }
+
+/* Placar pedagógico: resume pontos e eficiência sem depender somente de cor. */
+.score-card {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #cdd9e8;
+  border-radius: 10px;
+  background: #f8faff;
+}
+.score-card-head,
+.score-card dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.score-card h4,
+.score-card dl {
+  margin: 0;
+}
+.score-card-head strong {
+  color: var(--blue);
+  font-size: 20px;
+}
+.score-card dl {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.score-card dt {
+  color: var(--muted);
+}
+.score-card dd {
+  margin: 0;
+  font-weight: 700;
+}
+.score-change {
+  min-height: 2.8em;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.score-delta {
+  display: block;
+  margin-top: 3px;
+  font-weight: 700;
+}
+.score-delta.positive {
+  color: #147247;
+}
+.score-delta.negative {
+  color: #a33131;
+}
+
+/* Resumo final: apresenta decomposição dos pontos antes da entrega ao professor. */
+.score-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+.score-summary > div {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8faff;
+}
+.score-summary span,
+.score-summary strong {
+  display: block;
+}
+.score-summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Entrega automática: diferencia espera, sucesso e falha sem usar apenas cores. */
+.submission-summary {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8faff;
+}
+.submission-summary h3,
+.submission-summary p {
+  margin: 0 0 8px;
+}
+.submission-status {
+  padding: 10px;
+  border-left: 4px solid #607187;
+  background: white;
+  font-weight: 650;
+}
+.submission-status[data-state="preparing"],
+.submission-status[data-state="generating"],
+.submission-status[data-state="sending"] {
+  border-left-color: var(--blue);
+}
+.submission-status[data-state="sent"] {
+  border-left-color: #147247;
+}
+.submission-status[data-state="error"] {
+  border-left-color: #a33131;
+}
+.result-actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 650px) {
+  .score-summary {
+    grid-template-columns: 1fr;
+  }
+  .result-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+}

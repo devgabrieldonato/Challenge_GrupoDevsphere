@@ -2,6 +2,8 @@
 // ----------------------------------------------------------------------
 // O aluno e o professor consultam a mesma fonte, evitando divergência de conteúdo.
 import { joaoItems, marinaCase } from "../cases/clinical-cases.js";
+import { SubmissionService } from "../services/submission-service.js";
+import { ClinicalScoring } from "../scoring/clinical-scoring.js";
 
 // ESTADO DA SESSÃO
 // ----------------------------------------------------------------------
@@ -13,6 +15,15 @@ let path = [],
   filter = "all",
   attempts = [],
   timer;
+// Eventos de pontuação, sessão de regras e estado da entrega automática.
+// Contrato esperado do módulo ClinicalScoring:
+// - startSession(caseId): cria o placar inicial e informa versão/orçamento;
+// - scoreSelection({ caseId, itemId, sequence, currentEvents }): devolve um evento imutável;
+// - summarize(events): consolida pontos, bônus, perdas e eficiência.
+let scoreEvents = [],
+  scoringSession = null,
+  completionLocked = false,
+  pendingSubmission = null;
 
 // CONSULTAS E NOTIFICAÇÕES
 // ----------------------------------------------------------------------
@@ -40,6 +51,38 @@ function render() {
   $("historyEmpty").hidden = path.length > 0;
   renderHistory();
   renderMap();
+  renderScore();
+}
+
+// Normaliza o resultado do motor em campos simples compartilhados pela tela e pelo relatório.
+function summarizeScore() {
+  const result = ClinicalScoring.summarize(scoreEvents, activeCase);
+  return {
+    caseVersion: result.caseVersion,
+    ruleSetVersion: result.ruleSetVersion,
+    initialScore: result.initialScore,
+    rawTotal: result.rawTotal,
+    displayedTotal: result.displayedTotal,
+    recommendedActionBudget: result.recommendedActionBudget,
+    actionCount: result.selectedActionCount,
+    gains: result.summary.gains,
+    losses: result.summary.losses,
+    priorityBonus: result.summary.priorityBonus,
+    efficiencyPenalty: result.summary.efficiencyPenalties,
+  };
+}
+
+// Atualiza placar, última variação e consumo do orçamento sem revelar opções ainda não escolhidas.
+function renderScore() {
+  if (!scoringSession) return;
+  const summary = summarizeScore();
+  const lastEvent = scoreEvents.at(-1);
+  $("scoreValue").textContent = String(summary.displayedTotal);
+  $("scoreRaw").textContent = String(summary.rawTotal);
+  $("scoreBudget").textContent = `${scoreEvents.length} de ${summary.recommendedActionBudget}`;
+  $("scoreChange").textContent = lastEvent
+    ? `Última escolha: ${lastEvent.delta >= 0 ? "+" : ""}${lastEvent.delta} ponto(s).`
+    : "O placar começa em 50 pontos.";
 }
 
 // Atualiza somente os botões disponíveis para investigação.
@@ -65,7 +108,7 @@ function renderHistory() {
   $("timeline").innerHTML = path
     .map((step, index) => {
       const item = items.find((item) => item.id === step.id);
-      return `<li><span class="meta">${String(index + 1).padStart(2, "0")} · ${step.time}</span><b>${item.title}</b></li>`;
+      return `<li><span class="meta">${String(index + 1).padStart(2, "0")} · ${step.time}</span><b>${item.title}</b><span class="score-delta ${step.scoreEvent.delta < 0 ? "negative" : "positive"}">${step.scoreEvent.delta >= 0 ? "+" : ""}${step.scoreEvent.delta} ponto(s)</span></li>`;
     })
     .join("");
 }
@@ -94,20 +137,28 @@ function renderMap() {
 // ----------------------------------------------------------------------
 // Valida a ação, registra seu horário, redesenha a sessão e informa as opções liberadas.
 function add(id) {
-  if (!activeCase) return;
+  if (!activeCase || completionLocked) return;
   const item = items.find((item) => item.id === id);
   if (!item || !available(item)) return;
+  const scoreEvent = ClinicalScoring.scoreSelection({
+    caseId: activeCase,
+    itemId: id,
+    sequence: path.length + 1,
+    currentEvents: scoreEvents.map((event) => ({ ...event })),
+  });
+  scoreEvents.push(scoreEvent);
   path.push({
     id,
     time: new Date().toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
     }),
+    scoreEvent: { ...scoreEvent },
   });
   render();
   const unlocked = items.filter((item) => item.parent === id).length;
   notify(
-    `${item.title} adicionado.${unlocked ? " " + unlocked + " nova(s) opção(ões) liberada(s)." : ""}`,
+    `${item.title} adicionado. Variação: ${scoreEvent.delta >= 0 ? "+" : ""}${scoreEvent.delta} ponto(s).${unlocked ? " " + unlocked + " nova(s) opção(ões) liberada(s)." : ""}`,
   );
 }
 
@@ -174,6 +225,12 @@ $("reset").onclick = () => $("restart").showModal();
 $("confirmReset").onclick = () => {
   path = [];
   attempts = [];
+  scoreEvents = [];
+  scoringSession = ClinicalScoring.startSession(activeCase);
+  completionLocked = false;
+  pendingSubmission = null;
+  setSubmissionStatus("idle", "Finalize o caso para enviá-lo automaticamente ao professor.");
+  setSessionControlsDisabled(false);
   $("diagnosisForm").reset();
   $("restart").close();
   render();
@@ -200,6 +257,7 @@ $("diagnosisForm").onsubmit = (event) => {
     reason: $("reason").value,
     actions: path.map((step) => step.id),
     correct,
+    submittedAt: new Date().toISOString(),
   });
   $("diagnosis").close();
   // Compõe o desfecho, a presença das evidências e a revisão pedagógica das escolhas realizadas.
@@ -227,6 +285,19 @@ $("diagnosisForm").onsubmit = (event) => {
             .join("")
         : '<p class="sub">Nenhuma investigação realizada. Volte ao mapa para explorar as evidências.</p>'
     }`;
+  const scoreSummary = summarizeScore();
+  $("feedback").insertAdjacentHTML(
+    "beforeend",
+    `<h3 class="review-heading">Resumo da pontuação</h3>` +
+      `<div class="score-summary">` +
+      `<div><span>Pontuação final</span><strong>${scoreSummary.displayedTotal}/100</strong></div>` +
+      `<div><span>Total bruto</span><strong>${scoreSummary.rawTotal}</strong></div>` +
+      `<div><span>Ganhos</span><strong>+${scoreSummary.gains}</strong></div>` +
+      `<div><span>Perdas</span><strong>${scoreSummary.losses}</strong></div>` +
+      `<div><span>Bônus de prioridade</span><strong>+${scoreSummary.priorityBonus}</strong></div>` +
+      `<div><span>Penalidades de eficiência</span><strong>${scoreSummary.efficiencyPenalty}</strong></div>` +
+      `</div>`,
+  );
   $("result").showModal();
 };
 // Remove a mensagem de validação anterior quando a justificativa é editada.
@@ -235,20 +306,24 @@ $("reason").oninput = () => $("reason").setCustomValidity("");
 // EXPORTAÇÃO DO PERCURSO EM PDF
 // ----------------------------------------------------------------------
 // Captura os dados da sessão sem modificar o percurso nem as tentativas originais.
-function collectReportData() {
+function collectReportData(exportedAt = new Date().toISOString(), clientSubmissionId = null) {
+  const scoreSummary = summarizeScore();
   return {
     // Contrato versionado utilizado pela importação segura no painel docente.
-    schemaVersion: 1,
+    schemaVersion: 2,
     reportType: "patient-virtual-submission",
     caseId: activeCase,
     studentId: document.body.dataset.userId || null,
     studentName: document.body.dataset.userName || "Aluno não identificado",
     activityId: null,
+    clientSubmissionId,
+    submissionProtocol: clientSubmissionId,
+    ruleSetVersion: scoreSummary.ruleSetVersion,
     case:
       activeCase === "marina"
         ? marinaCase.exportLabel
         : "João, 54 anos — dor torácica",
-    exportedAt: new Date().toISOString(),
+    exportedAt,
     path: path.map((step, index) => ({
       step: index + 1,
       ...step,
@@ -258,6 +333,10 @@ function collectReportData() {
       ...attempt,
       actions: [...attempt.actions],
     })),
+    scoring: {
+      ...scoreSummary,
+      events: scoreEvents.map((event) => ({ ...event })),
+    },
   };
 }
 
@@ -284,6 +363,14 @@ function buildReportPath(report) {
       reportField("Resposta / resultado", step.answer),
       reportField("Avaliação pedagógica", step.quality),
       reportField("Comentário", step.why),
+      reportField(
+        "Pontuação",
+        `Clínica: ${step.scoreEvent.basePoints >= 0 ? "+" : ""}${step.scoreEvent.basePoints} | ` +
+          `Prioridade: ${step.scoreEvent.priorityBonus >= 0 ? "+" : ""}${step.scoreEvent.priorityBonus} | ` +
+          `Eficiência: ${step.scoreEvent.efficiencyPenalty} | ` +
+          `Variação: ${step.scoreEvent.delta >= 0 ? "+" : ""}${step.scoreEvent.delta} | ` +
+          `Total: ${step.scoreEvent.displayedTotalAfterAction}`,
+      ),
       ...(parent ? [reportField("Liberado após", `${parent.step}. ${parent.title}`)] : []),
     ];
   });
@@ -346,6 +433,17 @@ function buildReportDocument(report) {
       reportField("Caso", report.case),
       reportField("Exportado em", new Date(report.exportedAt).toLocaleString("pt-BR", { timeZoneName: "short" })),
       reportField("Resumo", `${questions} pergunta(s), ${exams} exame(s) e ${report.attempts.length} tentativa(s)`),
+      reportField("Protocolo", report.submissionProtocol || "Cópia ainda não enviada"),
+      { text: "Resumo da pontuação", style: "heading", headlineLevel: 1 },
+      reportField("Pontuação inicial", report.scoring.initialScore),
+      reportField("Pontuação final", report.scoring.displayedTotal),
+      reportField("Total bruto", report.scoring.rawTotal),
+      reportField("Orçamento recomendado", `${report.scoring.actionCount} de ${report.scoring.recommendedActionBudget} escolhas`),
+      reportField("Versão das regras", report.scoring.ruleSetVersion),
+      reportField("Ganhos", report.scoring.gains),
+      reportField("Perdas", report.scoring.losses),
+      reportField("Bônus de prioridade", report.scoring.priorityBonus),
+      reportField("Penalidades de eficiência", report.scoring.efficiencyPenalty),
       {
         text: "Caso fictício com resultados simulados, para uso educacional. Conteúdo sujeito à validação docente. Os horários e a ordem das escolhas não representam tempo clínico.",
         style: "note",
@@ -388,20 +486,57 @@ function createReportBlob(documentDefinition, report) {
 
 // Mantém um link visível para download manual caso o navegador bloqueie o clique automático.
 let reportUrl = null;
-function downloadReport(blob, filename) {
+function downloadReport(blob, filename, startDownload = true) {
   if (reportUrl) URL.revokeObjectURL(reportUrl);
   reportUrl = URL.createObjectURL(blob);
   const downloadLink = $("downloadPdf");
   downloadLink.href = reportUrl;
   downloadLink.download = filename;
   downloadLink.hidden = false;
-  downloadLink.click();
+  if (startDownload) downloadLink.click();
 }
 window.addEventListener("pagehide", () => {
   if (reportUrl) URL.revokeObjectURL(reportUrl);
 });
 
-// Exporta somente PDF; restaura o botão tanto no sucesso quanto em falhas de geração.
+// Altera os controles de investigação quando a tentativa entra em conclusão.
+function setSessionControlsDisabled(disabled) {
+  $("reset").disabled = disabled;
+  $("diagnose").disabled = disabled;
+  $("blocks").setAttribute("aria-disabled", String(disabled));
+}
+
+// Informa o estágio da entrega com texto persistente e anúncio acessível.
+function setSubmissionStatus(state, message) {
+  const status = $("submissionStatus");
+  status.dataset.state = state;
+  status.textContent = message;
+  status.setAttribute("aria-busy", String(["preparing", "generating", "sending"].includes(state)));
+}
+
+// Cria uma chave idempotente estável para todos os retries desta conclusão.
+function createClientSubmissionId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  window.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+}
+
+// Traduz falhas conhecidas da API em instruções úteis, sem afirmar que houve envio.
+function submissionErrorMessage(error, stage) {
+  if (stage === "generating") return "Não foi possível gerar o PDF. Seu percurso foi preservado; tente novamente.";
+  if (error?.status === 401) return "Sua sessão expirou. Entre novamente e tente reenviar.";
+  if (error?.status === 403) return "Sua conta não tem autorização para enviar este atendimento.";
+  if (error?.status === 409) return "O protocolo já foi usado com outro conteúdo. Reinicie o atendimento.";
+  if (error?.status >= 400 && error?.status < 500)
+    return error.message || "O atendimento contém dados que precisam ser revisados.";
+  return "Não foi possível alcançar o servidor. Seu percurso foi preservado; tente novamente.";
+}
+
+// Prepara uma cópia manual sem modificar ou finalizar o atendimento.
 $("export").onclick = async () => {
   const button = $("export");
   if (button.disabled || !activeCase) return;
@@ -411,8 +546,8 @@ $("export").onclick = async () => {
   button.setAttribute("aria-busy", "true");
   try {
     if (!window.pdfMake) throw new Error("Biblioteca PDF indisponível.");
-    const report = collectReportData();
-    const blob = await createReportBlob(buildReportDocument(report), report);
+    const report = pendingSubmission?.report || collectReportData();
+    const blob = pendingSubmission?.pdf || await createReportBlob(buildReportDocument(report), report);
     downloadReport(blob, `percurso-${activeCase}.pdf`);
     notify("PDF pronto. Se o download não iniciar, clique em Baixar PDF.");
   } catch (error) {
@@ -425,6 +560,66 @@ $("export").onclick = async () => {
   }
 };
 
+// Congela um retrato da tentativa, gera o PDF e envia ambos com a mesma chave idempotente.
+async function finalizeAndSubmit() {
+  const button = $("finalizeSubmission");
+  if (button.disabled || !activeCase || !attempts.length) return;
+  completionLocked = true;
+  setSessionControlsDisabled(true);
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+
+  let stage = "preparing";
+  try {
+    if (!pendingSubmission) {
+      const clientSubmissionId = createClientSubmissionId();
+      pendingSubmission = {
+        clientSubmissionId,
+        report: collectReportData(new Date().toISOString(), clientSubmissionId),
+        pdf: null,
+      };
+    }
+
+    setSubmissionStatus("preparing", "Preparando atendimento…");
+    if (!window.pdfMake) throw new Error("Biblioteca PDF indisponível.");
+    if (!pendingSubmission.pdf) {
+      stage = "generating";
+      setSubmissionStatus("generating", "Gerando PDF…");
+      pendingSubmission.pdf = await createReportBlob(
+        buildReportDocument(pendingSubmission.report),
+        pendingSubmission.report,
+      );
+    }
+
+    stage = "sending";
+    setSubmissionStatus("sending", "Enviando ao professor…");
+    const submission = await SubmissionService.submit({
+      report: pendingSubmission.report,
+      pdf: pendingSubmission.pdf,
+      clientSubmissionId: pendingSubmission.clientSubmissionId,
+      activityId: pendingSubmission.report.activityId,
+    });
+    const protocol = submission?.protocol || submission?.id || pendingSubmission.clientSubmissionId;
+    setSubmissionStatus(
+      "sent",
+      `Enviado para revisão. Protocolo: ${protocol}.`,
+    );
+    button.textContent = "Atendimento enviado";
+    $("downloadPdf").textContent = "Baixar PDF enviado";
+    downloadReport(pendingSubmission.pdf, `percurso-${activeCase}-${protocol}.pdf`, false);
+    notify("Atendimento e PDF enviados ao professor.");
+  } catch (error) {
+    console.error("Não foi possível finalizar o atendimento.", error);
+    setSubmissionStatus("error", submissionErrorMessage(error, stage));
+    button.disabled = false;
+    button.textContent = "Tentar novamente";
+  } finally {
+    button.removeAttribute("aria-busy");
+  }
+}
+
+$("finalizeSubmission").onclick = finalizeAndSubmit;
+
 // ESCOLHA E ABERTURA DO CASO
 // ----------------------------------------------------------------------
 // Inicia uma única sessão a partir da escolha do caso e prepara seus dados na interface.
@@ -434,6 +629,7 @@ $("caseForm").onsubmit = (event) => {
   if (activeCase || !["joao", "marina"].includes(selected)) return;
   activeCase = selected;
   items = selected === "marina" ? marinaCase.items : joaoItems;
+  scoringSession = ClinicalScoring.startSession(activeCase);
   $("blocks").dataset.totalOptions = String(items.length);
   // Substitui a apresentação inicial de João pelos dados, imagem e alternativas de Marina.
   if (selected === "marina") {
@@ -486,7 +682,7 @@ $("caseForm").onsubmit = (event) => {
             `<a href="${reference.url}" target="_blank" rel="noopener">${reference.label}</a>`,
         )
         .join(" e ") +
-      ". O percurso fica nesta sessão; use “Exportar percurso em PDF” ao concluir.";
+      ". Ao finalizar, o percurso e o PDF são enviados automaticamente ao professor.";
   }
   render();
   // Exibe o atendimento e direciona o foco ao título para facilitar a navegação por teclado.

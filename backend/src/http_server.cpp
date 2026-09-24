@@ -115,7 +115,8 @@ struct MultipartFile {
   std::string data;
 };
 
-std::optional<MultipartFile> multipartFile(const HttpRequest& request) {
+std::optional<MultipartFile> multipartFile(const HttpRequest& request,
+                                                const std::string& fieldName = "file") {
   const auto contentType = request.headers.find("content-type");
   if (contentType == request.headers.end()) return std::nullopt;
   const std::regex boundaryPattern(R"REGEX(boundary=(?:"([^"]+)"|([^;\s]+)))REGEX");
@@ -145,7 +146,7 @@ std::optional<MultipartFile> multipartFile(const HttpRequest& request) {
 
     if (lowerHeaders.find("content-disposition: form-data") !=
             std::string::npos &&
-        lowerHeaders.find("name=\"file\"") != std::string::npos) {
+        lowerHeaders.find("name=\"" + lower(fieldName) + "\"") != std::string::npos) {
       const std::regex filenamePattern(R"REGEX(filename="([^"]*)")REGEX");
       const std::regex mimePattern(R"(content-type:\s*([^\r\n;]+))",
                                    std::regex::icase);
@@ -161,6 +162,38 @@ std::optional<MultipartFile> multipartFile(const HttpRequest& request) {
       if (filename.empty() || filename.size() > 255) return std::nullopt;
       return MultipartFile{filename, lower(trim(mimeMatch[1].str())),
                            request.body.substr(dataStart, dataEnd - dataStart)};
+    }
+    part = request.body.find(delimiter, dataEnd + 2);
+  }
+  return std::nullopt;
+}
+
+// Extrai um campo textual do mesmo multipart usado pelo PDF. O limite de
+// requisição global impede que campos malformados provoquem consumo ilimitado.
+std::optional<std::string> multipartText(const HttpRequest& request,
+                                         const std::string& fieldName) {
+  const auto contentType = request.headers.find("content-type");
+  if (contentType == request.headers.end()) return std::nullopt;
+  const std::regex boundaryPattern(R"REGEX(boundary=(?:"([^"]+)"|([^;\s]+)))REGEX");
+  std::smatch boundaryMatch;
+  if (!std::regex_search(contentType->second, boundaryMatch, boundaryPattern)) return std::nullopt;
+  const std::string boundary = boundaryMatch[1].matched ? boundaryMatch[1].str() : boundaryMatch[2].str();
+  if (boundary.empty() || boundary.size() > 200) return std::nullopt;
+  const std::string delimiter = "--" + boundary;
+  std::size_t part = request.body.find(delimiter);
+  while (part != std::string::npos) {
+    const auto headerStart = request.body.find("\r\n", part + delimiter.size());
+    if (headerStart == std::string::npos) return std::nullopt;
+    const auto headerEnd = request.body.find("\r\n\r\n", headerStart + 2);
+    if (headerEnd == std::string::npos) return std::nullopt;
+    const std::string headers = request.body.substr(headerStart + 2, headerEnd - headerStart - 2);
+    const auto dataStart = headerEnd + 4;
+    const auto dataEnd = request.body.find("\r\n" + delimiter, dataStart);
+    if (dataEnd == std::string::npos) return std::nullopt;
+    const std::regex namePattern("name=\\\"" + fieldName + "\\\"");
+    if (std::regex_search(headers, namePattern) &&
+        lower(headers).find("filename=") == std::string::npos) {
+      return request.body.substr(dataStart, dataEnd - dataStart);
     }
     part = request.body.find(delimiter, dataEnd + 2);
   }
@@ -355,7 +388,9 @@ std::optional<std::string> allowedCorsOrigin(const HttpRequest& request,
   // aceitas. Produção exige uma lista explícita no ambiente.
   if (!production &&
       (origin == "http://127.0.0.1:5501" ||
-       origin == "http://localhost:5501")) {
+       origin == "http://localhost:5501" ||
+       origin == "http://127.0.0.1:8080" ||
+       origin == "http://localhost:8080")) {
     return origin;
   }
 
@@ -375,7 +410,7 @@ void applyCors(const HttpRequest& request, HttpResponse& response,
   if (!origin) return;
   response.headers["Access-Control-Allow-Origin"] = *origin;
   response.headers["Access-Control-Allow-Credentials"] = "true";
-  response.headers["Access-Control-Allow-Headers"] = "Content-Type";
+  response.headers["Access-Control-Allow-Headers"] = "Content-Type, Idempotency-Key";
   response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS";
   response.headers["Vary"] = "Origin";
 }
@@ -402,6 +437,13 @@ std::optional<SessionUser> HttpServer::authenticate(
 }
 
 HttpResponse HttpServer::route(const HttpRequest& request) {
+  // Rejeita também requisições simples de origens desconhecidas. Sem esta
+  // verificação, o navegador esconderia a resposta, mas a ação poderia ocorrer.
+  if (request.headers.contains("origin") &&
+      !allowedCorsOrigin(request, production_)) {
+    return jsonError(403, "origin_not_allowed", "Origem não autorizada.");
+  }
+
   // Responde à verificação CORS feita pelo navegador antes de requisições com JSON.
   if (request.method == "OPTIONS") {
     return allowedCorsOrigin(request, production_)
@@ -584,6 +626,62 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     }
   }
 
+  // A conclusão recebe dados estruturados e PDF em uma única operação
+  // idempotente. O servidor deriva a identidade do cookie autenticado.
+  if (request.method == "POST" && request.path == "/api/v1/submissions") {
+    if (user->role != "student" && user->role != "admin") {
+      return jsonError(403, "forbidden", "Somente aluno ou administrador pode concluir um caso.");
+    }
+    const auto clientId = multipartText(request, "clientSubmissionId");
+    const auto report = multipartText(request, "report");
+    const auto activityText = multipartText(request, "activityId");
+    const auto file = multipartFile(request, "pdf");
+    static const std::regex uuidPattern(
+        R"(^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$)");
+    if (!clientId || !std::regex_match(*clientId, uuidPattern) || !report || !file) {
+      return jsonError(400, "invalid_submission",
+                       "Envie clientSubmissionId UUID, report e arquivo PDF.");
+    }
+    if (file->mimeType != "application/pdf" ||
+        lower(std::filesystem::path(file->filename).extension().string()) != ".pdf") {
+      return jsonError(400, "invalid_pdf_type", "Envie exclusivamente um PDF.");
+    }
+    const auto embeddedReport = structuredReport(file->data);
+    if (!embeddedReport || *embeddedReport != *report) {
+      return jsonError(400, "pdf_report_mismatch",
+                       "O relatório embutido no PDF não coincide com os dados enviados.");
+    }
+    std::optional<std::int64_t> activityId;
+    if (activityText && !trim(*activityText).empty()) {
+      try {
+        std::size_t consumed = 0;
+        const auto value = std::stoll(trim(*activityText), &consumed);
+        if (consumed != trim(*activityText).size() || value <= 0) throw std::invalid_argument("activity");
+        activityId = value;
+      } catch (...) {
+        return jsonError(400, "invalid_activity", "Identificador de atividade inválido.");
+      }
+    }
+    try {
+      const PlatformSubmissionResult result = database_.submitPlatform(
+          *user, PlatformSubmissionInput{*clientId, activityId, file->filename,
+                                         file->data, sha256Hex(file->data), *report});
+      return jsonResponse(
+          result.created ? 201 : 200,
+          "{\"id\":" + std::to_string(result.id) +
+              ",\"created\":" + (result.created ? "true" : "false") +
+              ",\"status\":\"" + jsonEscape(result.reviewStatus) +
+              "\",\"score\":{\"initial\":" + std::to_string(result.initialScore) +
+              ",\"raw\":" + std::to_string(result.rawScore) +
+              ",\"displayed\":" + std::to_string(result.displayedScore) + "}}");
+    } catch (const std::domain_error&) {
+      return jsonError(409, "idempotency_conflict",
+                       "A chave já foi usada com conteúdo diferente.");
+    } catch (const std::invalid_argument& error) {
+      return jsonError(400, "invalid_submission", error.what());
+    }
+  }
+
   if (request.method == "POST" &&
       request.path == "/api/v1/submissions/import-pdf") {
     if (user->role != "teacher" && user->role != "admin") {
@@ -666,6 +764,21 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
 
   if (request.method == "GET" && request.path == "/api/v1/submissions") {
     return jsonResponse(200, database_.listSubmissions(*user));
+  }
+
+  static const std::regex submissionPdfPattern(
+      R"(^/api/v1/submissions/([0-9]+)/pdf$)");
+  if (request.method == "GET") {
+    if (const auto id = pathId(request.path, submissionPdfPattern)) {
+      const auto pdf = database_.getSubmissionPdf(*id, *user);
+      if (!pdf) return jsonError(404, "not_found", "PDF não encontrado.");
+      return HttpResponse{200,
+                          {{"Content-Type", "application/pdf"},
+                           {"Content-Disposition", "inline; filename=\"atendimento.pdf\""},
+                           {"ETag", "\"" + pdf->sha256 + "\""},
+                           {"Cache-Control", "private, no-store"}},
+                          pdf->data};
+    }
   }
 
   static const std::regex submissionPattern(R"(^/api/v1/submissions/([0-9]+)$)");

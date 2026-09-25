@@ -10,7 +10,22 @@ export async function apiRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const isFormData = options.body instanceof FormData;
   if (options.body && !isFormData && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: "include" });
+  let response;
+
+  // Erros de rede não possuem resposta HTTP. No desenvolvimento local, isso
+  // normalmente significa que o Live Server abriu o frontend, mas a API C++
+  // ainda não está escutando na porta 8080.
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: "include" });
+  } catch {
+    throw new ApiError(
+      runningOnLiveServer
+        ? "A API local está indisponível. Aguarde a tarefa 'Devsphere: API local (8080)' iniciar e tente novamente."
+        : "Não foi possível alcançar o servidor. Verifique se a API está em execução.",
+      0,
+      { code: "network_error" },
+    );
+  }
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json") ? await response.json() : await response.text();
   if (!response.ok) {

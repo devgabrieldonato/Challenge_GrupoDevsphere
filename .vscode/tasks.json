@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Devsphere: API local (8080)",
+      "detail": "Compila e mantém a API C++ ativa para o frontend aberto pelo Live Server.",
+      "type": "process",
+      "command": "${workspaceFolder}/tools/start-local-api.sh",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "runOptions": {
+        "runOn": "folderOpen",
+        "instanceLimit": 1
+      }
+    }
+  ]
+}

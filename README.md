@@ -1,88 +1,285 @@
 # Paciente Virtual
 
-Plataforma educacional com jornadas separadas para estudantes e professores de
-Medicina. João e Marina continuam disponíveis no atendimento do aluno, com 18
-perguntas, 22 exames, pontuação pedagógica e entrega automática do percurso em
-PDF para revisão docente.
+Plataforma educacional para estudantes e professores de Medicina. O aluno
+escolhe um caso clínico, conduz a investigação, formula hipóteses e recebe uma
+pontuação pedagógica. O professor revisa o percurso, as evidências disponíveis
+e as tentativas antes de registrar a devolutiva.
 
-## Estrutura
+## Funcionalidades principais
 
-- `frontend/`: escolha de perfil, cadastro, logins e áreas de aluno, professor e administrador.
-- `backend/`: API C++20, SQLite, migrations, Argon2id e testes.
-- `docs/`: arquitetura, contratos de casos, importação e relatório versionado.
-- `tools/`: validador estrutural de casos gerados.
-- `images/`: imagens mantidas pela versão anterior da aplicação.
-- `index.html`: entrada compatível para quem abre a raiz diretamente.
+- jornadas separadas para aluno, professor e administrador;
+- casos clínicos de João e Marina, cada um com 18 perguntas e 22 exames;
+- pontuação versionada, com penalidades para escolhas de baixo valor ou
+  inadequadas;
+- envio automático do percurso e do PDF para revisão docente;
+- consulta da ordem das perguntas, exames, hipóteses e justificativas;
+- devolutiva docente com pontos fortes, dificuldades e próximas orientações;
+- cadastro institucional sujeito à aprovação administrativa;
+- autoria manual e importação de casos clínicos em PDF, com contratos preparados
+  para uma futura integração de IA.
 
-## Iniciar
+## Estrutura do projeto
 
-Siga [backend/README.md](backend/README.md) para compilar a API, criar usuários
-locais por variável de ambiente e iniciar o servidor. A aplicação completa deve
-ser aberta pelo endereço da API; abrir páginas por `file://` não oferece
-autenticação ou persistência.
+- `frontend/`: escolha de perfil, cadastro, logins e áreas dos três papéis;
+- `backend/`: API C++20, SQLite, migrations, Argon2id e testes;
+- `docs/`: arquitetura, pontuação, contratos de casos e relatório PDF;
+- `tools/`: inicialização local e validação estrutural de casos;
+- `images/`: imagens dos pacientes virtuais;
+- `index.html`: entrada compatível para acesso pela raiz do projeto.
 
-## Usar com Live Server na porta 5501
+## Requisitos
 
-O Live Server pode servir o frontend durante o desenvolvimento, mas a API C++
-precisa continuar ativa na porta `8080`. Abra a raiz do projeto pelo Live
-Server em `http://127.0.0.1:5501/`. O cliente detecta essa origem e envia as
-requisições para `http://127.0.0.1:8080/api/v1`, incluindo o cookie de sessão.
+- CMake 3.20 ou superior;
+- compilador compatível com C++20;
+- SQLite 3;
+- extensão Live Server, somente quando esse modo de execução for utilizado.
 
-A API aceita CORS local somente de `http://127.0.0.1:5501` e
-`http://localhost:5501`. Outras origens continuam bloqueadas. Em produção,
-configure `DEVSPHERE_ALLOWED_ORIGINS` com a origem HTTPS real e use um servidor
-web apropriado no lugar do Live Server.
+Os detalhes de compilação, variáveis e comandos administrativos estão no
+[README do backend](backend/README.md).
+
+## Banco SQLite local
+
+O desenvolvimento utiliza `backend/data/devsphere.db`. Cada pasta, cópia ou
+clone possui seu próprio arquivo SQLite: dados não são compartilhados
+automaticamente entre branches em diretórios diferentes, computadores ou
+clones. Por isso, uma cópia nova pode não reconhecer contas criadas em outra.
+
+As migrations criam tabelas, índices, triggers e demais estruturas, mas não
+criam as contas de teste. Excluir o banco remove usuários, sessões, cadastros,
+turmas, atividades, submissões, PDFs, pontuações, feedbacks e os outros dados
+locais. `devsphere.db-wal` e `devsphere.db-shm` também pertencem ao SQLite; pare
+a API antes de remover ou substituir qualquer um desses arquivos.
+
+O banco e seus arquivos auxiliares não devem ser versionados no Git.
+
+## Compilar e testar
+
+Na raiz do repositório:
+
+```bash
+cmake -S backend -B build/backend -DBUILD_TESTING=ON
+cmake --build build/backend
+ctest --test-dir build/backend --output-on-failure
+```
+
+O primeiro comando configura o projeto, o segundo compila a API e os testes e o
+terceiro executa a suíte do backend. Compile antes de chamar diretamente
+`build/backend/devsphere-api`.
+
+## Domínio de desenvolvimento
+
+O domínio institucional local é `devsphere.local`. Ele precisa ser autorizado
+antes que solicitações públicas com esse domínio sejam aceitas:
+
+```bash
+DEVSPHERE_DB_PATH=backend/data/devsphere.db \
+DEVSPHERE_MIGRATIONS_DIR=backend/migrations \
+build/backend/devsphere-api --allow-domain devsphere.local
+```
+
+Esse domínio serve apenas ao desenvolvimento. Ele deverá ser substituído pelo
+domínio oficial quando as regras institucionais forem homologadas.
+
+## Contas de teste locais
+
+| Perfil | E-mail | Papel efetivo | Acesso |
+| --- | --- | --- | --- |
+| Administrador | `admin@devsphere.local` | `admin` | Administração, aluno e professor |
+| Aluno | `aluno.teste@devsphere.local` | `student` | Jornada do aluno |
+| Professor | `professor.teste@devsphere.local` | `teacher` | Jornada do professor |
+
+Essas contas só existem no banco em que forem criadas. Elas não acompanham o
+clone e não são inseridas por migrations. As senhas são definidas localmente por
+`DEVSPHERE_SEED_PASSWORD` e nunca devem ser gravadas em README, scripts, JSON,
+XML, CSV, código-fonte ou Git. Remova a variável depois do uso.
+
+O backend determina o papel `admin`, independentemente do formulário escolhido.
+Durante testes, o administrador pode entrar pelas páginas de administrador,
+aluno ou professor sem alterar seu papel persistido. Alunos e professores
+comuns não recebem acesso administrativo.
+
+## Recriar o ambiente local
+
+Use este fluxo quando o banco for apagado, o projeto for clonado em outro
+computador, uma nova cópia for criada ou as contas locais não existirem:
+
+1. pare a API;
+2. compile o backend;
+3. aplique as migrations;
+4. autorize `devsphere.local`;
+5. crie administrador, aluno e professor;
+6. remova a variável de senha;
+7. inicie a API novamente;
+8. teste os três acessos.
+
+Os comandos completos, sem senhas reais, estão em
+[Recriar banco e contas locais](backend/README.md#recriar-banco-e-contas-locais).
+Contas criadas pelo binário ficam ativas imediatamente. Contas solicitadas pelos
+formulários públicos continuam dependendo da aprovação administrativa.
+
+## Iniciar a API
+
+Há três formas suportadas.
+
+### Inicialização automática pelo VS Code
+
+A tarefa `Devsphere: API local (8080)`, definida em `.vscode/tasks.json`, pode
+ser executada ao abrir a pasta. Confie na pasta e permita tarefas automáticas
+quando o VS Code solicitar. A tarefa compila quando necessário, aplica
+migrations, usa `backend/data/devsphere.db` e não cria outra instância quando o
+health check da porta `8080` já responde.
+
+Se ela estiver desativada, use **Terminal → Executar Tarefa... → Devsphere: API
+local (8080)**.
+
+### Inicialização manual pelo script
+
+```bash
+./tools/start-local-api.sh
+```
+
+O script resolve os caminhos a partir da raiz, configura e compila o backend
+quando necessário e inicia a API com o banco e as migrations locais.
+
+### Inicialização manual pelo binário
+
+```bash
+DEVSPHERE_DB_PATH=backend/data/devsphere.db \
+DEVSPHERE_MIGRATIONS_DIR=backend/migrations \
+DEVSPHERE_FRONTEND_DIR=frontend \
+DEVSPHERE_HOST=127.0.0.1 \
+DEVSPHERE_PORT=8080 \
+build/backend/devsphere-api
+```
+
+A mensagem abaixo confirma a inicialização:
+
+```text
+Devsphere API em http://127.0.0.1:8080
+```
+
+## Modos de execução
+
+### Aplicação servida pela API — porta 8080
+
+Inicie a API e acesse `http://127.0.0.1:8080`. Nesse modo, o backend C++20
+entrega o frontend e atende a API; o Live Server não é necessário. Banco,
+sessões e autenticação permanecem no backend.
+
+### Frontend pelo Live Server — porta 5501
+
+O Live Server entrega somente HTML, CSS, JavaScript, imagens e outros arquivos
+estáticos. Ele não substitui o backend. Os dois serviços devem permanecer
+ativos:
+
+- frontend: `http://127.0.0.1:5501`;
+- API: `http://127.0.0.1:8080`.
+
+O frontend detecta a porta `5501` e envia as requisições para a `8080`. Fechar o
+terminal ou encerrar a tarefa pode desligar a API; iniciar apenas o Live Server
+não oferece login, cadastro, persistência ou submissões.
+
+Use o mesmo hostname nas duas portas. Combine `127.0.0.1` com `127.0.0.1` ou
+`localhost` com `localhost`; misturar os dois pode impedir o envio do cookie de
+sessão.
 
 ## Jornadas
 
-O aluno escolhe seu perfil, autentica, seleciona João ou Marina, investiga o
-caso e registra hipótese e justificativa. Perguntas e exames alteram uma
-pontuação pedagógica versionada; escolhas além do orçamento recomendado recebem
-penalidade progressiva. Consulte [docs/PONTUACAO_PEDAGOGICA.md](docs/PONTUACAO_PEDAGOGICA.md).
+### Aluno
 
-Ao finalizar, o navegador envia automaticamente o relatório v2 e o PDF para a
-API. O mesmo protocolo é reutilizado quando há retry, evitando duplicação. O
-download manual continua disponível como cópia pessoal. O contrato está em
-[docs/RELATORIO_PDF_VERSIONADO.md](docs/RELATORIO_PDF_VERSIONADO.md).
+O aluno autentica, escolhe João ou Marina, investiga o caso e registra hipótese
+e justificativa. Perguntas e exames alteram a pontuação; escolhas além do
+orçamento recomendado recebem penalidade progressiva. Ao finalizar, o relatório
+v2 e o PDF são enviados automaticamente à API, com proteção contra duplicação.
+O download manual permanece disponível como cópia pessoal.
 
-O professor autentica em uma área separada, consulta os atendimentos
-autorizados, revisa a ordem das escolhas, as tentativas, a pontuação e o PDF,
-salva ou conclui a devolutiva e pode exportá-la. A importação manual permanece
-como recurso para relatórios legados. Há formulários para autoria manual e envio
-de casos em PDF. A geração clínica real permanece bloqueada até a configuração
-de um provedor de IA no backend e sempre exige revisão humana.
+### Professor
+
+O professor consulta atendimentos autorizados, revisa a ordem das escolhas, as
+tentativas, a pontuação, as justificativas e o PDF. Depois registra uma
+devolutiva, podendo salvá-la como rascunho ou concluí-la. A importação manual de
+relatórios legados permanece disponível.
+
+### Administrador
+
+O administrador analisa solicitações institucionais, aprova ou recusa cadastros
+e consulta a caixa de saída auditável. Para testes funcionais, também pode abrir
+as jornadas do aluno e do professor.
 
 ## Cadastro e validação institucional
 
-Alunos e professores solicitam acesso com e-mail de um domínio previamente
-autorizado. A conta nasce inativa e só pode entrar depois da decisão de um
-administrador institucional. O painel administrativo registra aprovações,
-recusas e notificações em uma caixa de saída auditável. O envio externo de
-e-mail será conectado depois por um provedor próprio da instituição.
+Aluno e professor solicitam acesso com e-mail de um domínio autorizado. A conta
+nasce inativa e só pode entrar após decisão administrativa. Aprovações, recusas
+e notificações ficam auditadas. O envio externo de e-mail ainda depende de um
+provedor institucional futuro.
 
-A conta administrativa local também pode abrir as jornadas do aluno e do
-professor para testes funcionais. Ela é criada somente por comando no backend;
-o navegador não possui rota para promover usuários.
+O navegador nunca concede o papel administrativo. Administradores são criados
+somente por comando no backend.
+
+## Solução de problemas
+
+### Erro `Failed to fetch`
+
+**Sintoma:** a página abre pelo Live Server, mas login, cadastro ou outra ação
+mostra `Failed to fetch`.
+
+**Causa principal:** o frontend está disponível na porta `5501`, mas a API não
+está ativa na `8080`. Trata-se de falha de comunicação, não necessariamente de
+credencial.
+
+Confira o health check:
+
+```bash
+curl http://127.0.0.1:8080/api/v1/health
+```
+
+A resposta esperada é:
+
+```json
+{"status":"ok"}
+```
+
+Se não houver conexão, inicie a API:
+
+```bash
+./tools/start-local-api.sh
+```
+
+Ou use **Terminal → Executar Tarefa... → Devsphere: API local (8080)**. Depois,
+atualize a página.
+
+Mensagens diferentes indicam outras situações:
+
+- `Failed to fetch`: a API não foi alcançada;
+- `E-mail ou senha inválidos`: a API respondeu, mas a conta não existe nesse
+  banco ou a senha está incorreta;
+- `Conta pendente`: o cadastro ainda aguarda aprovação;
+- `Acesso não autorizado`: o papel autenticado não permite aquela ação.
 
 ## Segurança e dados
 
 Credenciais não são armazenadas em XML, CSV, JSON nem no navegador. O SQLite
-guarda somente hashes Argon2id com salt. Tokens de sessão ficam em cookie
-`HttpOnly`; o papel é obtido da sessão no backend. Professores só acessam
-submissões sob sua responsabilidade, alunos acessam os próprios registros e o
-administrador pode produzir simulações marcadas como teste. A API recalcula a
-pontuação e ignora a identidade informada pelo navegador.
+guarda hashes Argon2id com salt. Tokens ficam em cookie `HttpOnly`; o backend
+obtém o papel da sessão e recalcula a pontuação sem confiar na identidade
+informada pelo navegador.
 
-As migrations modelam usuários, turmas, versões de casos, atividades,
-submissões imutáveis, tentativas, devolutivas, documentos, trabalhos de IA e
-auditoria. A separação entre interface, serviços e banco permite migrar o
-SQLite para PostgreSQL sem conectar o navegador diretamente ao banco.
+Submissões, etapas e tentativas são auditáveis e imutáveis. Professores acessam
+somente atendimentos autorizados, alunos consultam os próprios registros e
+execuções administrativas são identificadas como testes.
 
-## Limites atuais
+## Limitações atuais
 
-- O provedor real de IA e suas chaves não fazem parte do frontend.
-- A extração controlada de PDFs clínicos e o OCR aguardam a implementação
-  do provedor documentado.
-- O servidor HTTP próprio atende ao desenvolvimento local; produção requer uma
-  camada HTTP/TLS endurecida.
+- O provedor real de IA e suas chaves ainda não estão configurados.
+- A extração controlada de PDFs clínicos e o OCR aguardam esse provedor.
+- A interface de autoria não deve simular geração clínica bem-sucedida.
+- O servidor HTTP incluído atende ao desenvolvimento local; produção exige TLS,
+  uma camada HTTP revisada, armazenamento protegido e políticas institucionais.
+- FIWARE, MQTT e Edge Computing não estão implementados no produto atual.
 
+## Documentação técnica
+
+- [Arquitetura do backend C++20](docs/ARQUITETURA_BACKEND_CPP20.md)
+- [Pontuação pedagógica](docs/PONTUACAO_PEDAGOGICA.md)
+- [Relatório PDF versionado](docs/RELATORIO_PDF_VERSIONADO.md)
+- [Geração e importação de casos](docs/GERACAO_E_IMPORTACAO_DE_CASOS.md)
+- [OpenAPI](backend/openapi/openapi.yaml)

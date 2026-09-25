@@ -1,0 +1,837 @@
+/* Paleta compartilhada: cores do texto, das bordas, das ações, das perguntas e dos exames. */
+:root {
+  --ink: #15283e;
+  --muted: #607187;
+  --line: #dce4ed;
+  --blue: #315bdf;
+  --purple: #7950bd;
+  --teal: #087d80;
+}
+
+/* Base da página: dimensões incluem bordas e preenchimento; tipografia e aparência dos controles. */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #f5f7fb;
+  color: var(--ink);
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+button,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+
+/* Estados dos controles: foco visível para navegação por teclado e aparência dos botões desabilitados. */
+button:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #f09926;
+  outline-offset: 3px;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Cabeçalho: marca, identificação da aplicação, metadados e ações principais. */
+header {
+  background: white;
+  border-bottom: 1px solid var(--line);
+  padding: 18px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.brand {
+  color: #ed145b;
+  font-size: 26px;
+  font-weight: 850;
+  letter-spacing: -2px;
+}
+.divider {
+  height: 30px;
+  border-left: 1px solid var(--line);
+}
+h1 {
+  font-size: 19px;
+  margin: 0;
+}
+small,
+.meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+}
+
+/* Botões reutilizáveis e destaque visual da ação principal. */
+.btn {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 9px 14px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.primary {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+/* Introdução ao atendimento: título, descrição e selo informativo. */
+.intro {
+  padding: 20px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  font-weight: 750;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.intro h2 {
+  font-size: 24px;
+  margin: 3px 0;
+}
+.intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.badge {
+  background: #e7edff;
+  color: #3153af;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Área de trabalho em três colunas: biblioteca, mapa clínico e histórico do percurso. */
+.workspace {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr) 280px;
+  margin: 0 20px 20px;
+  min-height: 650px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+.panel {
+  padding: 20px;
+}
+.library {
+  border-right: 1px solid var(--line);
+}
+h3 {
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+.sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+
+/* Filtros da biblioteca e indicação da categoria selecionada. */
+.filters {
+  display: flex;
+  gap: 5px;
+  margin: 16px 0;
+}
+.filter {
+  border: 0;
+  background: #f0f3f8;
+  color: var(--muted);
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.filter.active {
+  background: var(--ink);
+  color: white;
+}
+
+/* Biblioteca de opções: lista rolável, cartões de perguntas e exames, encaixe decorativo e conexões liberadas. */
+.blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 530px;
+  overflow: auto;
+  padding: 6px 4px 10px;
+}
+.block {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  border: 1px solid #cfc2ed;
+  border-left: 4px solid var(--purple);
+  background: #f3eefb;
+  border-radius: 6px;
+  padding: 13px 10px;
+  color: #50337f;
+  font-size: 14px;
+  font-weight: 600;
+}
+.block:before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 22px;
+  width: 28px;
+  height: 6px;
+  background: inherit;
+  border: 1px solid #cfc2ed;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
+}
+.block.exam {
+  background: #eaf7f7;
+  border-color: #b6dcdb;
+  border-left-color: var(--teal);
+  color: #09666b;
+}
+.block span:first-child {
+  flex: 1;
+}
+.plus {
+  font-size: 21px;
+  font-weight: 400;
+}
+.new {
+  font-size: 11px;
+  text-transform: uppercase;
+  display: block;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* Coluna central: barra do mapa e legenda das cores de perguntas e exames. */
+.center {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f8faff;
+}
+.mapbar {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  background: white;
+  gap: 10px;
+}
+.legend {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend span:before {
+  content: "●";
+  color: var(--purple);
+  margin-right: 5px;
+}
+.legend span:last-child:before {
+  color: var(--teal);
+}
+
+/* Mapa clínico: fundo pontilhado, rolagem e realce ao receber um bloco arrastado. */
+.map {
+  position: relative;
+  min-height: 520px;
+  flex: 1;
+  overflow: auto;
+  background-image: radial-gradient(#ced8e5 1px, transparent 1px);
+  background-size: 20px 20px;
+  padding: 30px 22px;
+  transition: background-color 0.2s;
+}
+.map.over {
+  background-color: #e5edff;
+  outline: 3px dashed var(--blue);
+  outline-offset: -5px;
+}
+
+/* Cartão do paciente: identificação, avatar, queixa e etiquetas do caso. */
+.patient {
+  position: relative;
+  z-index: 1;
+  max-width: 360px;
+  margin: 0 auto 30px;
+  background: var(--ink);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px #15283e17;
+}
+.patient-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.avatar {
+  border-radius: 50%;
+  background: #33475e;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.patient h3 {
+  font-size: 21px;
+}
+.patient .meta {
+  color: #c0cee0;
+}
+.patient p {
+  margin: 14px 0 0;
+  border-top: 1px solid #405064;
+  padding-top: 12px;
+}
+.tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.tags span {
+  font-size: 12px;
+  padding: 3px 8px;
+  background: #33475e;
+  border-radius: 4px;
+}
+
+/* Estado inicial do mapa, exibido antes de adicionar opções de investigação. */
+.empty {
+  text-align: center;
+  padding: 45px 15px;
+  color: var(--muted);
+  max-width: 370px;
+  margin: auto;
+}
+.empty b {
+  display: block;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+/* Árvore da investigação: distribuição dos ramos, cartões de respostas e linhas das conexões dependentes. */
+.branches {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px 18px;
+}
+.branch {
+  flex: 1 1 220px;
+  max-width: 340px;
+  min-width: 0;
+  position: relative;
+}
+.node {
+  position: relative;
+  margin-bottom: 20px;
+  background: white;
+  border: 1px solid #d6c9ed;
+  border-top: 3px solid var(--purple);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 3px 10px #15283e08;
+}
+.node:before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  height: 21px;
+  border-left: 2px solid #bbc9dc;
+}
+.node.exam {
+  border-color: #b4dcd8;
+  border-top-color: var(--teal);
+}
+.node h4 {
+  font-size: 14px;
+  margin: 6px 0;
+}
+.node p {
+  font-size: 14px;
+  margin: 8px 0 0;
+  color: #4b6077;
+}
+.node .meta {
+  font-size: 11px;
+}
+.children {
+  margin-left: 14px;
+  border-left: 2px solid #bbc9dc;
+  padding-left: 14px;
+}
+.children .node:before {
+  left: -16px;
+  top: 18px;
+  width: 14px;
+  height: 0;
+  border-left: 0;
+  border-top: 2px solid #bbc9dc;
+}
+
+/* Rodapé interno do mapa com orientações de uso. */
+.mapfoot {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+  background: white;
+}
+
+/* Painel do percurso: contador de escolhas, sequência cronológica, estado vazio e dica de uso. */
+.journey {
+  border-left: 1px solid var(--line);
+}
+.counter {
+  font-size: 34px;
+  font-weight: 750;
+  margin: 18px 0 0;
+}
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  max-height: 390px;
+  overflow: auto;
+}
+.timeline li {
+  border-left: 2px solid var(--line);
+  padding: 0 0 18px 14px;
+  font-size: 13px;
+}
+.timeline b {
+  display: block;
+  font-size: 14px;
+}
+.placeholder {
+  color: var(--muted);
+  font-size: 14px;
+  padding: 20px 0;
+}
+.tip {
+  background: #f1f5fa;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Rodapé da página e links das referências. */
+footer {
+  padding: 0 28px 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+footer a {
+  color: inherit;
+}
+
+/* Janelas de diálogo: dimensões, fundo sobreposto, títulos e cabeçalho. */
+dialog {
+  border: 0;
+  border-radius: 16px;
+  padding: 28px;
+  width: min(600px, calc(100% - 28px));
+  max-height: 90vh;
+  color: var(--ink);
+  box-shadow: 0 20px 80px #15283e30;
+}
+dialog::backdrop {
+  background: #10243c88;
+}
+dialog h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+}
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Formulário da hipótese: rótulos, seleção, justificativa e alinhamento das ações. */
+label {
+  display: block;
+  margin: 18px 0 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #bdcadb;
+  border-radius: 8px;
+  padding: 11px;
+  background: white;
+  color: var(--ink);
+}
+textarea {
+  min-height: 95px;
+  resize: vertical;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Resultado: destaque da devolutiva e revisão de cada escolha realizada. */
+.feedback {
+  background: #edf3ff;
+  padding: 16px;
+  border-radius: 8px;
+  margin: 18px 0;
+}
+.feedback h3 {
+  margin-bottom: 8px;
+}
+.review {
+  font-size: 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.review strong {
+  display: block;
+}
+
+/* Notificação temporária sobreposta à página, sem interceptar cliques. */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 9px;
+  box-shadow: 0 5px 25px #15283e30;
+  z-index: 10;
+  font-size: 14px;
+  max-width: 90%;
+  pointer-events: none;
+}
+
+/* Classe utilitária para ocultar elementos, como a notificação inativa. */
+.hidden {
+  display: none;
+}
+
+/* Telas largas: amplia as colunas laterais e a altura mínima da área de trabalho. */
+@media (min-width: 1500px) {
+  .workspace {
+    grid-template-columns: 320px minmax(0, 1fr) 300px;
+    min-height: 75vh;
+  }
+}
+
+/* Telas intermediárias: mantém duas colunas e posiciona o percurso abaixo, com histórico horizontal. */
+@media (max-width: 1100px) {
+  .workspace {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .journey {
+    grid-column: 1/-1;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .timeline {
+    display: flex;
+    gap: 10px;
+    max-height: 150px;
+  }
+  .timeline li {
+    min-width: 180px;
+  }
+  .counter {
+    font-size: 23px;
+  }
+  .tip {
+    display: none;
+  }
+}
+
+/* Telas pequenas: empilha os painéis, reorganiza o cabeçalho e compacta biblioteca, mapa e textos. */
+@media (max-width: 650px) {
+  header {
+    padding: 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .header-actions {
+    width: 100%;
+  }
+  .header-actions .primary {
+    flex: 1;
+  }
+  .intro {
+    padding: 18px 14px;
+  }
+  .intro h2 {
+    font-size: 21px;
+  }
+  .intro .badge {
+    display: none;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    margin: 0 10px 15px;
+  }
+  .library {
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 16px;
+  }
+  .blocks {
+    max-height: 230px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .block {
+    font-size: 13px;
+  }
+  .sub {
+    margin-bottom: 10px;
+  }
+  .map {
+    min-height: 470px;
+    padding: 25px 14px;
+  }
+  .legend {
+    display: none;
+  }
+  .journey {
+    padding: 16px;
+  }
+  .intro p {
+    font-size: 13px;
+  }
+  footer {
+    padding: 0 15px 18px;
+  }
+}
+
+/* Acessibilidade: desativa transições quando o dispositivo solicita redução de movimento. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* Ilustração do paciente: imagem ajustada ao cartão e legenda de identificação. */
+.patient-scene {
+  margin: -20px -20px 17px;
+}
+.patient-scene img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px 12px 0 0;
+}
+.patient-scene figcaption {
+  font-size: 11px;
+  color: #c0cee0;
+  padding: 7px 12px;
+  background: #23384f;
+}
+
+/* Ajustes finais: amplia o cartão e a biblioteca; separa o título da revisão. A ordem mantém estas sobrescritas. */
+.patient {
+  max-width: 380px;
+}
+.blocks {
+  max-height: 650px;
+}
+.review-heading {
+  margin-top: 18px;
+}
+
+/* Ajustes finais em telas pequenas: substitui a altura anterior da biblioteca e limita o enquadramento da ilustração. */
+@media (max-width: 650px) {
+  .blocks {
+    max-height: 260px;
+  }
+  .patient-scene img {
+    max-height: 200px;
+    object-fit: cover;
+    object-position: center 40%;
+  }
+}
+
+/* Atributo HTML de ocultação: prevalece sobre as regras de exibição dos componentes. */
+[hidden] {
+  display: none !important;
+}
+
+/* Seleção inicial do caso: painel central com título e instruções para escolher o atendimento. */
+.case-choice {
+  max-width: 600px;
+  margin: 32px auto;
+  padding: 28px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.case-choice h2 {
+  margin-top: 0;
+}
+.case-choice p {
+  color: var(--muted);
+}
+
+/* Evita exibir conteúdo protegido enquanto a sessão e o papel são verificados. */
+.auth-pending main {
+  visibility: hidden;
+}
+
+/* Placar pedagógico: resume pontos e eficiência sem depender somente de cor. */
+.score-card {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #cdd9e8;
+  border-radius: 10px;
+  background: #f8faff;
+}
+.score-card-head,
+.score-card dl > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.score-card h4,
+.score-card dl {
+  margin: 0;
+}
+.score-card-head strong {
+  color: var(--blue);
+  font-size: 20px;
+}
+.score-card dl {
+  margin-top: 10px;
+  font-size: 12px;
+}
+.score-card dt {
+  color: var(--muted);
+}
+.score-card dd {
+  margin: 0;
+  font-weight: 700;
+}
+.score-change {
+  min-height: 2.8em;
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.score-delta {
+  display: block;
+  margin-top: 3px;
+  font-weight: 700;
+}
+.score-delta.positive {
+  color: #147247;
+}
+.score-delta.negative {
+  color: #a33131;
+}
+
+/* Resumo final: apresenta decomposição dos pontos antes da entrega ao professor. */
+.score-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+}
+.score-summary > div {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8faff;
+}
+.score-summary span,
+.score-summary strong {
+  display: block;
+}
+.score-summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Entrega automática: diferencia espera, sucesso e falha sem usar apenas cores. */
+.submission-summary {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8faff;
+}
+.submission-summary h3,
+.submission-summary p {
+  margin: 0 0 8px;
+}
+.submission-status {
+  padding: 10px;
+  border-left: 4px solid #607187;
+  background: white;
+  font-weight: 650;
+}
+.submission-status[data-state="preparing"],
+.submission-status[data-state="generating"],
+.submission-status[data-state="sending"] {
+  border-left-color: var(--blue);
+}
+.submission-status[data-state="sent"] {
+  border-left-color: #147247;
+}
+.submission-status[data-state="error"] {
+  border-left-color: #a33131;
+}
+.result-actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 650px) {
+  .score-summary {
+    grid-template-columns: 1fr;
+  }
+  .result-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+}

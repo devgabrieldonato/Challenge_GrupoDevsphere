@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Administração · Paciente Virtual</title><link rel="stylesheet" href="../styles/auth.css"></head>
+  <body class="app-shell auth-pending" data-required-role="admin">
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+    <header class="site-header split"><div class="cluster"><div class="brand" aria-label="FIAP">FIAP</div><div><p class="site-title">Paciente Virtual</p><p class="site-subtitle">Administração institucional</p></div></div><button class="button" type="button" data-logout>Sair</button></header>
+    <!-- O painel reúne decisões de acesso, configuração e atalhos de teste. -->
+    <main id="conteudo" class="page-main stack">
+      <header class="page-header"><span class="eyebrow">Controle de acesso</span><h1>Cadastros institucionais</h1><p>Olá, <strong id="adminName">administrador</strong>. Analise cada solicitação antes de liberar a conta.</p></header>
+      <section class="grid three" aria-label="Resumo administrativo">
+        <article class="card metric"><span>Solicitações pendentes</span><strong id="pendingCount">—</strong></article>
+        <article class="card metric"><span>Notificações na caixa de saída</span><strong id="queuedCount">—</strong></article>
+        <article class="card metric"><span>Domínios autorizados</span><strong id="domainCount">—</strong></article>
+      </section>
+      <section class="card" aria-labelledby="configurationTitle"><h2 id="configurationTitle">Configuração institucional</h2><dl class="definition-list"><dt>E-mail de notificação</dt><dd id="notificationEmails">Carregando…</dd><dt>Domínios aceitos</dt><dd id="allowedDomains">Carregando…</dd></dl><p class="hint">Nesta fase local, as notificações ficam registradas na caixa de saída. A entrega real dependerá do provedor de e-mail.</p></section>
+      <section class="card" aria-labelledby="requestsTitle"><div class="split"><div><h2 id="requestsTitle">Solicitações aguardando análise</h2><p class="muted">Confirme o vínculo institucional antes de aprovar professores e alunos.</p></div><button class="button" id="refreshButton" type="button">Atualizar</button></div><div id="dashboardStatus" role="status" aria-live="polite"></div><div id="requestsList" class="registration-list"><p class="loading">Carregando solicitações</p></div></section>
+      <section class="card" aria-labelledby="testTitle"><h2 id="testTitle">Testes das jornadas</h2><p class="muted">A conta administrativa pode abrir as duas áreas para conferir o funcionamento da plataforma.</p><div class="cluster"><a class="button primary" href="student-cases.html">Abrir jornada do aluno</a><a class="button primary" href="teacher-dashboard.html">Abrir jornada do professor</a></div></section>
+    </main>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <script type="module" src="../scripts/admin/dashboard.js"></script>
+  </body>
+</html>

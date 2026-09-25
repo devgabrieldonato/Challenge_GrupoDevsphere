@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Caso a partir de PDF · Paciente Virtual
+    </title>
+    <link rel="stylesheet" href="../styles/teacher.css">
+  </head>
+  <body class="auth-pending" data-required-role="teacher">
+    <a class="skip-link" href="#conteudo">
+      Ir para o conteúdo
+    </a>
+    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
+    <header class="site-header">
+      <div class="brand">
+        FIAP
+      </div>
+      <div>
+        <p class="site-title">
+          Paciente Virtual
+        </p>
+        <p class="site-subtitle">
+          Importação clínica
+        </p>
+      </div>
+      <nav class="site-nav">
+        <ul>
+          <li>
+            <a href="teacher-cases.html">
+              Casos
+            </a>
+          </li>
+          <li>
+            <a aria-current="page" href="teacher-pdf-import.html">
+              Importar PDF
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- Conteúdo principal específico desta etapa da jornada. -->
+    <main id="conteudo" class="page-main narrow">
+      <header class="page-header">
+        <span class="eyebrow">
+          Geração assistida
+        </span>
+        <h1>
+          Criar caso a partir de PDF
+        </h1>
+        <p>
+          O documento será extraído no backend e convertido em rascunho para revisão médica.
+        </p>
+      </header>
+      <!-- Upload validado antes do processamento controlado no backend. -->
+      <section class="card stack">
+        <div class="status warning">
+          <strong>
+            Revisão humana obrigatória.
+          </strong>
+          Complementos propostos pela IA devem ser identificados e confirmados pelo professor.
+        </div>
+        <div class="upload-zone">
+          <div class="field">
+            <label for="clinicalPdf">
+              Caso clínico em PDF
+            </label>
+            <input id="clinicalPdf" type="file" accept="application/pdf,.pdf" aria-describedby="pdfRules">
+            <span id="pdfRules" class="hint">
+              PDF de até 20 MB. Arquivos sem texto selecionável podem exigir OCR futuro.
+            </span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="documentNotes">
+            Orientações para interpretação
+          </label>
+          <textarea id="documentNotes" placeholder="Informe o objetivo pedagógico ou trechos que exigem atenção."></textarea>
+        </div>
+        <div id="pdfStatus" role="status" aria-live="polite">
+        </div>
+        <button id="processPdf" class="button primary" type="button" disabled>
+          Enviar para análise
+        </button>
+      </section>
+      <section class="card section-gap" aria-labelledby="processTitle">
+        <h2 id="processTitle">
+          Etapas do processamento
+        </h2>
+        <ol>
+          <li>
+            Validação do arquivo e extração de texto.
+          </li>
+          <li>
+            Conversão intermediária para Markdown.
+          </li>
+          <li>
+            Identificação de fatos, referências, ambiguidades e dados ausentes.
+          </li>
+          <li>
+            Geração de proposta com 18 perguntas e 22 exames.
+          </li>
+          <li>
+            Revisão integral e aprovação pelo professor.
+          </li>
+        </ol>
+      </section>
+    </main>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <!-- Controlador da página e integração com os serviços da API. -->
+    <script type="module" src="../scripts/pdf/clinical-pdf-import.js">
+    </script>
+  </body>
+</html>

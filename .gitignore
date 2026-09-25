@@ -1,0 +1,9 @@
+# Artefatos locais de compilação, banco e testes.
+build/
+backend/build/
+backend/data/
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+.DS_Store

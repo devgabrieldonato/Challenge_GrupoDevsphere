@@ -1,0 +1,360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://paciente-virtual.local/schemas/submission-report-v2.json",
+  "title": "Relatório de atendimento do Paciente Virtual — versão 2",
+  "description": "Contrato do relatório estruturado enviado com o PDF. Identidade e pontuação são validadas novamente pelo backend.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportType",
+    "caseId",
+    "studentId",
+    "studentName",
+    "activityId",
+    "clientSubmissionId",
+    "submissionProtocol",
+    "ruleSetVersion",
+    "case",
+    "exportedAt",
+    "path",
+    "attempts",
+    "scoring"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 2
+    },
+    "reportType": {
+      "const": "patient-virtual-submission"
+    },
+    "caseId": {
+      "enum": [
+        "joao",
+        "marina"
+      ]
+    },
+    "studentId": {
+      "type": [
+        "string",
+        "integer",
+        "null"
+      ],
+      "description": "Informativo; o backend usa a identidade da sessão."
+    },
+    "studentName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "activityId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "clientSubmissionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "submissionProtocol": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "ruleSetVersion": {
+      "const": "1.0.0"
+    },
+    "case": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "path": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/pathStep"
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/diagnosticAttempt"
+      }
+    },
+    "scoring": {
+      "$ref": "#/$defs/scoringSummary"
+    }
+  },
+  "$defs": {
+    "scoreEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "caseVersion",
+        "sequence",
+        "itemKey",
+        "itemType",
+        "classification",
+        "classificationLabel",
+        "ruleSetVersion",
+        "initialScore",
+        "recommendedActionBudget",
+        "basePoints",
+        "priorityBonus",
+        "efficiencyPenalty",
+        "delta",
+        "rawTotalAfterAction",
+        "displayedTotalAfterAction"
+      ],
+      "properties": {
+        "caseId": {
+          "enum": [
+            "joao",
+            "marina"
+          ]
+        },
+        "caseVersion": {
+          "const": "1.0.0"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "itemKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemType": {
+          "enum": [
+            "question",
+            "exam"
+          ]
+        },
+        "classification": {
+          "enum": [
+            "priority",
+            "relevant",
+            "complementary",
+            "low_value",
+            "inappropriate"
+          ]
+        },
+        "classificationLabel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ruleSetVersion": {
+          "const": "1.0.0"
+        },
+        "initialScore": {
+          "const": 50
+        },
+        "recommendedActionBudget": {
+          "const": 12
+        },
+        "basePoints": {
+          "enum": [
+            5,
+            3,
+            1,
+            -8,
+            -12
+          ]
+        },
+        "priorityBonus": {
+          "enum": [
+            0,
+            2
+          ]
+        },
+        "efficiencyPenalty": {
+          "enum": [
+            0,
+            -4,
+            -8,
+            -12
+          ]
+        },
+        "delta": {
+          "type": "integer"
+        },
+        "rawTotalAfterAction": {
+          "type": "integer"
+        },
+        "displayedTotalAfterAction": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "pathStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step",
+        "id",
+        "time",
+        "scoreEvent",
+        "type",
+        "title",
+        "answer",
+        "quality",
+        "why"
+      ],
+      "properties": {
+        "step": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Horário local de exibição, não usado como autoridade temporal."
+        },
+        "scoreEvent": {
+          "$ref": "#/$defs/scoreEvent"
+        },
+        "type": {
+          "enum": [
+            "question",
+            "exam"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "answer": {
+          "type": "string"
+        },
+        "quality": {
+          "type": "string"
+        },
+        "why": {
+          "type": "string"
+        },
+        "parent": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "diagnosticAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis",
+        "reason",
+        "actions",
+        "correct",
+        "submittedAt"
+      ],
+      "properties": {
+        "hypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "correct": {
+          "type": "boolean",
+          "description": "Comparação com o desfecho esperado; não avalia a justificativa."
+        },
+        "submittedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "scoringSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseVersion",
+        "ruleSetVersion",
+        "initialScore",
+        "rawTotal",
+        "displayedTotal",
+        "recommendedActionBudget",
+        "actionCount",
+        "gains",
+        "losses",
+        "priorityBonus",
+        "efficiencyPenalty",
+        "events"
+      ],
+      "properties": {
+        "caseVersion": {
+          "const": "1.0.0"
+        },
+        "ruleSetVersion": {
+          "const": "1.0.0"
+        },
+        "initialScore": {
+          "const": 50
+        },
+        "rawTotal": {
+          "type": "integer"
+        },
+        "displayedTotal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "recommendedActionBudget": {
+          "const": 12
+        },
+        "actionCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "gains": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "losses": {
+          "type": "integer",
+          "maximum": 0
+        },
+        "priorityBonus": {
+          "enum": [
+            0,
+            2
+          ]
+        },
+        "efficiencyPenalty": {
+          "type": "integer",
+          "maximum": 0
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scoreEvent"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Testes da pontuação clínica</title>
+    <style>
+      /* Estilos mínimos para leitura local dos resultados automatizados. */
+      body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; }
+      [data-status="passed"] { color: #176b3a; }
+      [data-status="failed"] { color: #a61b1b; }
+    </style>
+  </head>
+  <body>
+    <!-- Resultado do conjunto de testes executado como módulo ES no navegador. -->
+    <main>
+      <h1>Testes da pontuação clínica</h1>
+      <p id="test-summary">Executando…</p>
+      <ol id="test-results"></ol>
+    </main>
+    <script type="module" src="./clinical-scoring.test.js"></script>
+  </body>
+</html>

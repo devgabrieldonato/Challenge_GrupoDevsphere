@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Revisar atendimento · Paciente Virtual
+    </title>
+    <link rel="stylesheet" href="../styles/teacher.css">
+  </head>
+  <body class="app-shell auth-pending" data-required-role="teacher">
+    <a class="skip-link" href="#conteudo">
+      Ir para o conteúdo
+    </a>
+    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
+    <header class="site-header">
+      <div class="brand">
+        FIAP
+      </div>
+      <div>
+        <p class="site-title">
+          Paciente Virtual
+        </p>
+        <p class="site-subtitle">
+          Revisão docente
+        </p>
+      </div>
+      <nav class="site-nav" aria-label="Navegação principal">
+        <ul>
+          <li>
+            <a href="teacher-dashboard.html">
+              Painel
+            </a>
+          </li>
+          <li>
+            <a aria-current="page" href="teacher-review.html">
+              Revisar
+            </a>
+          </li>
+          <li>
+            <a href="teacher-cases.html">
+              Casos
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- Conteúdo principal específico desta etapa da jornada. -->
+    <main id="conteudo" class="page-main">
+      <header class="page-header">
+        <span class="eyebrow">
+          Etapas 2, 3 e 4
+        </span>
+        <h1>
+          Revisar atendimento
+        </h1>
+        <p>
+          Abra um atendimento enviado automaticamente pela plataforma ou consulte a fila no painel.
+        </p>
+      </header>
+      <!-- Estado de carregamento da submissão automática ou da importação legada. -->
+      <div id="importStatus" role="status" aria-live="polite">
+      </div>
+      <!-- Revisão cronológica e tentativas reconstruídas do relatório validado. -->
+      <section id="reviewContent" hidden class="section-gap">
+        <article class="card">
+          <div class="split">
+            <div>
+              <span class="eyebrow">
+                Identificação
+              </span>
+              <h2 id="reviewCase">
+                Caso clínico
+              </h2>
+            </div>
+            <span id="persistenceBadge" class="badge">
+              Revisão local
+            </span>
+          </div>
+          <dl id="reviewMeta" class="definition-list">
+          </dl>
+        </article>
+        <!-- Resumo auditável da pontuação recalculada e validada pela plataforma. -->
+        <section id="scoreSection" class="card section-gap" aria-labelledby="scoreTitle" hidden>
+          <div class="split">
+            <div>
+              <span class="eyebrow">
+                Desempenho da investigação
+              </span>
+              <h2 id="scoreTitle">
+                Pontuação pedagógica
+              </h2>
+            </div>
+            <strong id="scoreTotal" class="score-total">
+              —
+            </strong>
+          </div>
+          <dl id="scoreSummary" class="score-summary">
+          </dl>
+          <p id="scoreUnavailable" class="muted" hidden>
+            Pontuação não disponível para este relatório.
+          </p>
+        </section>
+        <section class="grid two section-gap">
+          <article class="card" aria-labelledby="pathTitle">
+            <h2 id="pathTitle">
+              Investigação em ordem cronológica
+            </h2>
+            <ol id="reviewPath" class="timeline">
+            </ol>
+          </article>
+          <article class="stack" aria-labelledby="attemptsTitle">
+            <h2 id="attemptsTitle">
+              Tentativas diagnósticas
+            </h2>
+            <div id="reviewAttempts" class="stack">
+            </div>
+          </article>
+        </section>
+        <div class="cluster section-gap">
+          <button id="viewPdfButton" class="button" type="button" hidden>
+            Visualizar PDF
+          </button>
+          <button id="downloadPdfButton" class="button" type="button" hidden>
+            Baixar PDF
+          </button>
+          <a id="feedbackLink" class="button primary" hidden>
+            Preparar devolutiva
+          </a>
+          <a class="button" href="teacher-dashboard.html">
+            Voltar ao painel
+          </a>
+        </div>
+      </section>
+      <!-- Importação preservada apenas para documentos antigos ou externos. -->
+      <details id="legacyImport" class="card legacy-import section-gap">
+        <summary>
+          Importar relatório legado ou externo
+        </summary>
+        <div class="legacy-import-content">
+          <p class="muted">
+            Use esta opção somente para PDFs antigos que não chegaram automaticamente à plataforma.
+          </p>
+          <div class="upload-zone">
+            <div class="field">
+              <label for="reportFile">
+                Relatório em PDF
+              </label>
+              <input id="reportFile" type="file" accept="application/pdf,.pdf" aria-describedby="reportRules">
+              <span id="reportRules" class="hint">
+                Somente PDFs do Paciente Virtual, com até 10 MB e esquema compatível.
+              </span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </main>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <!-- Controlador da página e integração com os serviços da API. -->
+    <script type="module" src="../scripts/teacher/review.js">
+    </script>
+  </body>
+</html>

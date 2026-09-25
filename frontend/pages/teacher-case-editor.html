@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>
+      Criar caso · Paciente Virtual
+    </title>
+    <link rel="stylesheet" href="../styles/teacher.css">
+  </head>
+  <body class="auth-pending" data-required-role="teacher">
+    <a class="skip-link" href="#conteudo">
+      Ir para o conteúdo
+    </a>
+    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
+    <header class="site-header">
+      <div class="brand">
+        FIAP
+      </div>
+      <div>
+        <p class="site-title">
+          Paciente Virtual
+        </p>
+        <p class="site-subtitle">
+          Autoria de caso
+        </p>
+      </div>
+      <nav class="site-nav">
+        <ul>
+          <li>
+            <a href="teacher-cases.html">
+              Casos
+            </a>
+          </li>
+          <li>
+            <a aria-current="page" href="teacher-case-editor.html">
+              Criar caso
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </header>
+    <!-- Conteúdo principal específico desta etapa da jornada. -->
+    <main id="conteudo" class="page-main">
+      <header class="page-header">
+        <span class="eyebrow">
+          Rascunho docente
+        </span>
+        <h1>
+          Criar caso clínico
+        </h1>
+        <p>
+          Forneça os fatos clínicos. A geração assistida cria uma proposta; a revisão humana é obrigatória antes da publicação.
+        </p>
+      </header>
+      <!-- Dados clínicos e pedagógicos usados para gerar um rascunho revisável. -->
+      <form id="caseForm" class="stack">
+        <section class="card grid two" aria-labelledby="patientTitle">
+          <h2 id="patientTitle" class="full-span">
+            Paciente e contexto
+          </h2>
+          <div class="field">
+            <label for="title">
+              Título do caso
+            </label>
+            <input id="title" name="title" required>
+          </div>
+          <div class="field">
+            <label for="patientName">
+              Nome fictício
+            </label>
+            <input id="patientName" name="patientName" required>
+          </div>
+          <div class="field">
+            <label for="age">
+              Idade
+            </label>
+            <input id="age" name="age" type="number" min="0" max="120" required>
+          </div>
+          <div class="field">
+            <label for="careContext">
+              Contexto do atendimento
+            </label>
+            <input id="careContext" name="careContext" required>
+          </div>
+          <div class="field full-span">
+            <label for="chiefComplaint">
+              Queixa principal
+            </label>
+            <textarea id="chiefComplaint" name="chiefComplaint" required></textarea>
+          </div>
+        </section>
+        <section class="card grid two" aria-labelledby="clinicalTitle">
+          <h2 id="clinicalTitle" class="full-span">
+            Informações clínicas
+          </h2>
+          <div class="field">
+            <label for="history">
+              História clínica
+            </label>
+            <textarea id="history" name="history" required></textarea>
+          </div>
+          <div class="field">
+            <label for="background">
+              Antecedentes, medicamentos e alergias
+            </label>
+            <textarea id="background" name="background"></textarea>
+          </div>
+          <div class="field">
+            <label for="physicalExam">
+              Sinais vitais e exame físico
+            </label>
+            <textarea id="physicalExam" name="physicalExam"></textarea>
+          </div>
+          <div class="field">
+            <label for="tests">
+              Exames complementares
+            </label>
+            <textarea id="tests" name="tests"></textarea>
+          </div>
+          <div class="field">
+            <label for="diagnoses">
+              Hipóteses e diferenciais
+            </label>
+            <textarea id="diagnoses" name="diagnoses" required></textarea>
+          </div>
+          <div class="field">
+            <label for="outcome">
+              Diagnóstico ou desfecho esperado
+            </label>
+            <textarea id="outcome" name="outcome" required></textarea>
+          </div>
+        </section>
+        <section class="card grid two" aria-labelledby="educationTitle">
+          <h2 id="educationTitle" class="full-span">
+            Planejamento pedagógico
+          </h2>
+          <div class="field">
+            <label for="objectives">
+              Objetivos de aprendizagem
+            </label>
+            <textarea id="objectives" name="objectives" required></textarea>
+          </div>
+          <div class="field">
+            <label for="priorityEvidence">
+              Evidências prioritárias
+            </label>
+            <textarea id="priorityEvidence" name="priorityEvidence" required></textarea>
+          </div>
+          <div class="field full-span">
+            <label for="references">
+              Referências clínicas
+            </label>
+            <textarea id="references" name="references" required></textarea>
+            <span class="hint">
+              Informe fontes que o revisor possa verificar.
+            </span>
+          </div>
+        </section>
+        <div id="caseFormStatus" role="status" aria-live="polite">
+        </div>
+        <div class="cluster">
+          <button class="button primary" type="submit">
+            Gerar proposta estruturada
+          </button>
+          <a class="button" href="teacher-cases.html">
+            Cancelar
+          </a>
+        </div>
+      </form>
+      <section id="generatedDraft" class="card section-gap" hidden aria-labelledby="draftTitle">
+        <span class="badge draft">
+          Revisão obrigatória
+        </span>
+        <h2 id="draftTitle">
+          Proposta gerada
+        </h2>
+        <p id="draftSummary">
+        </p>
+        <div class="status warning">
+          A IA organiza uma proposta, mas não valida o conteúdo médico. Revise todas as perguntas, exames, respostas, dependências e referências antes de salvar.
+        </div>
+        <div class="cluster section-gap">
+          <button id="saveDraft" class="button primary" type="button">
+            Salvar como rascunho
+          </button>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <!-- Controlador da página e integração com os serviços da API. -->
+    <script type="module" src="../scripts/cases/case-editor.js">
+    </script>
+  </body>
+</html>

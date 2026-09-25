@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="pt-BR">
+  <!-- Configuração da página: idioma no elemento raiz, codificação, adaptação à tela e folha de estilos. -->
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Paciente Virtual · Challenge FIAP</title>
+    <link rel="stylesheet" href="../styles/student-session.css">
+  </head>
+  <body class="auth-pending" data-required-role="student">
+    <!-- Cabeçalho com a identidade do projeto e as ações disponíveis durante o atendimento. -->
+    <header>
+      <div class="brand">FIAP</div>
+      <div class="divider" aria-hidden="true"></div>
+      <div>
+        <h1>Paciente Virtual</h1>
+        <small>Challenge · Laboratório de raciocínio clínico</small>
+      </div>
+      <div class="header-actions">
+        <div id="caseActions" hidden>
+          <button class="btn" id="reset" type="button">Reiniciar</button>
+          <button class="btn primary" id="diagnose" type="button">Formular hipótese ↗</button>
+        </div>
+        <button class="btn" type="button" data-logout>Sair</button>
+      </div>
+    </header>
+    <!-- Conteúdo principal: escolha do paciente e sessão de investigação clínica. -->
+    <main>
+      <!-- Seleção inicial do paciente; o formulário inicia o caso escolhido pelo estudante. -->
+      <section
+        class="case-choice"
+        id="caseChoice"
+        aria-labelledby="caseChoiceTitle"
+      >
+        <h2 id="caseChoiceTitle">Qual paciente você vai atender?</h2>
+        <p>
+          Escolha um caso para iniciar sua investigação. Cada atendimento tem 18
+          perguntas e 22 exames.
+        </p>
+        <form id="caseForm">
+          <label for="caseSelect">Caso clínico</label>
+          <select id="caseSelect" required>
+            <option value="">Selecione um paciente</option>
+            <option value="joao">João, 54 anos — dor no peito</option>
+            <option value="marina">
+              Marina, 23 anos — dor abdominal e vômitos
+            </option>
+          </select>
+          <div class="actions">
+            <button class="btn primary" type="submit">Iniciar atendimento</button>
+          </div>
+        </form>
+      </section>
+      <!-- Área do atendimento, exibida pelo JavaScript após a seleção do caso. -->
+      <div id="caseSession" hidden>
+        <!-- Apresentação do caso e indicação da quantidade de opções de investigação. -->
+        <section class="intro" aria-labelledby="caseIntroTitle">
+          <div>
+            <div class="eyebrow">Caso 01 / Pronto atendimento</div>
+            <h2 id="caseIntroTitle">Uma queixa. Mais possibilidades.</h2>
+            <p>
+              Compare hipóteses, escolha as prioridades e conecte as evidências.
+            </p>
+          </div>
+          <span class="badge">Nível avançado · 40 opções</span>
+        </section>
+        <!-- Espaço de investigação organizado em biblioteca, mapa de raciocínio e histórico. -->
+        <div class="workspace">
+          <!-- Biblioteca de perguntas e exames; os blocos disponíveis são preenchidos pelo JavaScript. -->
+          <aside class="panel library" aria-labelledby="libraryTitle">
+            <h3 id="libraryTitle">Blocos de investigação</h3>
+            <p class="sub">
+              Arraste para o mapa ou clique em +. A pertinência será discutida
+              no feedback final.
+            </p>
+            <!-- Filtros para exibir todas as opções, apenas perguntas ou apenas exames. -->
+            <div class="filters" role="group" aria-label="Filtrar opções">
+              <button class="filter active" data-filter="all" aria-pressed="true" type="button">
+                Todos
+              </button>
+              <button class="filter" data-filter="question" aria-pressed="false" type="button">
+                Perguntas
+              </button>
+              <button class="filter" data-filter="exam" aria-pressed="false" type="button">
+                Exames
+              </button>
+            </div>
+            <div id="blocks" class="blocks"></div>
+          </aside>
+          <!-- Mapa que reúne a apresentação do paciente e as respostas às escolhas do estudante. -->
+          <section class="center" aria-labelledby="mapTitle">
+            <div class="mapbar">
+              <h3 id="mapTitle">Mapa de raciocínio</h3>
+              <div class="legend"><span>Pergunta</span><span>Exame</span></div>
+            </div>
+            <div
+              class="map"
+              id="map"
+              role="region"
+              aria-label="Área para adicionar blocos clínicos"
+            >
+              <!-- Cartão do paciente; imagem, identificação e queixa são atualizadas conforme o caso selecionado. -->
+              <article class="patient">
+                <figure class="patient-scene">
+                  <img
+                    src="../assets/images/joao-atendimento.png"
+                    alt="Ilustração de João, sentado com a mão sobre o peito, sendo acolhido por uma profissional de enfermagem."
+                    width="1536"
+                    height="1024"
+                  />
+                  <figcaption>
+                    João na chegada ao atendimento · imagem gerada por IA
+                  </figcaption>
+                </figure>
+                <div class="patient-head">
+                  <div class="avatar" aria-hidden="true">JS</div>
+                  <div>
+                    <div class="meta">PACIENTE · NÍVEL 0</div>
+                    <h3>João, 54 anos</h3>
+                  </div>
+                </div>
+                <div class="tags"><span>Fumante</span><span>Obesidade</span></div>
+                <p>“Estou com uma dor no peito.”</p>
+                <div class="meta">Início há cerca de 40 minutos.</div>
+              </article>
+              <!-- Orientação inicial enquanto nenhuma pergunta ou exame foi adicionado ao mapa. -->
+              <div id="empty" class="empty">
+                <b>Por onde você começaria?</b>Adicione uma pergunta ou um
+                exame. Cada resposta abre possibilidades de investigação.
+              </div>
+              <!-- Contêiner dos blocos de resposta e das conexões montados durante a investigação. -->
+              <div id="branches" class="branches"></div>
+            </div>
+            <div class="mapfoot">
+              Conexões indicam relações entre as informações. Você escolhe a
+              ordem da investigação.
+            </div>
+          </section>
+          <!-- Histórico cronológico das ações realizadas e contador de evidências coletadas. -->
+          <aside class="panel journey" aria-labelledby="journeyTitle">
+            <div class="eyebrow">Seu percurso</div>
+            <h3 id="journeyTitle">Evidências coletadas</h3>
+            <div class="counter" id="count">00</div>
+            <small>ações realizadas</small>
+            <!-- Placar pedagógico: mostra o resultado atual sem antecipar o valor das opções disponíveis. -->
+            <section class="score-card" aria-labelledby="scoreTitle">
+              <div class="score-card-head">
+                <h4 id="scoreTitle">Pontuação</h4>
+                <strong><span id="scoreValue">50</span>/100</strong>
+              </div>
+              <dl>
+                <div><dt>Total bruto</dt><dd id="scoreRaw">50</dd></div>
+                <div><dt>Orçamento de investigação</dt><dd id="scoreBudget">0 de 12</dd></div>
+              </dl>
+              <p id="scoreChange" class="score-change" role="status" aria-live="polite">
+                O placar começa em 50 pontos.
+              </p>
+            </section>
+            <ol class="timeline" id="timeline"></ol>
+            <p id="historyEmpty" class="placeholder">
+              Suas escolhas aparecerão aqui, na ordem em que forem feitas.
+            </p>
+            <div class="tip">
+              Uma hipótese ganha força quando você conecta a história do
+              paciente aos resultados dos exames.
+            </div>
+          </aside>
+        </div>
+        <!-- Contexto educacional, referências do caso e orientação sobre a exportação do percurso. -->
+        <footer>
+          Caso fictício com resultados simulados. MVP educacional; conteúdo
+          sujeito à validação docente. Exames com resultado são apresentados
+          sem espera; solicitações registradas sem execução não constituem
+          evidência negativa. Referência:
+          <a
+            href="https://www.acc.org/latest-in-cardiology/ten-points-to-remember/2021/10/27/14/06/2021-guideline-for-chest-pain-gl_chestpain"
+            target="_blank"
+            rel="noopener"
+          >Diretriz de avaliação da dor torácica · AHA/ACC</a>
+          e
+          <a
+            href="https://www.escardio.org/guidelines/clinical-practice-guidelines/all-esc-practice-guidelines/acute-pulmonary-embolism/"
+            target="_blank"
+            rel="noopener"
+          >diretriz de embolia pulmonar · ESC</a>. Ao finalizar, o percurso e o PDF são enviados automaticamente ao professor.
+        </footer>
+      </div>
+    </main>
+    <!-- Janela para formular a hipótese diagnóstica e justificar o raciocínio. -->
+    <dialog id="diagnosis" aria-labelledby="diagnosisTitle" aria-describedby="diagnosisDescription">
+      <div class="dialog-head">
+        <h2 id="diagnosisTitle">Sua hipótese diagnóstica</h2>
+        <button class="btn" data-close="diagnosis" aria-label="Fechar" type="button">
+          ×
+        </button>
+      </div>
+      <p class="sub" id="diagnosisDescription">Considere as evidências que você reuniu até aqui.</p>
+      <!-- Formulário com seleção obrigatória de hipótese e justificativa; o envio abre o feedback. -->
+      <form id="diagnosisForm">
+        <label for="hypothesis">Qual é a principal hipótese?</label>
+        <select id="hypothesis" required>
+          <option value="">Selecione uma hipótese</option>
+          <option value="reflux">Refluxo gastroesofágico</option>
+          <option value="stemi">
+            Infarto agudo do miocárdio com supradesnivelamento de ST
+          </option>
+          <option value="anxiety">Crise de ansiedade</option>
+          <option value="stable">Angina estável</option>
+          <option value="embolism">Tromboembolismo pulmonar</option>
+          <option value="aortic">Síndrome aórtica aguda</option>
+          <option value="pericarditis">Pericardite aguda</option>
+          <option value="muscular">Dor musculoesquelética</option>
+          <option value="nstemi">
+            Síndrome coronariana aguda sem supra de ST
+          </option>
+        </select>
+        <label for="reason">
+          Quais achados sustentam sua escolha e enfraquecem as alternativas?
+        </label>
+        <textarea
+          id="reason"
+          required
+          placeholder="Relacione os achados, considere uma hipótese alternativa e explique por que ela é menos provável…"
+        ></textarea>
+        <div class="actions">
+          <button type="button" class="btn" data-close="diagnosis">
+            Continuar investigando
+          </button>
+          <button class="btn primary" type="submit">
+            Concluir e ver feedback
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <!-- Janela de feedback com revisão das escolhas, exportação do percurso e retorno ao mapa. -->
+    <dialog id="result" aria-labelledby="resultTitle">
+      <div class="dialog-head">
+        <h2 id="resultTitle">Revisão do raciocínio</h2>
+        <button class="btn" data-close="result" aria-label="Fechar" type="button">×</button>
+      </div>
+      <div id="feedback"></div>
+      <!-- Entrega automática: mantém o aluno informado sobre geração, envio e retry do relatório. -->
+      <section class="submission-summary" aria-labelledby="submissionTitle">
+        <h3 id="submissionTitle">Enviar atendimento para revisão</h3>
+        <p>
+          O percurso, as hipóteses, a pontuação e o PDF serão enviados diretamente
+          ao professor. Você não precisa importar um arquivo manualmente.
+        </p>
+        <p id="submissionStatus" class="submission-status" data-state="idle" role="status" aria-live="polite">
+          Finalize o caso para enviá-lo automaticamente ao professor.
+        </p>
+      </section>
+      <div class="actions result-actions">
+        <button class="btn" id="export" type="button">Baixar cópia em PDF</button>
+        <a class="btn" id="downloadPdf" hidden>Baixar PDF</a>
+        <button class="btn" data-close="result" type="button">Voltar ao mapa</button>
+        <button class="btn primary" id="finalizeSubmission" type="button">
+          Finalizar caso e enviar ao professor
+        </button>
+      </div>
+    </dialog>
+    <!-- Confirmação antes de apagar o percurso atual e reiniciar o mesmo caso. -->
+    <dialog id="restart" aria-labelledby="restartTitle" aria-describedby="restartDescription">
+      <h2 id="restartTitle">Recomeçar este caso?</h2>
+      <p id="restartDescription">O percurso atual será apagado desta sessão.</p>
+      <div class="actions">
+        <button class="btn" data-close="restart" type="button">Cancelar</button>
+        <button class="btn primary" id="confirmReset" type="button">Reiniciar caso</button>
+      </div>
+    </dialog>
+    <!-- Área de avisos breves, anunciados de forma acessível às tecnologias assistivas. -->
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <!-- Carrega os casos clínicos e a lógica de interação após a estrutura da página. -->
+    <!-- Biblioteca PDF e fontes locais: permitem exportar sem conexão à internet. -->
+    <script type="module" src="../scripts/auth/route-guard.js"></script>
+    <script src="../vendor/pdfmake/pdfmake.min.js"></script>
+    <script src="../vendor/pdfmake/vfs_fonts.js"></script>
+    <script type="module" src="../scripts/student/clinical-session.js"></script>
+  </body>
+</html>

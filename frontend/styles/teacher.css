@@ -1,0 +1,140 @@
+/* Estrutura do painel docente, revisão, upload e autoria de casos. */
+@import url("./components.css");
+.teacher-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 1.25rem;
+}
+.teacher-sidebar {
+  align-self: start;
+  position: sticky;
+  top: 1rem;
+}
+.teacher-sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.teacher-sidebar a {
+  display: block;
+  padding: .65rem .75rem;
+  border-radius: 7px;
+  color: var(--color-ink);
+  text-decoration: none;
+  font-weight: 650;
+}
+.teacher-sidebar a[aria-current="page"] {
+  background: #e8edff;
+  color: var(--color-primary-dark);
+}
+.teacher-content {
+  min-width: 0;
+}
+.attempt {
+  border-left: 4px solid var(--color-primary);
+}
+.evidence {
+  padding: .75rem;
+  border-radius: 8px;
+  background: #f1f4f8;
+}
+.upload-zone {
+  padding: 2rem;
+  border: 2px dashed #9fb0c1;
+  border-radius: var(--radius-medium);
+  background: #fbfcfe;
+  text-align: center;
+}
+.upload-zone input {
+  max-width: 100%;
+}
+.review-warning {
+  border-left-color: var(--color-warning);
+}
+@media (max-width: 900px) {
+  .teacher-layout {
+    grid-template-columns: 1fr;
+  }
+  .teacher-sidebar {
+    position: static;
+  }
+  .teacher-sidebar ul {
+    display: flex;
+    overflow-x: auto;
+  }
+  .teacher-sidebar li {
+    flex: 0 0 auto;
+  }
+}
+.section-gap {
+  margin-top: 1rem;
+}
+.full-span {
+  grid-column: 1 / -1;
+}
+
+/* Identifica simulações sem depender apenas de cor. */
+.badge-test {
+  border-color: #a06a00;
+  background: #fff3cd;
+  color: #654300;
+}
+
+/* Resume a pontuação validada e mantém os valores legíveis em telas estreitas. */
+.score-total {
+  min-width: 5.5rem;
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  color: var(--color-primary-dark);
+  text-align: right;
+}
+.score-summary {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr);
+  gap: .75rem 1rem;
+  margin: 1rem 0 0;
+}
+.score-summary dt {
+  color: var(--color-muted);
+  font-size: .875rem;
+}
+.score-summary dd {
+  margin: .2rem 0 0;
+  font-weight: 700;
+}
+
+/* Mostra a composição de cada evento na própria linha cronológica. */
+.score-event {
+  margin: .75rem 0 0;
+  padding: .65rem .75rem;
+  border-left: 4px solid currentColor;
+  border-radius: 4px;
+  background: #f6f8fb;
+  font-weight: 650;
+}
+.score-positive {
+  color: #176b43;
+}
+.score-negative {
+  color: #9d2b2b;
+}
+
+/* Mantém a importação manual acessível, porém visualmente secundária. */
+.legacy-import summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.legacy-import-content {
+  margin-top: 1rem;
+}
+
+@media (max-width: 700px) {
+  .score-summary {
+    grid-template-columns: 1fr;
+  }
+  .score-summary dd {
+    margin-bottom: .5rem;
+  }
+  .score-total {
+    text-align: left;
+  }
+}

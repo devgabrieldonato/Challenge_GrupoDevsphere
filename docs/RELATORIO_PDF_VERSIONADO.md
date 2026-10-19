@@ -1,58 +1,126 @@
-# Contrato versionado do relatório acadêmico
+# Contrato versionado do relatório acadêmico — NEXT_2026
 
-O atendimento concluído possui duas representações vinculadas ao mesmo protocolo:
+## Documento oficial e cópia pessoal
 
-- o relatório JSON estruturado, que é a fonte de dados para a revisão docente;
-- o PDF legível, oferecido ao professor e ao aluno como documento de consulta.
+O atendimento concluído possui relatório JSON para revisão e PDF legível para
+consulta. Na NEXT_2026, ambos os registros oficiais são derivados do histórico
+aceito pelo backend. O arquivo criado no navegador é uma cópia pessoal e parte
+do transporte compatível; ele não determina nota, identidade ou conteúdo oficial.
 
-O contrato atual usa `schemaVersion: 2` e `reportType: "patient-virtual-submission"`. A definição completa está em `docs/schemas/submission-report.schema.json`.
+O contrato utiliza `schemaVersion: 2`,
+`reportType: "patient-virtual-submission"` e `clinicalSessionId` obrigatório.
+Veja o [schema](schemas/submission-report.schema.json) e o
+[OpenAPI](../backend/openapi/openapi.yaml).
 
-## Versão 2
+## Identidade, versão e eventos
 
-O relatório guarda o caso, o aluno apresentado pela interface, o protocolo idempotente, a versão das regras, a ordem das escolhas, as tentativas diagnósticas e a pontuação. Cada evento de pontuação registra separadamente valor clínico, bônus de prioridade, penalidade de eficiência, variação e totais acumulados.
+O relatório apresenta caso, aluno, protocolo, versão, ordem das escolhas,
+respostas, hipóteses, justificativas e pontuação. A sessão persistida fixa a
+versão do caso e as evidências disponíveis em cada hipótese.
 
-O campo `studentId` recebido do navegador serve apenas para compatibilidade e exibição. O backend identifica o autor pela sessão autenticada e não usa esse campo para conceder acesso ou definir propriedade.
+Campos `studentId`, `studentName`, pontos, respostas e decisões recebidos do
+navegador não concedem propriedade nem autenticidade. O backend usa a sessão e
+seus registros para conferir e reconstruir o conteúdo. O documento oficial
+recebe `officialAttempt: true` apenas nesse fluxo validado.
 
-`clientSubmissionId` é um UUID criado uma vez por conclusão. Uma nova tentativa de envio deve reutilizar esse identificador e o mesmo conteúdo. Isso permite recuperar a submissão existente sem duplicar o atendimento.
+`clientSubmissionId` é um UUID criado uma vez por conclusão. Reenvios reutilizam
+UUID, JSON e PDF de entrada. A mesma chave com conteúdo diferente resulta em
+`409 idempotency_conflict`; não cria outra versão do atendimento.
 
 ## Finalização automática
 
 O cliente envia `POST /api/v1/submissions` como `multipart/form-data`, com:
 
-- `clientSubmissionId`: UUID estável entre tentativas;
-- `report`: JSON conforme o schema v2;
-- `activityId`: inteiro positivo e opcional;
-- `pdf`: PDF `application/pdf` gerado para o mesmo relatório.
+- `clientSubmissionId`: protocolo estável entre tentativas de envio;
+- `report`: JSON v2 com `clinicalSessionId`, percurso e tentativas;
+- `activityId`: inteiro positivo opcional, compatível com a sessão e atribuição;
+- `pdf`: PDF pessoal `application/pdf` para o mesmo relatório.
 
-Uma submissão nova responde `201`; um retry idempotente responde `200`. A resposta contém `id`, `created`, `status` e o resumo `score`. O status é `submitted` quando há professor responsável ou `awaiting_assignment` quando depende de atribuição.
+Mutações também exigem sessão, origem permitida e `X-PV-Request: 1`. O cliente
+oficial já inclui esse cabeçalho. Professor não conclui no papel de aluno;
+simulações administrativas são identificadas como testes.
 
-O sucesso só pode ser apresentado depois da confirmação da API. Em falha, o cliente preserva o relatório, o PDF e o identificador para permitir nova tentativa. O download manual continua disponível como cópia do aluno; ele não é necessário para entregar o atendimento ao professor.
+Depois de validar o envelope e conciliar o histórico, o backend executa o
+renderizador oficial com os dados autoritativos. O PDF final, seu SHA-256 e os
+registros da submissão são guardados transacionalmente. A sessão fica vinculada
+à submissão e concluída, impedindo novas escolhas.
 
-## PDF e payload incorporado
+Uma submissão nova responde `201`; reenvio idêntico responde `200`. A resposta
+inclui identificação, indicação de criação, estado e pontuação. O estado acadêmico
+é `submitted` quando existe revisor ou `awaiting_assignment` quando depende de
+atribuição. O sucesso só aparece após confirmação da API.
 
-O PDF inclui o relatório estruturado em um marcador `%PV_REPORT_V1:` após o conteúdo principal. O nome do marcador permanece `V1` por compatibilidade do contêiner; a versão do conteúdo é determinada por `schemaVersion`.
+A interface envia automaticamente após registrar a hipótese. Se houver falha,
+preserva o protocolo e permite tentar novamente. O aluno não precisa exportar e
+importar um arquivo para entregar o atendimento ao professor.
 
-O backend valida nome `.pdf`, MIME `application/pdf`, assinatura `%PDF-`, marcador incorporado e tamanho de até 20 MiB. O JSON incorporado deve coincidir exatamente com o campo multipart `report`; uma divergência gera `400 pdf_report_mismatch`. O hash SHA-256 é calculado no servidor e o PDF é armazenado como BLOB na mesma transação da submissão. Conteúdo incorporado nunca deve ser executado.
+## Dependência do renderizador oficial
 
-O professor autorizado pode obter o documento em `GET /api/v1/submissions/{submissionId}/pdf`. O caminho físico de armazenamento não faz parte da resposta.
+`backend/src/official_pdf.cpp` chama `tools/render_official_report.py`, usando
+o Python configurado em `DEVSPHERE_PYTHON`. O interpretador precisa de ReportLab.
+`DEVSPHERE_PDF_RENDERER` permite definir o caminho do renderizador.
 
-## Compatibilidade com a versão 1
+O processo recebe dados validados em arquivos temporários privados, sem shell
+e sem autoridade de edição do banco. Texto clínico e autoral é escapado antes de
+compor o PDF. O conteúdo recebido do aluno não é reaproveitado como páginas oficiais.
 
-Relatórios legados podem usar `schemaVersion: 1` e `reportType: "patient-virtual-submission"` na importação manual existente. Eles não possuem pontuação e devem aparecer como **Pontuação não disponível**, nunca como zero.
+Se a renderização falhar, a API informa `503 official_pdf_unavailable` e não
+apresenta a submissão como concluída. Corrija a dependência e repita o envio com
+o mesmo protocolo. A preparação está nos READMEs [principal](../README.md) e
+[do backend](../backend/README.md).
 
-O schema deste diretório descreve somente novos relatórios v2. A compatibilidade v1 pertence ao importador legado e permanece isolada do fluxo automático.
+## Contêiner PDF e marcador
 
-## Segurança e privacidade
+O PDF contém JSON no marcador `%PV_REPORT_V1:`. O sufixo `V1` identifica o
+contêiner legado; `schemaVersion` identifica a versão do conteúdo.
 
-- O backend deriva usuário e papel do cookie de sessão.
-- Alunos e administradores podem concluir; professores recebem `403`.
-- Em simulação administrativa, o backend usa um aluno técnico e grava `isTest: true`.
-- O JSON recebido do navegador não é fonte de autoridade para identidade ou pontuação.
-- A pontuação é recalculada com a versão oficial das regras.
-- O PDF só pode ser consultado pelo aluno proprietário, professor responsável ou administrador autorizado.
-- Uma consulta sem vínculo responde `404`, sem revelar a existência do documento.
-- Dados clínicos educacionais e identificadores não devem aparecer em logs técnicos.
+O envelope enviado pelo cliente exige extensão `.pdf`, MIME `application/pdf`,
+assinatura, limite de tamanho e coincidência do marcador com o campo multipart
+`report`. Divergência resulta em `400 pdf_report_mismatch`.
 
-## Limitação clínica
+Essa coincidência verifica consistência do transporte, não autenticidade acadêmica.
+Um usuário consegue alterar texto e JSON em seu próprio arquivo. Por isso, a NEXT
+reconcilia os dados com a sessão e gera outro PDF oficial a partir do servidor.
 
-A classificação pedagógica inicial foi criada a partir do conteúdo atual dos casos. Ela ainda exige revisão e homologação por docentes de Medicina antes de ser usada como nota acadêmica, decisão assistencial ou instrumento de avaliação formal.
+O documento oficial é armazenado como BLOB e nunca executa o JSON incorporado.
+O download autorizado é `GET /api/v1/submissions/{id}/pdf`; o caminho físico não
+é divulgado. A cópia pessoal oferecida no atendimento e o PDF oficial obtido por
+essa rota podem ter apresentação diferente.
+
+## Compatibilidade e histórico
+
+Antes da NEXT_2026, o PDF do navegador era validado e armazenado diretamente.
+Registros já existentes permanecem históricos; essa forma antiga de transporte
+não constitui garantia retroativa de verificação pelo novo fluxo.
+
+A importação manual aceita relatórios legados v1 reconhecidos pelo sistema.
+Ela fica separada da conclusão de sessão e é marcada como `source: "pdf_import"`
+e `officialAttempt: false`. Seu percurso é documental, não autenticado pelo
+servidor. Não se atribui nota oficial a pontos escritos no PDF importado.
+
+Relatórios v1 sem pontuação apresentam **Pontuação não disponível**. A leitura
+legada permanece compatível, sem recalcular notas retroativamente.
+
+## Acesso e devolutiva
+
+O aluno acessa o próprio atendimento, documento e devolutivas concluídas.
+O professor precisa de vínculo de revisão ou atividade; conhecer o identificador
+não dá acesso. O administrador tem os acessos técnicos previstos pela política.
+Consultas sem vínculo não devem revelar a existência de documento privado.
+
+A devolutiva é entidade separada do percurso imutável. Rascunhos não aparecem
+para o aluno; conclusão disponibiliza todos os campos e gera uma notificação
+interna. Consulte [Portais NEXT_2026](PORTAIS_NEXT_2026.md).
+
+## Limitações e segurança
+
+Não versione PDFs privados, banco, chaves ou informações identificáveis. Logs
+não devem conter relatório integral, documento ou texto livre clínico.
+Backups, retenção e uso institucional dependem das políticas homologadas.
+
+O documento oficial comprova a vinculação aos registros do sistema, não validade
+médica do caso, identidade presencial do aluno, certificação acadêmica ou assinatura
+digital externa. Classificações e casos exigem revisão docente antes de uso formal.
+
+Veja [Segurança NEXT_2026](SEGURANCA_NEXT_2026.md),
+[Arquitetura](ARQUITETURA_BACKEND_CPP20.md) e [Worker](../worker/README.md).

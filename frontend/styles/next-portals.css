@@ -1,0 +1,88 @@
+/* Portais NEXT: listas de histórico, processamento e curadoria com leitura acessível. */
+.next-list{
+  display:grid;
+  gap:1rem;
+  margin-top:1rem
+}
+.next-list article{
+  border:1px solid var(--color-border);
+  padding:1rem;
+  border-radius:12px;
+  background:white
+}
+.next-list h2{
+  margin-top:0
+}
+.next-list pre,pre.document-preview{
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  max-height:32rem;
+  overflow:auto;
+  background:#f4f6fa;
+  padding:1rem
+}
+.next-form{
+  display:grid;
+  gap:.75rem
+}
+.next-form textarea{
+  min-height:8rem
+}
+.next-form label{
+  font-weight:650
+}
+.next-form input,.next-form select,.next-form textarea{
+  width:100%;
+  padding:.65rem
+}
+.next-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.6rem;
+  margin-top:.8rem
+}
+.next-meta{
+  color:#526172
+}
+.next-json{
+  font:14px/1.5 monospace;
+  min-height:24rem!important
+}
+nav a{
+  display:inline-block;
+  padding:.3rem
+}
+.next-list dd{
+  margin:0 0 .7rem
+}
+.next-list dt{
+  font-weight:bold
+}
+
+
+/* Declarações de uso precisam manter o checkbox compacto e o rótulo legível. */
+.next-form input[type="checkbox"] {
+   width: auto;
+   margin-right: .5rem;
+
+}
+
+#documentDialog {
+   width: min(1000px, 94vw);
+   max-height: 92vh;
+
+}
+
+#documentPreview {
+   width: 100%;
+   min-height: 24rem;
+   font: 14px/1.5 monospace;
+
+}
+
+.catalog-filters {
+   display: grid;
+   gap: .5rem;
+   margin: 1rem 0;
+
+}

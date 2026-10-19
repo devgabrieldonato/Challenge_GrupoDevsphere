@@ -1,0 +1,150 @@
+{
+  "date": "2026-10-16",
+  "ollamaVersion": "0.40.5",
+  "hardware": "Apple M1 / 8 GiB",
+  "models": [
+    {
+      "name": "qwen3:8b",
+      "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+      "sizeBytes": 5225388164,
+      "installation": "verified",
+      "inference": "short4096 succeeded in isolated profile; full8192 failed GPU OutOfMemory; no full generation validated"
+    },
+    {
+      "name": "gemma3:4b",
+      "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+      "sizeBytes": 3350272403,
+      "installation": "verified",
+      "shortJsonTestSeconds": 16.96,
+      "shortJsonTestTokens": 17
+    }
+  ],
+  "generationStatus": "blocked_full_case_gpu_out_of_memory_in_isolated_profile",
+  "clinicalValidation": "pending_human_review",
+  "observations": [
+    "Initial16k context loaded approximately7.9GB with pressure observed",
+    "Qwen4k hybrid timed out after180s",
+    "Qwen CPU4k also timed out after180s; exact root cause not established",
+    "Gemma4k JSON technical test succeeded; not a clinical review"
+  ],
+  "latestProbes": [
+    {
+      "date": "2026-10-16",
+      "purpose": "Resposta técnica curta; não geração clínica",
+      "model": "qwen3:8b",
+      "timeoutSeconds": 45,
+      "options": {
+        "num_ctx": 512,
+        "num_predict": 16,
+        "num_batch": 16,
+        "temperature": 0
+      },
+      "status": "completed",
+      "doneReason": "stop",
+      "evaluationTokens": 9,
+      "promptTokens": 25,
+      "loadDurationNs": 21314879917,
+      "totalDurationNs": 27569732625,
+      "elapsedSeconds": 27.841,
+      "ollamaApproxPeakRssBytes": null,
+      "unloadAcknowledged": true,
+      "memoryNote": "A amostragem não obteve medida de RSS; não significa consumo zero."
+    },
+    {
+      "date": "2026-10-16",
+      "purpose": "Teste técnico curto no contexto mínimo do worker; sem geração clínica",
+      "model": "qwen3:8b",
+      "timeoutSeconds": 60,
+      "status": "failed",
+      "error": {
+        "code": "provider_timeout",
+        "retryable": true
+      },
+      "elapsedSeconds": 60.234,
+      "unloadAcknowledged": true
+    }
+  ],
+  "latestProfileProbes": [
+    {
+      "date": "2026-10-16",
+      "model": "qwen3:8b",
+      "profile": {
+        "parallel": 1,
+        "maxLoadedModels": 1,
+        "kvCache": "q8_0",
+        "flashAttention": true,
+        "fitTargetMiB": 128
+      },
+      "generationValidation": "not_performed",
+      "clinicalValidation": "pending_human_review",
+      "ollamaVersion": "0.40.5",
+      "options": {
+        "num_ctx": 4096,
+        "num_predict": 16,
+        "num_batch": 16,
+        "temperature": 0
+      },
+      "status": "completed",
+      "elapsedSeconds": 18.736,
+      "metrics": {
+        "load_duration": 16883045916,
+        "prompt_eval_count": 25,
+        "eval_count": 9,
+        "eval_duration": 948747000,
+        "total_duration": 18546375250
+      },
+      "unloadAcknowledged": true,
+      "serverStopped": true
+    },
+    {
+      "date": "2026-10-16",
+      "status": "failed",
+      "clinicalValidation": "pending_human_review",
+      "profile": {
+        "parallel": 1,
+        "maxLoadedModels": 1,
+        "kvCache": "q8_0",
+        "flashAttention": true,
+        "fitTargetMiB": 128
+      },
+      "calls": [
+        {
+          "model": "qwen3:8b",
+          "status": "failed",
+          "elapsedSeconds": 15.553,
+          "code": "provider_incomplete"
+        }
+      ],
+      "ollamaVersion": "0.40.5",
+      "error": {
+        "code": "provider_incomplete",
+        "message": "Ollama encerrou sem confirmar conclusão; nenhum resultado parcial será aceito.",
+        "retryable": true
+      },
+      "elapsedSeconds": 15.832,
+      "serverStopped": true,
+      "runtimeEvidence": {
+        "source": "isolated_Ollama_log",
+        "error": "kIOGPUCommandBufferCallbackErrorOutOfMemory",
+        "gpuLayers": "37/37",
+        "kvCacheMiB": 612,
+        "contextTokens": 8192,
+        "partialResultAccepted": false,
+        "sourceMaterial": "synthetic_fixture",
+        "criticExecuted": false
+      }
+    }
+  ],
+  "nextHardware": {
+    "availableAccordingToUser": true,
+    "specifications": "reported_by_user_not_verified",
+    "remoteAccessConfigured": false,
+    "benchmarkPerformed": false,
+    "system": "Windows",
+    "systemVersion": "not_informed",
+    "ramGiB": 16,
+    "gpu": "MSI NVIDIA GeForce RTX 3060",
+    "vramGiB": 12,
+    "processor": "not_informed"
+  }
+}

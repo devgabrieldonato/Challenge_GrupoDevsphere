@@ -20,7 +20,7 @@ add_library(argon2 STATIC
 target_include_directories(argon2 PUBLIC vendor/argon2/include PRIVATE vendor/argon2/src)
 target_link_libraries(argon2 PRIVATE Threads::Threads)
 
-add_library(devsphere_core src/database.cpp src/security.cpp)
+add_library(devsphere_core src/database.cpp src/next_database.cpp src/official_pdf.cpp src/security.cpp src/privileged_mfa.cpp)
 target_include_directories(devsphere_core PUBLIC include)
 target_link_libraries(devsphere_core PUBLIC SQLite3::SQLite3 argon2)
 
@@ -32,12 +32,16 @@ else()
   target_link_libraries(devsphere_core PUBLIC OpenSSL::Crypto)
 endif()
 
-add_executable(devsphere-api src/main.cpp src/http_server.cpp)
+add_executable(devsphere-api src/main.cpp src/http_server.cpp src/pipeline_api.cpp)
 target_link_libraries(devsphere-api PRIVATE devsphere_core)
 target_compile_options(devsphere-api PRIVATE -Wall -Wextra -Wpedantic)
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(devsphere-mfa-tests tests/test_mfa.cpp)
+  target_link_libraries(devsphere-mfa-tests PRIVATE devsphere_core)
+  add_test(NAME mfa COMMAND devsphere-mfa-tests)
+  set_tests_properties(mfa PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
   add_executable(devsphere-tests tests/test_core.cpp)
   target_link_libraries(devsphere-tests PRIVATE devsphere_core)
   add_test(NAME core COMMAND devsphere-tests)

@@ -1,0 +1,238 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Contribuição canônica NEXT_2026 para backend C++20",
+  "description": "Contrato de transporte. Autoridade da sessão, integridade das dependências e regras pedagógicas são verificadas também pelo backend. Não representa aprovação clínica.",
+  "type": "object",
+  "required": [
+    "title",
+    "content",
+    "metadata"
+  ],
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "patient",
+        "items",
+        "hypotheses",
+        "correctHypothesis",
+        "scoring"
+      ],
+      "properties": {
+        "patient": {
+          "type": "object"
+        },
+        "hypotheses": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "correctHypothesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "items": {
+          "type": "array",
+          "minItems": 40,
+          "maxItems": 40,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "type",
+              "title",
+              "answer",
+              "why"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]+$"
+              },
+              "type": {
+                "enum": [
+                  "question",
+                  "exam"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "answer": {
+                "type": "string",
+                "minLength": 1
+              },
+              "why": {
+                "type": "string",
+                "minLength": 1
+              },
+              "parent": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "allOf": [
+            {
+              "contains": {
+                "properties": {
+                  "type": {
+                    "const": "question"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              },
+              "minContains": 18,
+              "maxContains": 18
+            },
+            {
+              "contains": {
+                "properties": {
+                  "type": {
+                    "const": "exam"
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              },
+              "minContains": 22,
+              "maxContains": 22
+            }
+          ]
+        },
+        "scoring": {
+          "type": "object",
+          "required": [
+            "items"
+          ],
+          "properties": {
+            "ruleSetVersion": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "initialScore": {
+              "const": 50
+            },
+            "items": {
+              "type": "object",
+              "minProperties": 40,
+              "additionalProperties": {
+                "type": "object",
+                "required": [
+                  "classification",
+                  "basePoints"
+                ],
+                "properties": {
+                  "classification": {
+                    "enum": [
+                      "priority",
+                      "relevant",
+                      "complementary",
+                      "low_value",
+                      "inappropriate"
+                    ]
+                  },
+                  "basePoints": {
+                    "enum": [
+                      5,
+                      3,
+                      1,
+                      -8,
+                      -12
+                    ]
+                  },
+                  "isCentralEvidence": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "rubricVersion": {
+          "type": "string"
+        },
+        "difficultyAssessment": {
+          "type": "object",
+          "required": [
+            "version",
+            "scores",
+            "suggestedLevel"
+          ],
+          "properties": {
+            "version": {
+              "const": "pv-difficulty-v1"
+            },
+            "scores": {
+              "type": "object",
+              "required": [
+                "clueAmbiguity",
+                "evidenceIntegration",
+                "competingHypotheses",
+                "prioritization"
+              ],
+              "properties": {
+                "clueAmbiguity": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "evidenceIntegration": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "competingHypotheses": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2
+                },
+                "prioritization": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2
+                }
+              },
+              "additionalProperties": false
+            },
+            "suggestedLevel": {
+              "enum": [
+                "introductory",
+                "intermediate",
+                "advanced"
+              ]
+            },
+            "overrideReason": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

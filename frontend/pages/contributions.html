@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Materiais e minhas contribuições · Paciente Virtual</title>
+<link rel="stylesheet" href="../styles/teacher.css">
+<link rel="stylesheet" href="../styles/next-portals.css">
+</head>
+<body class="app-shell auth-pending" data-required-role="any">
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<!-- Navegação contextual: permissões reais são verificadas pelo backend. -->
+<header class="site-header">
+<div class="brand">FIAP</div>
+<div>
+<p class="site-title">Paciente Virtual</p>
+<p class="site-subtitle">Materiais e minhas contribuições</p>
+</div>
+<nav aria-label="Jornadas">
+<a href="student-cases.html">Praticar</a> · <a href="student-history.html">Meus atendimentos</a> · <a href="contributions.html">Contribuições</a> · <a data-teacher-only href="teacher-cases.html">Curadoria</a> · <button class="button" type="button" data-logout>Sair</button>
+</nav>
+</header>
+<main id="conteudo" class="page-main">
+<h1>Materiais e minhas contribuições</h1>
+<p>Envie apenas PDFs autorizados e previamente desidentificados. Um caso gerado é um rascunho e exige revisão docente antes da publicação.</p>
+<section class="card">
+<h2>Enviar PDF</h2>
+<form id="uploadForm" class="next-form">
+<label for="sourcePdf">Caso clínico ou livro em PDF</label>
+<label for="sourceArea">Área/especialidade interna</label><input id="sourceArea" required value="general">
+<input id="sourcePdf" type="file" accept="application/pdf,.pdf" required>
+<label>
+<input id="authorized" type="checkbox" required> Tenho autorização para usar este material.</label>
+<label>
+<input id="deidentified" type="checkbox" required> Conferi que o documento não contém dados identificáveis de pacientes.</label>
+<button class="button primary" type="submit">Enviar material</button>
+</form>
+</section>
+<p id="contributionStatus" role="status" aria-live="polite">
+</p>
+<button id="refreshContributions" class="button" type="button">Atualizar documentos e trabalhos</button>
+<section>
+<h2>Documentos</h2>
+<div id="documents" class="next-list">
+</div>
+</section>
+<section>
+<h2>Trabalhos de processamento</h2>
+<div id="jobs" class="next-list">
+</div>
+</section>
+<section>
+<h2>Rascunhos e contribuições</h2>
+<div id="drafts" class="next-list">
+</div>
+</section>
+<section class="card"><h2>Buscar referências aprovadas</h2><p>São retornados apenas trechos aprovados de fontes que sua conta pode acessar.</p><form id="librarySearchForm" class="next-form"><label for="libraryQuery">Tema ou termo</label><input id="libraryQuery" required maxlength="200"><button class="button" type="submit">Buscar fontes</button></form><div id="libraryResults" class="next-list"></div></section><dialog id="documentDialog">
+<h2>Documento e conteúdo extraído</h2>
+<label for="documentPreview">Markdown extraído (conteúdo não validado)</label><textarea id="documentPreview" class="next-json" rows="18"></textarea><button id="saveMarkdown" class="button" type="button">Salvar correção da extração</button>
+<button id="closeDocument" class="button" type="button">Fechar</button>
+</dialog>
+</main>
+<script type="module" src="../scripts/auth/route-guard.js">
+</script>
+<script type="module" src="../scripts/contributions/workspace.js">
+</script>
+</body>
+</html>

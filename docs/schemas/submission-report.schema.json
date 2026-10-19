@@ -2,16 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://paciente-virtual.local/schemas/submission-report-v2.json",
   "title": "Relatório de atendimento do Paciente Virtual — versão 2",
-  "description": "Contrato do relatório estruturado enviado com o PDF. Identidade e pontuação são validadas novamente pelo backend.",
+  "description": "Relatório v2 vinculado ao histórico do servidor; dados do cliente não são autoridade.",
   "type": "object",
-  "additionalProperties": false,
+  "additionalProperties": true,
   "required": [
     "schemaVersion",
     "reportType",
     "caseId",
     "studentId",
     "studentName",
-    "activityId",
     "clientSubmissionId",
     "submissionProtocol",
     "ruleSetVersion",
@@ -19,7 +18,8 @@
     "exportedAt",
     "path",
     "attempts",
-    "scoring"
+    "scoring",
+    "clinicalSessionId"
   ],
   "properties": {
     "schemaVersion": {
@@ -29,10 +29,8 @@
       "const": "patient-virtual-submission"
     },
     "caseId": {
-      "enum": [
-        "joao",
-        "marina"
-      ]
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]*$"
     },
     "studentId": {
       "type": [
@@ -62,7 +60,8 @@
       "format": "uuid"
     },
     "ruleSetVersion": {
-      "const": "1.0.0"
+      "type": "string",
+      "minLength": 1
     },
     "case": {
       "type": "string",
@@ -88,39 +87,51 @@
     },
     "scoring": {
       "$ref": "#/$defs/scoringSummary"
+    },
+    "clinicalSessionId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "caseVersion": {
+      "type": [
+        "string",
+        "integer"
+      ],
+      "description": "Identificador/versionamento do caso fixado na sessão."
+    },
+    "scoreEvents": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scoreEvent"
+      }
     }
   },
   "$defs": {
     "scoreEvent": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
-        "caseId",
-        "caseVersion",
         "sequence",
         "itemKey",
         "itemType",
         "classification",
-        "classificationLabel",
         "ruleSetVersion",
-        "initialScore",
-        "recommendedActionBudget",
         "basePoints",
         "priorityBonus",
         "efficiencyPenalty",
-        "delta",
-        "rawTotalAfterAction",
-        "displayedTotalAfterAction"
+        "delta"
       ],
       "properties": {
         "caseId": {
-          "enum": [
-            "joao",
-            "marina"
-          ]
+          "type": "string",
+          "minLength": 1
         },
         "caseVersion": {
-          "const": "1.0.0"
+          "type": [
+            "string",
+            "integer"
+          ],
+          "description": "Identificador/versionamento do caso fixado na sessão."
         },
         "sequence": {
           "type": "integer",
@@ -150,7 +161,8 @@
           "minLength": 1
         },
         "ruleSetVersion": {
-          "const": "1.0.0"
+          "type": "string",
+          "minLength": 1
         },
         "initialScore": {
           "const": 50
@@ -188,6 +200,14 @@
           "type": "integer"
         },
         "displayedTotalAfterAction": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "rawTotalAfter": {
+          "type": "integer"
+        },
+        "displayedTotalAfter": {
           "type": "integer",
           "minimum": 0,
           "maximum": 100
@@ -252,13 +272,12 @@
     },
     "diagnosticAttempt": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "hypothesis",
         "reason",
         "actions",
-        "correct",
-        "submittedAt"
+        "correct"
       ],
       "properties": {
         "hypothesis": {
@@ -284,32 +303,45 @@
         "submittedAt": {
           "type": "string",
           "format": "date-time"
+        },
+        "time": {
+          "type": "string"
         }
-      }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "submittedAt"
+          ]
+        },
+        {
+          "required": [
+            "time"
+          ]
+        }
+      ]
     },
     "scoringSummary": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
-        "caseVersion",
         "ruleSetVersion",
         "initialScore",
         "rawTotal",
         "displayedTotal",
-        "recommendedActionBudget",
-        "actionCount",
-        "gains",
-        "losses",
-        "priorityBonus",
-        "efficiencyPenalty",
-        "events"
+        "actionCount"
       ],
       "properties": {
         "caseVersion": {
-          "const": "1.0.0"
+          "type": [
+            "string",
+            "integer"
+          ],
+          "description": "Identificador/versionamento do caso fixado na sessão."
         },
         "ruleSetVersion": {
-          "const": "1.0.0"
+          "type": "string",
+          "minLength": 1
         },
         "initialScore": {
           "const": 50

@@ -17,6 +17,20 @@
         "runOn": "folderOpen",
         "instanceLimit": 1
       }
+    },
+    {
+      "label": "Devsphere: worker local",
+      "type": "process",
+      "command": "${workspaceFolder}/tools/start-worker.sh",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "runOptions": {
+        "instanceLimit": 1
+      }
     }
   ]
 }

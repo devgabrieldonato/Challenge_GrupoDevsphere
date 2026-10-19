@@ -25,6 +25,7 @@
         <form id="loginForm" data-role="admin" data-success-url="./admin-dashboard.html">
           <div class="field"><label for="email">E-mail administrativo</label><input id="email" name="email" type="email" autocomplete="username" required></div>
           <div class="field"><label for="password">Senha</label><div class="password-field"><input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required><button type="button" data-toggle-password aria-controls="password">Mostrar</button></div></div>
+          <div class="field"><label for="otp">Código do autenticador ou recuperação (quando habilitado)</label><input id="otp" name="otp" type="text" autocomplete="one-time-code" spellcheck="false"></div>
           <div id="formStatus" role="status" aria-live="polite"></div>
           <button class="button primary" type="submit">Entrar como administrador</button>
           <a class="button" href="../index.html">Voltar à escolha de perfil</a>

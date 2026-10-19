@@ -1,81 +1,111 @@
 openapi: 3.1.0
 info:
   title: API Paciente Virtual
-  version: 1.0.0-draft
-  description: >-
-    Contrato da futura API C++20. Autenticação usa cookie de sessão; geração
-    assistida e publicação exigem autorização de professor.
+  version: 2.0.0-next
+  description: API C++20 do MVP NEXT_2026. Atendimento autoritativo, casos versionados, curadoria atribuída e fila
+    local. Sem certificação clínica ou de segurança.
 servers:
-  - url: /api/v1
+- url: /api/v1
 tags:
-  - name: Autenticação
-  - name: Administração
-  - name: Casos
-  - name: Geração de casos
-  - name: Atendimentos
-  - name: Devolutivas
+- name: Autenticação
+- name: Administração
+- name: Casos
+- name: Geração de casos
+- name: Atendimentos
+- name: Devolutivas
 paths:
   /auth/login:
     post:
-      tags: [Autenticação]
+      tags:
+      - Autenticação
       summary: Inicia uma sessão segura
-      security: []
+      security:
+      - requestGuard: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/LoginRequest' }
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
           description: Sessão iniciada; o cookie é emitido pelo servidor.
           headers:
             Set-Cookie:
-              schema: { type: string }
+              schema:
+                type: string
               description: Cookie HttpOnly, SameSite e Secure em produção.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Session' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '429': { $ref: '#/components/responses/TooManyRequests' }
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '403':
+          description: MFA exigido, inválido/não provisionado, ou origem/header bloqueados.
   /auth/logout:
     post:
-      tags: [Autenticação]
+      tags:
+      - Autenticação
       summary: Encerra a sessão atual
       responses:
-        '204': { description: Sessão encerrada. }
+        '204':
+          description: Sessão encerrada.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /auth/session:
     get:
-      tags: [Autenticação]
+      tags:
+      - Autenticação
       summary: Retorna a sessão atual
       responses:
         '200':
           description: Sessão válida.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Session' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /auth/register/{role}:
     post:
-      tags: [Autenticação]
+      tags:
+      - Autenticação
       summary: Solicita uma conta acadêmica institucional
-      security: []
+      security:
+      - requestGuard: []
       parameters:
-        - name: role
-          in: path
-          required: true
-          schema: { enum: [student, teacher] }
+      - name: role
+        in: path
+        required: true
+        schema:
+          enum:
+          - student
+          - teacher
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/RegistrationRequest' }
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
       responses:
-        '201': { description: Solicitação pendente de análise administrativa. }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '201':
+          description: Solicitação pendente de análise administrativa.
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /admin/registrations:
     get:
-      tags: [Administração]
+      tags:
+      - Administração
       summary: Lista solicitações pendentes
       responses:
         '200':
@@ -84,21 +114,29 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/PendingRegistration' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+                items:
+                  $ref: '#/components/schemas/PendingRegistration'
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /admin/registrations/{requestId}/{decision}:
     post:
-      tags: [Administração]
+      tags:
+      - Administração
       summary: Aprova ou recusa uma solicitação
       parameters:
-        - name: requestId
-          in: path
-          required: true
-          schema: { type: integer, format: int64 }
-        - name: decision
-          in: path
-          required: true
-          schema: { enum: [approve, reject] }
+      - name: requestId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: decision
+        in: path
+        required: true
+        schema:
+          enum:
+          - approve
+          - reject
       requestBody:
         required: true
         content:
@@ -106,21 +144,32 @@ paths:
             schema:
               type: object
               properties:
-                note: { type: string }
+                note:
+                  type: string
       responses:
-        '200': { description: Decisão registrada e notificação enfileirada. }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '200':
+          description: Decisão registrada e notificação enfileirada.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /admin/configuration:
     get:
-      tags: [Administração]
+      tags:
+      - Administração
       summary: Consulta domínios, notificações e contadores administrativos
       responses:
-        '200': { description: Configuração administrativa atual. }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '200':
+          description: Configuração administrativa atual.
+        '403':
+          $ref: '#/components/responses/Forbidden'
   /cases:
     get:
-      tags: [Casos]
+      tags:
+      - Casos
       summary: Lista casos visíveis ao usuário autenticado
       responses:
         '200':
@@ -129,135 +178,47 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/ClinicalCaseSummary' }
+                items:
+                  $ref: '#/components/schemas/ClinicalCaseSummary'
     post:
-      tags: [Casos]
+      tags:
+      - Casos
       summary: Cria um caso em rascunho
       description: Requer papel teacher. Nunca publica automaticamente.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/ClinicalCase' }
+            schema:
+              $ref: '#/components/schemas/ClinicalCase'
       responses:
         '201':
           description: Rascunho criado.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ClinicalCase' }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-  /cases/{caseId}:
-    parameters:
-      - $ref: '#/components/parameters/CaseId'
-    get:
-      tags: [Casos]
-      summary: Consulta uma versão de caso autorizada
-      responses:
-        '200':
-          description: Caso encontrado.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ClinicalCase' }
-        '404': { $ref: '#/components/responses/NotFound' }
-    put:
-      tags: [Casos]
-      summary: Atualiza um rascunho e cria histórico de versão
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ClinicalCase' }
-      responses:
-        '200':
-          description: Rascunho atualizado.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ClinicalCase' }
-        '409': { $ref: '#/components/responses/Conflict' }
-  /cases/{caseId}/publish:
-    parameters:
-      - $ref: '#/components/parameters/CaseId'
-    post:
-      tags: [Casos]
-      summary: Publica uma versão aprovada por revisão humana
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [version, clinicalReviewConfirmed]
-              properties:
-                version: { type: integer, minimum: 1 }
-                clinicalReviewConfirmed: { const: true }
-      responses:
-        '200': { description: Versão publicada. }
-        '409': { $ref: '#/components/responses/Conflict' }
-  /case-generation/structured:
-    post:
-      tags: [Geração de casos]
-      summary: Solicita proposta a partir de formulário estruturado
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/StructuredCaseInput' }
-      responses:
-        '202':
-          description: Trabalho enfileirado.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/GenerationJob' }
-        '400': { $ref: '#/components/responses/ValidationError' }
-  /case-generation/pdf:
-    post:
-      tags: [Geração de casos]
-      summary: Envia PDF para extração controlada e geração de rascunho
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        '202':
-          description: PDF validado inicialmente e trabalho enfileirado.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/GenerationJob' }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '413': { description: Arquivo excede o limite configurado. }
-        '415': { description: Arquivo não é um PDF aceito. }
-  /case-generation/{jobId}:
-    get:
-      tags: [Geração de casos]
-      summary: Consulta estado, lacunas e proposta de um trabalho
-      parameters:
-        - name: jobId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
-      responses:
-        '200':
-          description: Estado atual.
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/GenerationJob' }
-        '404': { $ref: '#/components/responses/NotFound' }
+              schema:
+                $ref: '#/components/schemas/ClinicalCase'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /submissions:
     get:
-      tags: [Atendimentos]
+      tags:
+      - Atendimentos
       summary: Lista atendimentos autorizados
       parameters:
-        - name: status
-          in: query
-          schema: { enum: [submitted, awaiting_assignment, awaiting_review, reviewed] }
+      - name: status
+        in: query
+        schema:
+          enum:
+          - submitted
+          - awaiting_assignment
+          - awaiting_review
+          - reviewed
       responses:
         '200':
           description: Atendimentos visíveis conforme a sessão.
@@ -265,22 +226,25 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Submission' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+                items:
+                  $ref: '#/components/schemas/Submission'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
     post:
-      tags: [Atendimentos]
+      tags:
+      - Atendimentos
       summary: Finaliza e envia o atendimento com seu PDF
-      description: >-
-        Aceita aluno ou administrador. A identidade acadêmica vem da sessão.
-        Professor recebe 403. O backend recalcula a pontuação e compara o JSON
-        incorporado no PDF com o campo report. Um retry com a mesma chave e o
-        mesmo conteúdo retorna a submissão existente.
+      description: Aceita aluno ou administrador. A identidade acadêmica vem da sessão. Professor recebe 403. O
+        backend recalcula a pontuação e compara o JSON incorporado no PDF com o campo report. Um retry com a mesma
+        chave e o mesmo conteúdo retorna a submissão existente.
       parameters:
-        - name: Idempotency-Key
-          in: header
-          required: false
-          description: Deve repetir o mesmo UUID enviado em clientSubmissionId.
-          schema: { type: string, format: uuid }
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: Deve repetir o mesmo UUID enviado em clientSubmissionId.
+        schema:
+          type: string
+          format: uuid
       requestBody:
         required: true
         content:
@@ -288,7 +252,10 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [clientSubmissionId, report, pdf]
+              required:
+              - clientSubmissionId
+              - report
+              - pdf
               properties:
                 clientSubmissionId:
                   type: string
@@ -314,23 +281,35 @@ paths:
           description: Nova submissão criada.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/SubmissionCreateResponse' }
+              schema:
+                $ref: '#/components/schemas/SubmissionCreateResponse'
         '200':
           description: Retry idempotente; a submissão existente foi recuperada.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/SubmissionCreateResponse' }
+              schema:
+                $ref: '#/components/schemas/SubmissionCreateResponse'
         '400':
           description: Relatório, PDF, atividade ou correspondência entre PDF e JSON inválidos.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Problem' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '409': { $ref: '#/components/responses/Conflict' }
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '503':
+          description: Renderizador PDF oficial indisponível; configure Python/reportlab e repita com o mesmo protocolo.
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /submissions/import-pdf:
     post:
-      tags: [Atendimentos]
+      tags:
+      - Atendimentos
       summary: Importa relatório PDF emitido pela plataforma
       requestBody:
         required: true
@@ -338,9 +317,12 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [file]
+              required:
+              - file
               properties:
-                file: { type: string, format: binary }
+                file:
+                  type: string
+                  format: binary
       responses:
         '201':
           description: Relatório compatível importado e PDF original preservado.
@@ -348,102 +330,152 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [id, status]
+                required:
+                - id
+                - status
                 properties:
-                  id: { type: integer, format: int64 }
-                  status: { type: string, enum: [imported] }
-        '400': { description: Tipo, assinatura ou esquema incompatível. }
-        '413': { description: Arquivo vazio ou acima de 10 MB. }
+                  id:
+                    type: integer
+                    format: int64
+                  status:
+                    type: string
+                    enum:
+                    - imported
+        '400':
+          description: Tipo
+          assinatura ou esquema incompatível.: null
+        '413':
+          description: Arquivo vazio ou acima de 10 MB.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /submissions/{submissionId}:
     get:
-      tags: [Atendimentos]
+      tags:
+      - Atendimentos
       summary: Consulta percurso e tentativas para revisão
       parameters:
-        - $ref: '#/components/parameters/SubmissionId'
+      - $ref: '#/components/parameters/SubmissionId'
       responses:
         '200':
           description: Atendimento encontrado.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/Submission' }
-        '404': { $ref: '#/components/responses/NotFound' }
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /submissions/{submissionId}/pdf:
     get:
-      tags: [Atendimentos]
+      tags:
+      - Atendimentos
       summary: Exibe o PDF associado ao atendimento
-      description: >-
-        Disponível ao aluno proprietário, professor responsável e administrador.
-        Para outros usuários, responde 404 sem revelar a existência do documento.
+      description: Disponível ao aluno proprietário, professor responsável e administrador. Para outros usuários,
+        responde 404 sem revelar a existência do documento.
       parameters:
-        - $ref: '#/components/parameters/SubmissionId'
+      - $ref: '#/components/parameters/SubmissionId'
       responses:
         '200':
           description: PDF preservado na conclusão.
           headers:
             Content-Disposition:
-              schema: { type: string }
+              schema:
+                type: string
               description: inline; filename="atendimento.pdf"
             ETag:
-              schema: { type: string }
+              schema:
+                type: string
               description: Hash SHA-256 do documento.
             Cache-Control:
-              schema: { type: string }
+              schema:
+                type: string
               description: private, no-store
           content:
             application/pdf:
               schema:
                 type: string
                 format: binary
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /submissions/{submissionId}/feedback:
     post:
-      tags: [Devolutivas]
+      tags:
+      - Devolutivas
       summary: Cria devolutiva separada do atendimento original
       parameters:
-        - $ref: '#/components/parameters/SubmissionId'
+      - $ref: '#/components/parameters/SubmissionId'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/TeacherFeedback' }
+            schema:
+              $ref: '#/components/schemas/TeacherFeedback'
       responses:
         '201':
           description: Rascunho criado.
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/TeacherFeedback' }
+              schema:
+                $ref: '#/components/schemas/TeacherFeedback'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /feedback/{feedbackId}:
     put:
-      tags: [Devolutivas]
+      tags:
+      - Devolutivas
       summary: Atualiza devolutiva ainda em rascunho
       parameters:
-        - $ref: '#/components/parameters/FeedbackId'
+      - $ref: '#/components/parameters/FeedbackId'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/TeacherFeedback' }
+            schema:
+              $ref: '#/components/schemas/TeacherFeedback'
       responses:
-        '200': { description: Rascunho atualizado. }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '200':
+          description: Rascunho atualizado.
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /feedback/{feedbackId}/complete:
     post:
-      tags: [Devolutivas]
+      tags:
+      - Devolutivas
       summary: Conclui a devolutiva
       parameters:
-        - $ref: '#/components/parameters/FeedbackId'
+      - $ref: '#/components/parameters/FeedbackId'
       responses:
-        '200': { description: Devolutiva concluída e bloqueada para edição comum. }
+        '200':
+          description: Devolutiva concluída e bloqueada para edição comum.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - sessionCookie: []
+        requestGuard: []
   /students/{studentId}/feedback:
     get:
-      tags: [Devolutivas]
+      tags:
+      - Devolutivas
       summary: Lista devolutivas visíveis ao aluno autenticado
       parameters:
-        - name: studentId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+      - name: studentId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
         '200':
           description: Devolutivas autorizadas.
@@ -451,262 +483,1722 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/TeacherFeedback' }
+                items:
+                  $ref: '#/components/schemas/TeacherFeedback'
+  /health:
+    get:
+      summary: Health check básico
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      security: []
+  /auth/revoke-sessions:
+    post:
+      summary: Revoga todas as sessões do titular
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /cases/{caseKey}/public:
+    get:
+      summary: Metadados e opções sem gabarito
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: caseKey
+        in: path
+        required: true
+        schema:
+          type: string
+  /clinical-sessions:
+    post:
+      summary: Inicia prática ou atividade atribuída
+      responses:
+        '201':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartClinicalSession'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /clinical-sessions/{sessionId}:
+    get:
+      summary: Histórico aceito da própria sessão
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+  /clinical-sessions/{sessionId}/actions:
+    post:
+      summary: Aceita escolha e calcula pontos
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicalAction'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /clinical-sessions/{sessionId}/hypotheses:
+    post:
+      summary: Registra hipótese e evidências disponíveis
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: sessionId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClinicalHypothesis'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /notifications:
+    get:
+      summary: Notificações próprias
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+  /notifications/{notificationId}/read:
+    post:
+      summary: Marca notificação própria como lida
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: notificationId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /contributions:
+    get:
+      summary: Rascunhos próprios ou atribuídos
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+    post:
+      summary: Cria versão em rascunho
+      responses:
+        '201':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseContribution'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /contributions/{contributionId}:
+    get:
+      summary: Consulta versão privada pelo ID da versão
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: contributionId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Cria nova versão; parâmetro é o ID do caso, não da versão
+      responses:
+        '201':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: contributionId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseContribution'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /case-versions/{versionId}/review:
+    post:
+      summary: Revisão atribuída; aprovação e publicação separadas
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewDecision'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /admin/reviewer-areas:
+    post:
+      summary: Habilita ou revoga docente por área
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                area:
+                  type: string
+                enabled:
+                  type: boolean
+                  default: true
+                  description: false revoga imediatamente a habilitação; preserva atribuições e pareceres.
+                reason:
+                  type: string
+                  maxLength: 2000
+                  description: Contexto administrativo opcional, sem dados clínicos.
+              required:
+              - userId
+              - area
+      security:
+      - sessionCookie: []
+        requestGuard: []
+    get:
+      summary: Lista habilitações atuais na instituição
+      description: Somente administrador. Campos userId, name, email, area e enabledAt.
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Lista de vínculos autorizados.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/review-assignments:
+    post:
+      summary: Atribui revisão na mesma instituição
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                versionId:
+                  type: integer
+                reviewerId:
+                  type: integer
+                reason:
+                  type: string
+                  maxLength: 2000
+                  description: Obrigatório quando houver troca de revisor. Auditoria registra anterior, novo e motivo;
+                    preserva pareceres.
+              required:
+              - versionId
+              - reviewerId
+      security:
+      - sessionCookie: []
+        requestGuard: []
+    get:
+      summary: Lista revisões atribuídas na instituição
+      description: Somente administrador. Campos versionId, caseId, title, state, area, reviewerId, reviewerName,
+        reviewerEnabled e assignedAt.
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Lista de vínculos autorizados.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /documents:
+    get:
+      summary: Lista fontes próprias ou autorizadas, sem caminhos internos
+      description: Após retirada, fonte fica restrita ao titular e administração da mesma instituição; grants históricos não mantêm leitura ou download para colaboradores.
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+    post:
+      summary: Recebe PDF autorizado e desidentificado
+      responses:
+        '201':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                pdf:
+                  type: string
+                  format: binary
+                authorized:
+                  const: 'true'
+                deidentified:
+                  const: 'true'
+                area:
+                  type: string
+                  maxLength: 120
+              required:
+              - pdf
+              - authorized
+              - deidentified
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /documents/{documentId}:
+    get:
+      summary: Extração, paginação e alertas
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Corrige Markdown preservando cabeçalhos de página; invalida aprovação
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                markdown:
+                  type: string
+                  maxLength: 1000000
+              required:
+              - markdown
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /documents/{documentId}/pdf:
+    get:
+      summary: Download protegido
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+  /documents/{documentId}/approve:
+    post:
+      summary: Aprova fonte por docente habilitado
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confirmed:
+                  const: true
+              required:
+              - confirmed
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /documents/{documentId}/withdraw:
+    post:
+      summary: Retira fonte e cancela trabalhos pendentes
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /documents/{documentId}/grants:
+    post:
+      summary: Administração concede ou revoga acesso a uma fonte
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                enabled:
+                  type: boolean
+                  default: true
+                reason:
+                  type: string
+                  maxLength: 2000
+                  description: Obrigatório e não vazio na revogação (enabled=false). Não inserir dados de pacientes.
+              required:
+              - userId
+      security:
+      - sessionCookie: []
+        requestGuard: []
+      description: Mutação auditada e transacional; somente usuários da mesma instituição. Não revoga acesso inerente
+        do proprietário.
+    get:
+      summary: Consulta destinatários de uma fonte
+      description: Somente proprietário ou administrador da instituição; grant por si só não autoriza esta listagem.
+        Campos userId, name e role.
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Lista de vínculos autorizados.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+  /documents/{documentId}/jobs:
+    post:
+      summary: Enfileira conversão ou geração
+      description: Quota persistente padrão12 solicitações por usuário/hora compartilhada com retries manuais. Cancelar não devolve quota. Replay idempotente não consome novamente; configuração inválida retorna503. Tetos técnicos queued/running padrão12 por instituição e24 globais; excesso retorna429 institution_queue_full/global_queue_full.
+      responses:
+        '202':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobRequest'
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /jobs:
+    get:
+      summary: Trabalhos próprios
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PipelineJob'
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+  /jobs/{jobId}:
+    get:
+      summary: Estado, resultado e erro recuperável
+      responses:
+        '200':
+          description: Operação concluída.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineJob'
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      description: Fontes primárias/secundárias são reautorizadas também na leitura de resultado concluído. Após retirada
+        ou revogação, result=null e resultAccess=revoked. Histórico privado é preservado; materialização também verifica
+        hashes.
+  /jobs/{jobId}/cancel:
+    post:
+      summary: Solicita cancelamento
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /jobs/{jobId}/retry:
+    post:
+      summary: Reagenda dentro do prazo e limite
+      description: Retentativa manual aceita consome a quota persistente de solicitações e é auditada em transação; excesso retorna429. Estado inválido não consome. Tetos pendentes por instituição/global também são aplicados dentro da transação.
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /jobs/{jobId}/contribution:
+    post:
+      summary: Materializa rascunho idempotente de resultado validado
+      responses:
+        '201':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /library/search:
+    post:
+      summary: Busca em fontes aprovadas filtradas por permissão
+      responses:
+        '200':
+          description: Operação concluída.
+        '400':
+          description: Entrada, autorização ou estado incompatível.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflito de estado ou idempotência.
+        '429':
+          description: Limite de recursos por usuário atingido.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  maxLength: 200
+              required:
+              - query
+      security:
+      - sessionCookie: []
+        requestGuard: []
+  /documents/{documentId}/dependencies:
+    get:
+      summary: Lista versões que utilizaram a fonte
+      description: Somente proprietário ou administrador da instituição. Retorna id, caseId, title, version e state,
+        sem respostas do caso. Retirada de fonte não apaga histórico.
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Lista de vínculos autorizados.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
 components:
   securitySchemes:
     sessionCookie:
       type: apiKey
       in: cookie
-      name: pv_session
+      name: devsphere_session
+    requestGuard:
+      type: apiKey
+      in: header
+      name: X-PV-Request
+      description: Valor 1 em mutações; defesa de origem, não credencial.
   parameters:
     CaseId:
       name: caseId
       in: path
       required: true
-      schema: { type: string }
+      schema:
+        type: string
     SubmissionId:
       name: submissionId
       in: path
       required: true
-      schema: { type: integer, format: int64, minimum: 1 }
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     FeedbackId:
       name: feedbackId
       in: path
       required: true
-      schema: { type: string, format: uuid }
+      schema:
+        type: string
+        format: uuid
   responses:
     Unauthorized:
       description: Sessão ausente, inválida ou expirada.
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Problem' }
+          schema:
+            $ref: '#/components/schemas/Problem'
     Forbidden:
       description: Usuário autenticado sem autorização.
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Problem' }
+          schema:
+            $ref: '#/components/schemas/Problem'
     NotFound:
       description: Recurso não encontrado ou não visível ao usuário.
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Problem' }
+          schema:
+            $ref: '#/components/schemas/Problem'
     Conflict:
       description: Estado ou versão incompatível com a operação.
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Problem' }
+          schema:
+            $ref: '#/components/schemas/Problem'
     ValidationError:
       description: Entrada inválida.
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/Problem' }
+          schema:
+            $ref: '#/components/schemas/Problem'
     TooManyRequests:
       description: Muitas tentativas; aguarde antes de repetir.
       headers:
         Retry-After:
-          schema: { type: integer }
+          schema:
+            type: integer
   schemas:
     Problem:
       type: object
-      required: [code, message]
+      required:
+      - code
+      - message
       properties:
-        code: { type: string }
-        message: { type: string }
+        code:
+          type: string
+        message:
+          type: string
         details:
           type: array
-          items: { type: string }
+          items:
+            type: string
     RegistrationRequest:
       type: object
       additionalProperties: false
-      required: [name, email, password]
+      required:
+      - name
+      - email
+      - password
       properties:
-        name: { type: string, minLength: 3, maxLength: 120 }
-        email: { type: string, format: email, maxLength: 254 }
-        password: { type: string, minLength: 12, maxLength: 1024, writeOnly: true }
-        className: { type: string, maxLength: 80 }
-        professionalRegistration: { type: string, maxLength: 80 }
+        name:
+          type: string
+          minLength: 3
+          maxLength: 120
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 12
+          maxLength: 1024
+          writeOnly: true
+        className:
+          type: string
+          maxLength: 80
+        professionalRegistration:
+          type: string
+          maxLength: 80
     PendingRegistration:
       type: object
-      required: [id, userId, name, email, role, submittedAt]
+      required:
+      - id
+      - userId
+      - name
+      - email
+      - role
+      - submittedAt
       properties:
-        id: { type: integer, format: int64 }
-        userId: { type: integer, format: int64 }
-        name: { type: string }
-        email: { type: string, format: email }
-        role: { enum: [student, teacher] }
-        className: { type: [string, 'null'] }
-        professionalRegistration: { type: [string, 'null'] }
-        submittedAt: { type: string }
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          enum:
+          - student
+          - teacher
+        className:
+          type:
+          - string
+          - 'null'
+        professionalRegistration:
+          type:
+          - string
+          - 'null'
+        submittedAt:
+          type: string
     LoginRequest:
       type: object
       additionalProperties: false
-      required: [email, password]
+      required:
+      - email
+      - password
       properties:
-        email: { type: string, format: email, maxLength: 254 }
-        password: { type: string, minLength: 8, maxLength: 1024, writeOnly: true }
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 8
+          maxLength: 1024
+          writeOnly: true
+        otp:
+          type: string
+          description: Segundo fator obrigatório para docentes/administradores em produção.
     Session:
       type: object
-      required: [userId, fullName, role, expiresAt]
+      required:
+      - userId
+      - fullName
+      - role
+      - expiresAt
       properties:
-        userId: { type: string, format: uuid }
-        fullName: { type: string }
-        role: { enum: [student, teacher, admin] }
-        expiresAt: { type: string, format: date-time }
+        userId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        role:
+          enum:
+          - student
+          - teacher
+          - admin
+        expiresAt:
+          type: string
+          format: date-time
     ClinicalCaseSummary:
       type: object
-      required: [id, version, title, status]
+      required:
+      - id
+      - version
+      - title
+      - status
       properties:
-        id: { type: string }
-        version: { type: integer }
-        title: { type: string }
-        status: { $ref: '#/components/schemas/ReviewState' }
+        id:
+          type: string
+        version:
+          type: integer
+        title:
+          type: string
+        status:
+          $ref: '#/components/schemas/ReviewState'
     ClinicalCase:
       type: object
-      required: [schemaVersion, id, version, status, patient, learningObjectives, items, hypotheses, outcome, references]
+      required:
+      - schemaVersion
+      - id
+      - version
+      - status
+      - patient
+      - learningObjectives
+      - items
+      - hypotheses
+      - outcome
+      - references
       properties:
-        schemaVersion: { const: '1.0' }
-        id: { type: string, pattern: '^[a-z0-9][a-z0-9_-]*$' }
-        version: { type: integer, minimum: 1 }
-        status: { $ref: '#/components/schemas/ReviewState' }
+        schemaVersion:
+          const: '1.0'
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9_-]*$
+        version:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/ReviewState'
         patient:
           type: object
-          required: [displayName, age, chiefComplaint, context]
+          required:
+          - displayName
+          - age
+          - chiefComplaint
+          - context
           properties:
-            displayName: { type: string }
-            age: { type: integer, minimum: 0, maximum: 130 }
-            chiefComplaint: { type: string }
-            context: { type: string }
-        learningObjectives: { type: array, minItems: 1, items: { type: string } }
+            displayName:
+              type: string
+            age:
+              type: integer
+              minimum: 0
+              maximum: 130
+            chiefComplaint:
+              type: string
+            context:
+              type: string
+        learningObjectives:
+          type: array
+          minItems: 1
+          items:
+            type: string
         items:
           type: array
           minItems: 40
           maxItems: 40
-          items: { $ref: '#/components/schemas/CaseItem' }
+          items:
+            $ref: '#/components/schemas/CaseItem'
         hypotheses:
           type: array
           minItems: 2
-          items: { $ref: '#/components/schemas/Hypothesis' }
-        priorityEvidenceIds: { type: array, items: { type: string } }
+          items:
+            $ref: '#/components/schemas/Hypothesis'
+        priorityEvidenceIds:
+          type: array
+          items:
+            type: string
         outcome:
           type: object
-          required: [hypothesisId, explanation]
+          required:
+          - hypothesisId
+          - explanation
           properties:
-            hypothesisId: { type: string }
-            explanation: { type: string }
-        references: { type: array, minItems: 1, items: { type: string } }
-        assumptions: { type: array, items: { type: string } }
-        missingData: { type: array, items: { type: string } }
+            hypothesisId:
+              type: string
+            explanation:
+              type: string
+        references:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        assumptions:
+          type: array
+          items:
+            type: string
+        missingData:
+          type: array
+          items:
+            type: string
     CaseItem:
       type: object
-      required: [id, type, title, answer, quality, why]
+      required:
+      - id
+      - type
+      - title
+      - answer
+      - quality
+      - why
       properties:
-        id: { type: string }
-        type: { enum: [question, exam] }
-        title: { type: string }
-        answer: { type: string }
-        quality: { type: string }
-        why: { type: string }
-        parent: { type: string }
+        id:
+          type: string
+        type:
+          enum:
+          - question
+          - exam
+        title:
+          type: string
+        answer:
+          type: string
+        quality:
+          type: string
+        why:
+          type: string
+        parent:
+          type: string
     Hypothesis:
       type: object
-      required: [id, label]
+      required:
+      - id
+      - label
       properties:
-        id: { type: string }
-        label: { type: string }
+        id:
+          type: string
+        label:
+          type: string
     ReviewState:
-      enum: [draft, awaiting_human_review, changes_requested, approved, published, rejected]
+      enum:
+      - draft
+      - awaiting_human_review
+      - changes_requested
+      - approved
+      - published
+      - rejected
     StructuredCaseInput:
       type: object
-      required: [title, patient, chiefComplaint, clinicalHistory, expectedOutcome, learningObjectives, references]
+      required:
+      - title
+      - patient
+      - chiefComplaint
+      - clinicalHistory
+      - expectedOutcome
+      - learningObjectives
+      - references
       properties:
-        title: { type: string }
-        patient: { type: object, additionalProperties: true }
-        chiefComplaint: { type: string }
-        clinicalHistory: { type: string }
-        expectedOutcome: { type: string }
-        learningObjectives: { type: array, items: { type: string } }
-        references: { type: array, items: { type: string } }
-        pedagogicalNotes: { type: string }
+        title:
+          type: string
+        patient:
+          type: object
+          additionalProperties: true
+        chiefComplaint:
+          type: string
+        clinicalHistory:
+          type: string
+        expectedOutcome:
+          type: string
+        learningObjectives:
+          type: array
+          items:
+            type: string
+        references:
+          type: array
+          items:
+            type: string
+        pedagogicalNotes:
+          type: string
+    PipelineJob:
+      type: object
+      required:
+      - id
+      - documentId
+      - operation
+      - status
+      - result
+      - resultAccess
+      properties:
+        id:
+          type: string
+        documentId:
+          type: string
+        operation:
+          enum:
+          - convert
+          - generate
+        status:
+          enum:
+          - queued
+          - running
+          - completed
+          - failed
+          - cancelled
+        attempts:
+          type: integer
+        maxAttempts:
+          type: integer
+        result:
+          type:
+          - object
+          - 'null'
+          additionalProperties: true
+        resultAccess:
+          enum:
+          - available
+          - revoked
+          description: available indica acesso, não conclusão do trabalho nem aprovação clínica.
+        error:
+          type:
+          - object
+          - 'null'
+          description: Erros recuperáveis incluem select_fewer_pages, invalid_pages, provider_timeout, generation_truncated, provider_incomplete, provider_invalid_response e provider_busy.
+        cancelRequested:
+          type: integer
+          enum:
+          - 0
+          - 1
+        updatedAt:
+          type: string
     GenerationJob:
       type: object
-      required: [id, status, createdAt, warnings, missingData]
+      required:
+      - id
+      - status
+      - createdAt
+      - warnings
+      - missingData
       properties:
-        id: { type: string, format: uuid }
+        id:
+          type: string
+          format: uuid
         status:
-          enum: [queued, validating_source, extracting, requires_ocr, generating, validation_failed, awaiting_human_review, changes_requested, approved, rejected, failed]
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-        warnings: { type: array, items: { type: string } }
-        assumptions: { type: array, items: { type: string } }
-        missingData: { type: array, items: { type: string } }
-        generatedCase: { $ref: '#/components/schemas/ClinicalCase' }
+          enum:
+          - queued
+          - validating_source
+          - extracting
+          - requires_ocr
+          - generating
+          - validation_failed
+          - awaiting_human_review
+          - changes_requested
+          - approved
+          - rejected
+          - failed
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
+        assumptions:
+          type: array
+          items:
+            type: string
+        missingData:
+          type: array
+          items:
+            type: string
+        generatedCase:
+          $ref: '#/components/schemas/ClinicalCase'
     SubmissionReport:
-      $ref: '../../docs/schemas/submission-report.schema.json'
+      $ref: ../../docs/schemas/submission-report.schema.json
     SubmissionCreateResponse:
       type: object
       additionalProperties: false
-      required: [id, created, status, score]
+      required:
+      - id
+      - created
+      - status
+      - score
       properties:
-        id: { type: integer, format: int64, minimum: 1 }
+        id:
+          type: integer
+          format: int64
+          minimum: 1
         created:
           type: boolean
           description: Verdadeiro apenas quando esta requisição criou o registro.
-        status: { enum: [submitted, awaiting_assignment] }
+        status:
+          enum:
+          - submitted
+          - awaiting_assignment
         score:
           type: object
           additionalProperties: false
-          required: [initial, raw, displayed]
+          required:
+          - initial
+          - raw
+          - displayed
           properties:
-            initial: { type: integer }
-            raw: { type: integer }
-            displayed: { type: integer, minimum: 0, maximum: 100 }
+            initial:
+              type: integer
+            raw:
+              type: integer
+            displayed:
+              type: integer
+              minimum: 0
+              maximum: 100
     SubmissionStep:
       type: object
-      required: [sequence, itemId, type, selectedAt, answer, quality, comment]
+      required:
+      - sequence
+      - itemId
+      - type
+      - selectedAt
+      - answer
+      - quality
+      - comment
       properties:
-        sequence: { type: integer, minimum: 1 }
-        itemId: { type: string }
-        type: { enum: [question, exam] }
-        selectedAt: { type: string, format: date-time }
-        answer: { type: string }
-        quality: { type: string }
-        comment: { type: string }
+        sequence:
+          type: integer
+          minimum: 1
+        itemId:
+          type: string
+        type:
+          enum:
+          - question
+          - exam
+        selectedAt:
+          type: string
+          format: date-time
+        answer:
+          type: string
+        quality:
+          type: string
+        comment:
+          type: string
     DiagnosticAttempt:
       type: object
-      required: [sequence, hypothesisId, justification, submittedAt, availableEvidenceIds]
+      required:
+      - sequence
+      - hypothesisId
+      - justification
+      - submittedAt
+      - availableEvidenceIds
       properties:
-        sequence: { type: integer, minimum: 1 }
-        hypothesisId: { type: string }
-        justification: { type: string }
-        submittedAt: { type: string, format: date-time }
-        availableEvidenceIds: { type: array, items: { type: string } }
+        sequence:
+          type: integer
+          minimum: 1
+        hypothesisId:
+          type: string
+        justification:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+        availableEvidenceIds:
+          type: array
+          items:
+            type: string
     Submission:
       type: object
       additionalProperties: true
-      required: [id]
+      required:
+      - id
       properties:
-        id: { type: integer, format: int64, minimum: 1 }
-        status: { enum: [submitted, awaiting_assignment, awaiting_review, reviewed, imported] }
-        isTest: { type: boolean }
-        scoreAvailable: { type: boolean }
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        status:
+          enum:
+          - submitted
+          - awaiting_assignment
+          - awaiting_review
+          - reviewed
+          - imported
+        isTest:
+          type: boolean
+        scoreAvailable:
+          type: boolean
         score:
           type: object
           properties:
-            initial: { type: integer }
-            raw: { type: integer }
-            displayed: { type: integer, minimum: 0, maximum: 100 }
+            initial:
+              type: integer
+            raw:
+              type: integer
+            displayed:
+              type: integer
+              minimum: 0
+              maximum: 100
     TeacherFeedback:
       type: object
-      required: [strengths, difficulties, missedEvidence, prioritizationComment, justificationComment, nextAttemptGuidance, generalObservation, status]
+      required:
+      - strengths
+      - difficulties
+      - missedEvidence
+      - prioritizationComment
+      - justificationComment
+      - nextAttemptGuidance
+      - generalObservation
+      - status
       properties:
-        id: { type: string, format: uuid, readOnly: true }
-        strengths: { type: string }
-        difficulties: { type: string }
-        missedEvidence: { type: string }
-        prioritizationComment: { type: string }
-        justificationComment: { type: string }
-        nextAttemptGuidance: { type: string }
-        generalObservation: { type: string }
-        status: { enum: [draft, completed] }
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        strengths:
+          type: string
+        difficulties:
+          type: string
+        missedEvidence:
+          type: string
+        prioritizationComment:
+          type: string
+        justificationComment:
+          type: string
+        nextAttemptGuidance:
+          type: string
+        generalObservation:
+          type: string
+        status:
+          enum:
+          - draft
+          - completed
+    StartClinicalSession:
+      type: object
+      properties:
+        caseKey:
+          type: string
+        activityId:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+      required:
+      - caseKey
+    ClinicalAction:
+      type: object
+      properties:
+        itemKey:
+          type: string
+      required:
+      - itemKey
+    ClinicalHypothesis:
+      type: object
+      properties:
+        hypothesis:
+          type: string
+        justification:
+          type: string
+          minLength: 1
+          maxLength: 10000
+      required:
+      - hypothesis
+      - justification
+    JobRequest:
+      type: object
+      properties:
+        operation:
+          enum:
+          - convert
+          - generate
+        pages:
+          description: Páginas físicas selecionadas; ausente ou lista vazia usa todas as páginas convertidas. Não há truncamento silencioso.
+          type: array
+          maxItems: 100
+          items:
+            type: integer
+            minimum: 1
+            maximum: 100
+        instructions:
+          type: string
+          maxLength: 4000
+        query:
+          type: string
+          maxLength: 1000
+        idempotencyKey:
+          type: string
+          maxLength: 128
+      required:
+      - operation
+    CaseContribution:
+      type: object
+      properties:
+        key:
+          type: string
+          maxLength: 64
+        title:
+          type: string
+          maxLength: 200
+        content:
+          type: object
+          description: Formato privado canônico com 40 itens e scoring.
+        metadata:
+          type: object
+          description: Área, metadados públicos e classificação docente. Rubrica opcional pv-difficulty-v1 conforme schema externo; confirmação não equivale a aprovação clínica.
+          allOf:
+          - $ref: ../../docs/schemas/case-contribution.schema.json#/properties/metadata
+      required:
+      - key
+      - title
+      - content
+      - metadata
+    ReviewDecision:
+      type: object
+      properties:
+        action:
+          enum:
+          - submit
+          - start
+          - approve
+          - publish
+          - request_changes
+          - reject
+          - archive
+        note:
+          type: string
+      required:
+      - action
 security:
-  - sessionCookie: []
+- sessionCookie: []

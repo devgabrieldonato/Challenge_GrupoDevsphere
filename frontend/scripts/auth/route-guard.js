@@ -11,10 +11,11 @@ function redirect(reason) {
 
 try {
   const session = await AuthService.session();
-  if (session.user?.role !== requiredRole && session.user?.role !== "admin") {
-    await AuthService.logout();
+  if (!session.user || (requiredRole !== "any" && session.user.role !== requiredRole && session.user.role !== "admin")) {
     redirect("unauthorized");
   } else {
+    document.body.dataset.userRole = session.user.role;
+    document.querySelectorAll("[data-teacher-only]").forEach(element => { element.hidden = session.user.role === "student"; });
     document.body.dataset.userId = String(session.user.id);
     document.body.dataset.userName = session.user.name || session.user.fullName || "";
     document.body.classList.remove("auth-pending");

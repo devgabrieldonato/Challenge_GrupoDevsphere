@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meus atendimentos e devolutivas · Paciente Virtual</title>
+<link rel="stylesheet" href="../styles/teacher.css">
+<link rel="stylesheet" href="../styles/next-portals.css">
+</head>
+<body class="app-shell auth-pending" data-required-role="any">
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<!-- Navegação contextual: permissões reais são verificadas pelo backend. -->
+<header class="site-header">
+<div class="brand">FIAP</div>
+<div>
+<p class="site-title">Paciente Virtual</p>
+<p class="site-subtitle">Meus atendimentos e devolutivas</p>
+</div>
+<nav aria-label="Jornadas">
+<a href="student-cases.html">Praticar</a> · <a href="student-history.html">Meus atendimentos</a> · <a href="contributions.html">Contribuições</a> · <a data-teacher-only href="teacher-cases.html">Curadoria</a> · <button class="button" type="button" data-logout>Sair</button>
+</nav>
+</header>
+<main id="conteudo" class="page-main">
+<h1>Meus atendimentos e devolutivas</h1>
+<p>O feedback automático do exercício e a avaliação docente são apresentados separadamente. Rascunhos docentes não ficam disponíveis.</p>
+<button id="refreshHistory" class="button" type="button">Atualizar</button>
+<p id="historyStatus" role="status" aria-live="polite">
+</p>
+<section aria-labelledby="noticesTitle">
+<h2 id="noticesTitle">Notificações</h2>
+<div id="notifications" class="next-list">
+</div>
+</section>
+<section aria-labelledby="attemptsTitle">
+<h2 id="attemptsTitle">Histórico de atendimentos</h2>
+<div id="studentSubmissions" class="next-list">
+</div>
+</section>
+<section aria-labelledby="feedbacksTitle">
+<h2 id="feedbacksTitle">Minhas devolutivas docentes</h2>
+<div id="studentFeedback" class="next-list">
+</div>
+</section>
+</main>
+<script type="module" src="../scripts/auth/route-guard.js">
+</script>
+<script type="module" src="../scripts/student/history.js">
+</script>
+</body>
+</html>

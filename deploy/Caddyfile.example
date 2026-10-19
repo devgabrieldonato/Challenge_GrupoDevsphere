@@ -1,0 +1,14 @@
+# Trocar o domínio e fornecer certificados via Caddy antes de homologação.
+# API escuta apenas loopback. Nunca servir a raiz do repositório.
+paciente.exemplo.invalid {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+    }
+    request_body {
+        max_size 22MB
+    }
+    reverse_proxy 127.0.0.1:8080
+}

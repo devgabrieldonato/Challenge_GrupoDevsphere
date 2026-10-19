@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revisão e curadoria de caso · Paciente Virtual</title>
+<link rel="stylesheet" href="../styles/teacher.css">
+<link rel="stylesheet" href="../styles/next-portals.css">
+</head>
+<body class="app-shell auth-pending" data-required-role="any">
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<!-- Navegação contextual: permissões reais são verificadas pelo backend. -->
+<header class="site-header">
+<div class="brand">FIAP</div>
+<div>
+<p class="site-title">Paciente Virtual</p>
+<p class="site-subtitle">Revisão e curadoria de caso</p>
+</div>
+<nav aria-label="Jornadas">
+<a href="student-cases.html">Praticar</a> · <a href="student-history.html">Meus atendimentos</a> · <a href="contributions.html">Contribuições</a> · <a data-teacher-only href="teacher-cases.html">Curadoria</a> · <button class="button" type="button" data-logout>Sair</button>
+</nav>
+</header>
+<main id="conteudo" class="page-main">
+<h1>Revisão e curadoria de caso</h1>
+<p>Cada decisão fica vinculada à versão e ao revisor. Alterar o conteúdo gera uma nova versão em rascunho. A IA não aprova casos.</p>
+<button id="refreshCuration" class="button" type="button">Atualizar versão</button>
+<p id="curationStatus" role="status" aria-live="polite">
+</p>
+<section id="curationDetails" class="card" hidden>
+<h2 id="curationTitle">
+</h2>
+<p id="curationState">
+</p>
+<form id="revisionForm" class="next-form">
+<label for="revisionTitle">Título público</label>
+<input id="revisionTitle" required>
+<label for="revisionArea">Área/especialidade interna</label>
+<input id="revisionArea" required>
+<label for="revisionDiscipline">Disciplina curricular (opcional)</label>
+<input id="revisionDiscipline">
+<label for="revisionAudience">Público-alvo</label>
+<input id="revisionAudience" required>
+<label for="revisionDifficulty">Dificuldade</label>
+<select id="revisionDifficulty">
+<option value="">Em revisão</option>
+<option value="introductory">Introdutório</option>
+<option value="intermediate">Intermediário</option>
+<option value="advanced">Avançado</option>
+</select>
+<!-- Avaliação opt-in: nenhum nível é aplicado automaticamente aos casos legados. -->
+<fieldset aria-describedby="difficultyRubricHelp"><legend>Rubrica guiada de dificuldade — proposta do MVP</legend>
+<p id="difficultyRubricHelp">Avalie em relação ao público-alvo informado. Esta proposta precisa de homologação docente e não mede a gravidade do paciente. Sugestão: 0–2 pontos, introdutório; 3–5, intermediário; 6–8, avançado.</p>
+<label><input id="useDifficultyRubric" type="checkbox"> Incluir avaliação guiada na nova versão. Desmarcar retira esta avaliação guiada da nova versão, preservando o histórico original.</label>
+<div id="difficultyDimensionFields" class="next-form"></div>
+<p><output id="difficultyRubricSuggestion" aria-live="polite">Avaliação guiada opcional. Nenhum nível foi aplicado.</output></p>
+<label for="difficultyOverrideReason">Motivo para escolher um nível diferente da sugestão</label><textarea id="difficultyOverrideReason" maxlength="2000" disabled></textarea>
+<p id="difficultyOverrideHelp">O docente escolhe o nível no campo Dificuldade; a sugestão não altera essa escolha.</p>
+</fieldset>
+<label for="revisionRationale">Justificativa da dificuldade</label>
+<textarea id="revisionRationale">
+</textarea>
+<label for="revisionSummary">Resumo público sem revelar o diagnóstico</label>
+<textarea id="revisionSummary">
+</textarea>
+<label for="revisionTags">Tags públicas separadas por vírgula</label>
+<input id="revisionTags">
+<label for="revisionRubric">Versão da rubrica</label>
+<input id="revisionRubric" value="1.0">
+<label>
+<input id="tagsReviewed" type="checkbox"> Revisei título, resumo, tags e demais metadados em conjunto para evitar pistas diagnósticas.</label>
+<!-- Edição clínica guiada: o revisor não precisa manipular JSON para conferir o caso. -->
+<fieldset><legend>Paciente fictício</legend>
+<label for="patientName">Nome</label><input id="patientName" required>
+<label for="patientAge">Idade em anos</label><input id="patientAge" type="number" min="0" max="130" required>
+<label for="patientInitials">Iniciais</label><input id="patientInitials">
+<label for="patientComplaint">Queixa inicial</label><textarea id="patientComplaint" required></textarea>
+<label for="patientOnset">Início e contexto da queixa</label><textarea id="patientOnset"></textarea>
+<label for="patientTags">Características clínicas internas (uma por linha)</label><textarea id="patientTags"></textarea>
+</fieldset>
+<fieldset><legend>Hipóteses e objetivos</legend>
+<label for="clinicalObjectives">Objetivos de aprendizagem (um por linha)</label><textarea id="clinicalObjectives"></textarea>
+<label for="clinicalHypotheses">Alternativas diagnósticas (uma por linha)</label><textarea id="clinicalHypotheses" required></textarea>
+<label for="clinicalCorrect">Hipótese esperada — informação restrita</label><select id="clinicalCorrect" required></select>
+<label for="clinicalOutcome">Desfecho e justificativa clínica</label><textarea id="clinicalOutcome"></textarea>
+<label for="clinicalFeedback">Orientação pedagógica do caso</label><textarea id="clinicalFeedback"></textarea>
+</fieldset>
+<section aria-labelledby="clinicalItemsTitle"><h3 id="clinicalItemsTitle">Perguntas e exames</h3><p id="clinicalItemsCount"></p><p>Abra cada item para conferir resposta, pertinência, dependência e regra de pontos. IDs e tipos são preservados para manter os vínculos.</p><div id="clinicalItemEditors" class="next-list"></div></section>
+<details><summary>Conteúdo estruturado avançado (opcional)</summary><p>Campos adicionais e proveniência são preservados. Para importar alterações técnicas deste campo ao formulário, use Aplicar JSON ao formulário antes de salvar.</p><label for="revisionContent">JSON restrito da versão</label><textarea id="revisionContent" class="next-json" spellcheck="false"></textarea><button id="applyAdvancedContent" class="button" type="button">Aplicar JSON ao formulário</button></details>
+<button class="button" type="submit">Salvar alterações como nova versão</button>
+</form>
+<h3>Fontes e rastreabilidade</h3>
+<pre id="curationSources" class="document-preview">
+</pre>
+<h3>Decisão sobre a versão carregada</h3>
+<label for="reviewNote">Parecer e motivo</label>
+<textarea id="reviewNote">
+</textarea>
+<div id="reviewActions" class="next-actions">
+</div>
+<p>Alterações no formulário só têm efeito após salvar uma nova versão. As decisões abaixo sempre usam a versão carregada e salva.</p>
+</section>
+</main>
+<script type="module" src="../scripts/auth/route-guard.js">
+</script>
+<script type="module" src="../scripts/cases/curation.js">
+</script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 """Integração OCR real com PDF de imagem sintética; sem documentos pessoais."""
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -17,7 +18,9 @@ class LocalOcrTests(unittest.TestCase):
         """Imagem sem camada textual exige OCR e aviso para revisão humana."""
         from PIL import Image, ImageDraw, ImageFont
 
+        # Usa a fonte do Windows instalado sem presumir a unidade do sistema.
         fonts = [
+            str(Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts" / "arial.ttf"),
             "/System/Library/Fonts/Supplemental/Arial.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         ]

@@ -22,7 +22,9 @@ target_link_libraries(argon2 PRIVATE Threads::Threads)
 
 add_library(devsphere_core src/database.cpp src/next_database.cpp src/official_pdf.cpp src/security.cpp src/privileged_mfa.cpp)
 target_include_directories(devsphere_core PUBLIC include)
-target_link_libraries(devsphere_core PUBLIC SQLite3::SQLite3 argon2)
+# O alvo SQLite::SQLite3 também existe no CMake 3.20+ suportado pelo projeto;
+# SQLite3::SQLite3 só foi introduzido no CMake 4.3.
+target_link_libraries(devsphere_core PUBLIC SQLite::SQLite3 argon2)
 
 if(APPLE)
   target_link_libraries(devsphere_core PUBLIC "-framework Security")

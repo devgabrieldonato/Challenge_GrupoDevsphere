@@ -76,6 +76,41 @@ class OllamaProtocolTests(unittest.TestCase):
         self.assertEqual(self.calls[0]["keep_alive"], 0)
         self.assertIs(self.calls[0]["think"], False)
 
+    def test_critic_format_keeps_bounds_without_mutating_strict_acceptance_schema(self):
+        review = {"concerns": [], "sourceFidelity": "Conferir", "tagLeakage": "Conferir"}
+        _, captured = BoundedCriticTests().run_review(review)
+        schema = captured.review_schema
+        original = json.loads(json.dumps(schema))
+        self.provider.generate("test:1", [], schema)
+        sent = self.calls[-1]["format"]
+        expected = json.loads(json.dumps(original))
+        for field in ("sourceFidelity", "tagLeakage"):
+            expected["properties"][field].pop("pattern")
+            self.assertEqual(sent["properties"][field]["minLength"], 1)
+            self.assertEqual(sent["properties"][field]["maxLength"], 400)
+        expected["properties"]["concerns"]["items"].pop("pattern")
+        concerns = sent["properties"]["concerns"]
+        self.assertEqual(concerns["maxItems"], 12)
+        self.assertEqual(concerns["items"]["maxLength"], 240)
+        self.assertEqual(concerns["items"]["minLength"], 1)
+        self.assertEqual(sent, expected)
+        self.assertEqual(schema, original)
+        self.assertEqual(schema["properties"]["concerns"]["items"]["pattern"], r"\S")
+
+    def test_format_preserves_generator_and_other_critic_patterns(self):
+        generator = {"type": "object", "properties": {"name": {
+            "type": "string", "pattern": r"\S", "minLength": 1, "maxLength": 20,
+        }}}
+        self.provider.generate("test:1", [], generator)
+        self.assertEqual(self.calls[-1]["format"], generator)
+        # A compatibilidade é específica ao padrão de espaços do resumo crítico.
+        critic = {"type": "object", "properties": {
+            "concerns": {"type": "array", "items": {"type": "string", "pattern": "^A+$"}},
+            "sourceFidelity": {"type": "string", "pattern": "^B+$"},
+        }}
+        self.provider.generate("test:1", [], critic)
+        self.assertEqual(self.calls[-1]["format"], critic)
+
     def test_valid_json_without_done_is_incomplete(self):
         self.reply["done"] = False
         self.assert_failure("provider_incomplete")
@@ -133,3 +168,77 @@ class OllamaProtocolTests(unittest.TestCase):
         with self.assertRaises(JobError) as error:
             generate_case(request, InvalidCritic(case_fixture()))
         self.assertEqual(error.exception.code, "invalid_critic")
+
+
+class BoundedCriticTests(unittest.TestCase):
+    """Regressões sintéticas do contrato crítico; não executam inferência."""
+
+    def run_review(self, review):
+        class ReviewProvider(FakeProvider):
+            def generate(self, model, messages, schema):
+                value, meta = super().generate(model, messages, schema)
+                if len(self.calls) == 2:
+                    self.review_schema = schema
+                    self.review_prompt = messages[0]["content"]
+                    value = review
+                return value, meta
+
+        provider = ReviewProvider(case_fixture())
+        result = generate_case({
+            "sourceId": "doc",
+            "markdown": "## Página 1\n\n" + "Fonte sintética. " * 15,
+        }, provider)
+        return result, provider
+
+    def test_rejects_empty_excessive_unknown_and_wrong_type_without_accepting_partial(self):
+        valid = {"concerns": ["Conferir fonte"], "sourceFidelity": "Conferir", "tagLeakage": "Conferir"}
+        invalid = [
+            None, {}, {**valid, "concerns": [42]},
+            {**valid, "concerns": [""]}, {**valid, "concerns": ["   "]},
+            {**valid, "concerns": ["x" * 241]},
+            # Regressão do comprimento observado na crítica real; nunca recortar para aceitar.
+            {**valid, "concerns": ["x" * 265]},
+            {**valid, "concerns": ["Alerta"] * 13},
+            {**valid, "approved": True},
+        ]
+        for field in ("sourceFidelity", "tagLeakage"):
+            for value in ("", "   ", "x" * 401, [], None):
+                invalid.append({**valid, field: value})
+            missing = dict(valid)
+            missing.pop(field)
+            invalid.append(missing)
+        for index, review in enumerate(invalid):
+            with self.subTest(invalid=index):
+                with self.assertRaises(JobError) as error:
+                    self.run_review(review)
+                self.assertEqual(error.exception.code, "invalid_critic")
+                self.assertTrue(error.exception.retryable)
+
+    def test_accepts_boundary_summary_preserves_it_and_requires_human_review(self):
+        review = {"concerns": ["x" * 240] * 12, "sourceFidelity": "x" * 400, "tagLeakage": "x" * 400}
+        result, provider = self.run_review(review)
+        self.assertEqual(result["criticReview"], review)
+        self.assertEqual(result["provenance"]["promptVersion"], "next2026-v4")
+        self.assertEqual(result["case"]["status"], "awaiting_human_review")
+        self.assertEqual(sum(item["type"] == "question" for item in result["case"]["items"]), 18)
+        self.assertEqual(sum(item["type"] == "exam" for item in result["case"]["items"]), 22)
+        self.assertTrue(any("não exaustivo" in warning for warning in result["warnings"]))
+        self.assertIn("12 alertas", provider.review_prompt)
+        self.assertIn("240 caracteres", provider.review_prompt)
+        self.assertIn("400 caracteres", provider.review_prompt)
+        # O contrato explícito no prompt e no formato precisa ser o aplicado ao retorno.
+        prompt_schema = json.loads(provider.review_prompt.split("Contrato JSON obrigatório: ", 1)[1])
+        self.assertEqual(prompt_schema, provider.review_schema)
+        self.assertFalse(provider.review_schema["additionalProperties"])
+        example_text = provider.review_prompt.split("não copie suas conclusões: ", 1)[1].split("\nContrato JSON obrigatório: ", 1)[0]
+        example = json.loads(example_text)
+        import jsonschema
+        jsonschema.validate(example, provider.review_schema)
+        self.assertTrue(all(len(item) <= 160 for item in example["concerns"]))
+        self.assertTrue(all(len(example[key]) <= 260 for key in ("sourceFidelity", "tagLeakage")))
+
+    def test_accepts_no_identified_concerns_without_claiming_approval(self):
+        review = {"concerns": [], "sourceFidelity": "Revisão humana necessária", "tagLeakage": "Conferir manualmente"}
+        result, _ = self.run_review(review)
+        self.assertEqual(result["criticReview"]["concerns"], [])
+        self.assertEqual(result["case"]["status"], "awaiting_human_review")

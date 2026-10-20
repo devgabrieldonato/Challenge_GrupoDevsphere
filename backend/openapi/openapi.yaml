@@ -405,7 +405,7 @@ paths:
     post:
       tags:
       - Devolutivas
-      summary: Cria devolutiva separada do atendimento original
+      summary: Cria devolutiva ou atualiza o próprio rascunho, separado do atendimento original
       parameters:
       - $ref: '#/components/parameters/SubmissionId'
       requestBody:
@@ -423,6 +423,8 @@ paths:
                 $ref: '#/components/schemas/TeacherFeedback'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A devolutiva pertence a outro docente ou já foi concluída; nenhum conteúdo é alterado.
       security:
       - sessionCookie: []
         requestGuard: []
@@ -2087,6 +2089,13 @@ components:
           type: string
           format: uuid
           readOnly: true
+        canEdit:
+          type: boolean
+          readOnly: true
+          description: >-
+            Metadado opcional da listagem que combina autoria e autorização atual
+            sobre o atendimento. É falso para devolutivas concluídas. Orienta a
+            interface; cada alteração continua exigindo autorização no servidor.
         strengths:
           type: string
         difficulties:

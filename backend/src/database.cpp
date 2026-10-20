@@ -1251,6 +1251,15 @@ std::string Database::listFeedback(std::int64_t studentId,
       db_,
       "SELECT COALESCE(json_group_array(json_object("
       "'id',id,'submissionId',submission_id,'status',status,"
+      // A consulta administrativa não concede autoria: o formulário recebe a
+      // permissão atual de edição, inclusive após mudanças de vínculo docente.
+      "'canEdit',json(CASE WHEN status='draft' AND teacher_id=? "
+      "AND ? IN ('teacher','admin') AND EXISTS("
+      "SELECT 1 FROM submissions permitted LEFT JOIN activities activity "
+      "ON activity.id=permitted.activity_id WHERE permitted.id=submission_id "
+      "AND (EXISTS(SELECT 1 FROM admin_accounts WHERE user_id=?) "
+      "OR permitted.reviewer_id=? OR permitted.imported_by=? OR activity.teacher_id=?)) "
+      "THEN 'true' ELSE 'false' END),"
       "'strengths',strengths,'difficulties',difficulties,"
       "'missedEvidence',missed_evidence,'prioritizationComment',prioritization_"
       "comment,"
@@ -1263,8 +1272,9 @@ std::string Database::listFeedback(std::int64_t studentId,
       "AND (?<>'student' OR f.status='completed') "
       "AND (?<>'teacher' OR f.teacher_id=?) "
       "ORDER BY f.updated_at DESC);",
-      {std::to_string(studentId), user.role, user.role,
-       std::to_string(user.id)});
+      {std::to_string(user.id), user.role, std::to_string(user.id),
+       std::to_string(user.id), std::to_string(user.id), std::to_string(user.id),
+       std::to_string(studentId), user.role, user.role, std::to_string(user.id)});
 }
 
 std::int64_t Database::createFeedback(std::int64_t submissionId,
@@ -1290,12 +1300,16 @@ std::int64_t Database::createFeedback(std::int64_t submissionId,
            "next_attempt_guidance=excluded.next_attempt_guidance,"
            "general_observation=excluded.general_observation,"
            "updated_at=CURRENT_TIMESTAMP WHERE status='draft' "
-           "RETURNING id;");
+           "AND teacher_id=excluded.teacher_id RETURNING id;");
   sqlite3_bind_int64(statement.get(), 1, submissionId);
   sqlite3_bind_int64(statement.get(), 2, teacherId);
   for (int i = 3; i <= 9; ++i)
     bindText(statement.get(), i, jsonBody);
-  if (sqlite3_step(statement.get()) != SQLITE_ROW) {
+  const auto result = sqlite3_step(statement.get());
+  // O conflito não altera autoria nem conteúdo concluído; zero sinaliza HTTP 409.
+  if (result == SQLITE_DONE)
+    return 0;
+  if (result != SQLITE_ROW) {
     throw std::runtime_error(sqlite3_errmsg(db_));
   }
   return sqlite3_column_int64(statement.get(), 0);

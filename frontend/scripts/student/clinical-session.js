@@ -69,6 +69,10 @@ function render() {
 // Uma ação só aparece no mapa após ser aceita pela API; falhas não criam escolhas locais.
 async function chooseAction(itemKey) {
   if (!itemKey || busy || !session || session.status !== 'active') return;
+  // A renderização substitui os botões; guarda a posição para continuar pelo teclado.
+  const focusedAction = document.activeElement?.closest('#blocks button[data-id]');
+  const focusedIndex = focusedAction
+    ? Array.from($('blocks').querySelectorAll('button[data-id]')).indexOf(focusedAction) : -1;
   busy = true;
   render();
   try {
@@ -78,6 +82,11 @@ async function chooseAction(itemKey) {
   } finally {
     busy = false;
     render();
+    // Não rouba o foco se o aluno navegou para outro controle durante a requisição.
+    if (focusedIndex >= 0 && document.activeElement === document.body) {
+      const available = $('blocks').querySelectorAll('button[data-id]:not(:disabled)');
+      (available[Math.min(focusedIndex, available.length - 1)] || $('diagnose')).focus();
+    }
   }
 }
 $('blocks').addEventListener('click', event => chooseAction(event.target.closest('[data-id]')?.dataset.id));

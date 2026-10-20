@@ -1,5 +1,35 @@
 # Worker local — NEXT_2026
 
+## Execução macOS e Windows/WSL2
+
+Siga o [roteiro completo dos dois sistemas](../README.md#executar-localmente-no-macos-e-windows)
+antes dos exemplos de referência deste componente: dependências, configuração
+por terminal, banco/fontes, contas/MFA, Ollama, inicialização, saúde e encerramento.
+Os blocos Bash executam no macOS ou Ubuntu/WSL2; não são comandos PowerShell.
+
+| Componente | macOS | Windows/WSL2 neste PC |
+| --- | --- | --- |
+| Python | `repo/.venv-worker/bin/python` | `/home/pacientevirtual/.venvs/pacientevirtual/bin/python` |
+| API C++20 | `repo/build/backend/devsphere-api` | `/home/pacientevirtual/build/pacientevirtual/backend/devsphere-api` |
+| Banco/fontes | `repo/backend/data` e `sources` | `/home/pacientevirtual/.local/share/pacientevirtual` e `sources` |
+
+Carregue `source .local/ambiente-local.sh` em Bash na raiz do clone, conforme o
+roteiro. Para compilar/testar: `cmake --build "$PV_BUILD" -j 2` e
+`ctest --test-dir "$PV_BUILD" --output-on-failure`, com `DEVSPHERE_PYTHON` explícito.
+API: `"$PV_API"`; worker: `"$DEVSPHERE_PYTHON" -m worker.run --db "$DEVSPHERE_DB_PATH" --storage "$DEVSPHERE_SOURCE_DIR"`.
+Interface/saúde: `http://127.0.0.1:8080` e `/api/v1/health`. Ctrl+C nos próprios
+terminais encerra os processos. MFA é carregado apenas no terminal da API.
+
+Benchmark Windows nativo usa `repo/.venv-worker/Scripts/python.exe`, Ollama
+Windows e [comandos PowerShell completos](../docs/VALIDACAO_IA_OUTRA_MAQUINA.md#benchmark-real).
+Esse benchmark não executa o daemon POSIX nem demonstra backend C++ nativo Windows.
+macOS foi revisado por leitura; a rodada atual executou testes no Windows/WSL.
+O M1/8 GB teve OOM real; não atribuir a ele os êxitos da RTX 3060.
+
+Os exemplos posteriores com `build/backend` e `.venv-worker/bin/python` são
+referência macOS/Ubuntu com build no clone; no WSL deste PC use os caminhos acima.
+
+
 Processo auxiliar real e assíncrono para PDF, OCR, geração e busca de fontes. Não tem autoridade para aprovar ou publicar casos. O servidor C++20 autentica, autoriza e cria trabalhos; o worker acompanha a fila SQLite em processo separado.
 
 ## Preparação
@@ -21,7 +51,7 @@ export DEVSPHERE_CRITIC_MODEL=gemma3:4b
 export DEVSPHERE_OLLAMA_URL=http://127.0.0.1:11434
 ```
 
-Os modelos não são baixados automaticamente. Confira licença e capacidade antes de instalar. Hardware encontrado nesta etapa: Apple M1, 8 GiB de RAM, aproximadamente 32 GiB livres. `gemma3:4b` é a variante inicial para crítica sequencial; `keep_alive=0` descarrega cada modelo após uso. Qwen3:8b com contexto suficiente para 40 itens pode pressionar a memória; benchmarking real é pendente. Não confundir implementação do cliente com comprovação de qualidade clínica ou desempenho.
+Os modelos não são baixados automaticamente. Confira licença e capacidade antes de instalar. Hardware histórico de 16/10/2026: Apple M1, 8 GiB de RAM, aproximadamente 32 GiB livres. `gemma3:4b` é a variante inicial para crítica sequencial; `keep_alive=0` descarrega cada modelo após uso. Qwen3:8b com contexto suficiente para 40 itens pode pressionar a memória; a tentativa completa posterior nesse M1 falhou por OOM (registro histórico em 16/10). Os resultados atuais no Windows/WSL estão na seção final. Não confundir implementação do cliente com comprovação de qualidade clínica ou desempenho.
 
 ## Inicialização
 
@@ -193,9 +223,9 @@ menor antes da chamada ao modelo; não inventa resultado nem retorna caso vazio.
 Reduza páginas ou ajuste limites após medição; não aumente reservas de memória
 indiscriminadamente. Timeout e `generation_truncated` permanecem falhas recuperáveis.
 
-26 testes worker passaram, incluindo páginas, orçamento, proveniência e OCR.
-Geração real completa e crítica sobre caso integral continuam pendentes no
-hardware atual. Veja ../docs/PENDENCIAS_NEXT_2026.md.
+No histórico de 16/10/2026,26 testes passaram e a geração completa no M1
+continuava pendente. A rodada atual passou 61 testes worker Linux e geração
+real Qwen/Gemma no Windows/WSL; consulte a seção final e o mapa de pendências.
 
 ## Diagnóstico local e limites de processamento
 
@@ -234,7 +264,7 @@ A conversão agora interpreta seleção opcional vazia de páginas como todas as
 páginas, igual ao que a interface envia. PDFs protegidos, falsos ou acima do limite
 são rejeitados sem substituir documentos existentes.
 
-### Situação real do Qwen
+### Histórico do Qwen no M1 — 16/10/2026
 
 Nesta rodada, Qwen3:8b respondeu JSON técnico curto em27,84s com contexto512,
 mas excedeu60s no contexto4096 usado como mínimo pelo worker. Os modelos foram
@@ -278,15 +308,16 @@ tentativa de caso completo em8192 registrou **falta de memória da GPU**. Nenhum
 resultado parcial foi aceito; Gemma não foi alcançado. O aplicativo Ollama instalado
 não foi reconfigurado nem reiniciado. Os pesos dos modelos não mudaram.
 
-O usuário informou um PC Windows com16GB RAM e RTX3060/12GB VRAM; o teste nesse
-destino ainda não foi executado. Roteiro e entrada sintética
-estão em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md` e
+No registro histórico de 16/10/2026, o PC Windows com16GB/RTX3060 ainda não
+havia sido testado. Os testes reais concluídos em 19–20/10 estão na seção final;
+roteiro e entrada sintética estão em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md` e
 `worker/fixtures/synthetic-benchmark.request.json`. A instalação não prova capacidade.
 
 A crítica pode ter contexto separado por `DEVSPHERE_OLLAMA_CRITIC_CONTEXT`; se
 omitido, herda o contexto do gerador. Benchmark distingue RSS e alocação reportada
-por `/api/ps`; ausência de amostra é `null`. Geração completa e revisão clínica
-continuam pendentes, mesmo com testes de software aprovados.
+por `/api/ps`; ausência de amostra é `null`. No M1 a geração completa ficou
+pendente; a validação Windows/WSL está registrada ao final. Revisão clínica
+permanece pendente, mesmo com testes de software aprovados.
 
 ## Auditoria de armazenamento
 
@@ -298,7 +329,11 @@ Não foi executada sobre a base pessoal nesta implementação.
 
 ## Teste da IA no PC Windows
 
-Para continuar programando no Mac e testar Qwen/Gemma no PC Windows com RTX3060,
-consulte `docs/VALIDACAO_IA_OUTRA_MAQUINA.md` na raiz. O roteiro PowerShell usa
-fontes atuais e Python/Ollama locais, sem copiar o banco pessoal. Não requer API
-C++20 nessa primeira etapa. A execução real nesse equipamento segue pendente.
+Windows + WSL2/Ubuntu 24.04.5 preparado, preservando o backend C++20. Perfil v4
+Qwen3:8b + Gemma3:4b concluiu18 perguntas/22 exames: RAG 225,529 s, textual WSL
+195,138 s e textual Windows96,891 s. Falhas anteriores preservadas.
+Passaram CTest 2/2, workerLinux 61, PythonWindows 53 selecionados,
+ferramentas 41+1skip opt-in e RAG real 3/3 separado. Interface/LiveServer
+passaram após correções de rascunho, autoria e teclado. Sem publicação de casos,
+aprovação clínica ou homologação de 100% de usabilidade. Comandos/versões/métricas e
+pendências em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md`.

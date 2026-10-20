@@ -360,8 +360,9 @@ def diagnose(timeout=3, url=None, generator=None, critic=None):
     else:
         ocr["tesseractInstalled"] = True
         output = command_output([tesseract, "--version"], timeout)
+        # O instalador Windows prefixa a versão com v; as demais distribuições podem omiti-lo.
         match = re.search(
-            r"\btesseract\s+([0-9][A-Za-z0-9._+-]{0,49})", output or "", re.IGNORECASE
+            r"\btesseract\s+v?([0-9][A-Za-z0-9._+-]{0,49})", output or "", re.IGNORECASE
         )
         if match:
             ocr["tesseractVersion"] = match[1]

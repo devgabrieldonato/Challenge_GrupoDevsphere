@@ -1073,6 +1073,11 @@ HttpResponse HttpServer::route(const HttpRequest &request) {
       }
       const auto feedbackId =
           database_.createFeedback(*id, user->id, request.body);
+      // A decisão vem do upsert atômico, sem janela entre verificar e gravar.
+      if (feedbackId == 0) {
+        return jsonError(409, "feedback_conflict",
+                         "A devolutiva pertence a outro docente ou já foi concluída.");
+      }
       return jsonResponse(201, "{\"id\":" + std::to_string(feedbackId) +
                                    ",\"status\":\"draft\"}");
     }
@@ -1083,6 +1088,16 @@ HttpResponse HttpServer::route(const HttpRequest &request) {
     if (const auto id = pathId(request.path, feedbackPattern)) {
       if (user->role != "teacher" && user->role != "admin") {
         return jsonError(403, "forbidden", "Acesso exclusivo de professor.");
+      }
+      // A autoria não substitui o vínculo atual: uma revogação também bloqueia
+      // alterações em rascunhos abertos antes da mudança de acesso.
+      const auto submissionId = std::stoll(database_.nextJson(
+          "SELECT COALESCE((SELECT submission_id FROM teacher_feedback "
+          "WHERE id=? AND teacher_id=?),0)",
+          {std::to_string(*id), std::to_string(user->id)}));
+      if (submissionId > 0 &&
+          !database_.canTeacherReviewSubmission(submissionId, user->id)) {
+        return jsonError(403, "forbidden", "Acesso ao atendimento revogado.");
       }
       if (!database_.updateFeedback(*id, user->id, request.body, false)) {
         return jsonError(404, "not_found",
@@ -1099,6 +1114,15 @@ HttpResponse HttpServer::route(const HttpRequest &request) {
     if (const auto id = pathId(request.path, feedbackCompletePattern)) {
       if (user->role != "teacher" && user->role != "admin") {
         return jsonError(403, "forbidden", "Acesso exclusivo de professor.");
+      }
+      // Concluir exige a mesma autorização atual utilizada para editar o rascunho.
+      const auto submissionId = std::stoll(database_.nextJson(
+          "SELECT COALESCE((SELECT submission_id FROM teacher_feedback "
+          "WHERE id=? AND teacher_id=?),0)",
+          {std::to_string(*id), std::to_string(user->id)}));
+      if (submissionId > 0 &&
+          !database_.canTeacherReviewSubmission(submissionId, user->id)) {
+        return jsonError(403, "forbidden", "Acesso ao atendimento revogado.");
       }
       if (!database_.updateFeedback(*id, user->id, "{}", true)) {
         return jsonError(404, "not_found",

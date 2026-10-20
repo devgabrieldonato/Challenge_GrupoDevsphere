@@ -1,5 +1,245 @@
 # Pendências e execução — NEXT_2026
 
+## Estado atual validado — 20/10/2026
+
+Clone `C:\Users\vinic\Projetos\Challenge_GrupoDevsphere`, branch `NEXT_2026`.
+Base Git da medição anterior à publicação: `ffb20eb9f4a580f0b8e16b9ff408541febd786a5`.
+WSL2 ativo e Ubuntu 24.04.5 instalado em G:. Medições feitas antes do commit.
+A publicação exclusiva de NEXT_2026 foi autorizada na etapa de documentação de
+20/10; SHA/resultado final ficam no histórico Git e nos dois Notions após push.
+Sem reset, merge ou alteração da main.
+
+[Roteiro local macOS e Windows/WSL2](../README.md#executar-localmente-no-macos-e-windows):
+preparo, configuração completa, contas/MFA, API, worker, interface e encerramento.
+
+| Teste real v4 | Data | Resultado | Tempo total |
+| --- | --- | --- | --- |
+| RAG integrado WSL | 19/10/2026 | JSON válido, 18 perguntas/22 exames e Gemma real | 225,529 s |
+| Textual WSL | 19/10/2026 | JSON válido, 18 perguntas/22 exames e Gemma real | 195,138 s |
+| Textual Python Windows | 20/10/2026 | JSON válido, 18 perguntas/22 exames e Gemma real | 96,891 s |
+
+O RAG real exerceu PDF→conversão→FTS/grant→Qwen→Gemma→validação. Conferiu hashes,
+páginas e referências da fonte principal mais uma complementar. Após revogação,
+a busca ocultou a fonte e o resultado derivado ficou restrito. Nenhum caso gerado pelos modelos foi
+materializado, aprovado ou publicado. A fonte sintética da biblioteca foi
+aprovada apenas para preparar o ensaio técnico de FTS, sem parecer clínico.
+
+Perfil medido: Qwen3:8b/Gemma3:4b, contextos 8192/16384, saídas 6000/4096, lote 64,
+timeout 900 s, temperatura 0,2, think=false, keep_alive=0; execução sequencial.
+Digests, tokens, carga e duração de cada modelo estão no JSON de modelos.
+Uso real CUDA/GPU confirmado pelos logs, ollama ps e NVIDIA-SMI. Sem OOM/timeout
+nesses três fluxos v4. Não extrapolar para fontes maiores ou carga concorrente.
+
+| Execução | Amostras | Pico RAM global usada (bytes) | Mínimo RAM disponível (bytes) | Pico total GPU (MiB) |
+| --- | --- | --- | --- | --- |
+| RAG WSL | 114 | 12725043200 | 2191720448 | 6817 |
+| Textual WSL | 99 | 12675424256 | 2241339392 | 6797 |
+| Textual Windows | 50 | 10753294336 | 4163469312 | 6742 |
+
+RAM Windows/GPU são totais do sistema amostrados e incluem outros processos.
+RAM Linux é da VM. size/size_vram são alocações informadas pelo provedor, outra
+métrica; RSS ausente significa não medido. Monitores separados identificaram
+modelos WSL e memória física Windows; não confundir o serviço Windows com o Linux.
+
+As tentativas anteriores continuam preservadas: três críticas v1 truncadas,
+três críticas v2 inválidas e RAG v3 inválido em 299,179 s. Aumentar tokens e pedir
+concisão não resolveu sozinho. No v4, apenas a cópia do esquema enviada ao
+Ollama perde o pattern sem âncoras; min/maxLength continuam no formato e o esquema
+local integral continua rejeitando branco, excessos e campos inválidos, sem corte.
+A leitura do [conversor llama.cppb11669](https://github.com/ggml-org/llama.cpp/blob/b11669/common/json-schema-to-grammar.cpp#L880-L895),
+[fixado pelo Ollama 0.40.6](https://github.com/ollama/ollama/blob/v0.40.6/LLAMA_CPP_VERSION),
+identificou prioridade de pattern e fallback irrestrito. A gramática interna do
+binário não foi capturada. Crítica permanece resumo complementar não exaustivo,
+com revisão humana item a item.
+
+Correções verificadas: alvo SQLite compatível com CMake 3.20+, LF nos scripts Bash,
+versão Tesseract com prefixo v e fonte OCR Windows; reenvio de cadastro após
+corrigir senha; sete campos da devolutiva restaurados ao reabrir, rascunho
+incompleto permitido, edição no mesmo ID, concluído somente leitura; três ações
+consecutivas por Tab/Enter sem perder foco. Administrador consulta rascunho alheio
+sem assumir autoria; aluno não vê rascunho. PUT/conclusão revalidam vínculo e
+instituição (403), POST não sobrescreve autoria alheia/concluído (409), sem mutação.
+Baselines dos defeitos e novas regressões foram preservados. OpenAPI atualizado.
+
+Testes finais: CTest 2/2; worker Linux 61; Python Windows 53 selecionados (13,943 s); ferramentas 41 aprovados/1 skip opt-in, seguido do RAG real3/3 executado separadamente. Contrato estrutural6/6; PDF/OCR sintéticos reais; Chromium/Live Server e pontuação legada 9/9 passaram. Regressão ampla e focalizada da interface repetidas em 20/10 após a correção final de autoria.
+
+
+Versões Linux: Python 3.12.3, GCC 13.3, CMake 3.28.3, SQLite 3.45.1, OpenSSL 3.0.13,
+Tesseract 5.3.4 com por/eng, Poppler 24.02, Node 24.22.0, Chromium 151 e Ollama 0.40.6.
+Windows preserva Python 3.12.1, driver 596.36, Ollama 0.40.6, Tesseract 5.5.3.20260724
+por/eng e Poppler 26.07.0. Venv Linux separado em /home/pacientevirtual/.venvs;
+build C++20 em /home/pacientevirtual/build/pacientevirtual/backend.
+Pesos Windows reutilizados em /mnt/c/Users/vinic/.ollama/models, sem novo download
+de modelos. Ollama Linux próprio usou loopback, NOPRUNE/NO_CLOUD e limites 1/1;
+nenhuma rede espelhada, firewall, proteção Windows ou driver NVIDIA Linux alterado.
+
+### Repetir neste computador
+
+No PowerShell, com Ollama Windows já disponível, use o bloco completo da seção
+[Benchmark real](VALIDACAO_IA_OUTRA_MAQUINA.md#benchmark-real). Ele configura o
+perfil v4 e nome novo de relatório. Nenhum helper ignorado é necessário.
+
+Para RAG, conferir antes se já existe Ollama Linux 11434; iniciar em outro terminal
+PowerShell se ausente, usando o mesmo ambiente efetivamente testado:
+
+```powershell
+wsl -d PacienteVirtual-Ubuntu2404 -u pacientevirtual --exec /usr/bin/env -i HOME=/home/pacientevirtual PATH=/usr/local/bin:/usr/bin:/bin OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS=/mnt/c/Users/vinic/.ollama/models OLLAMA_NOPRUNE=1 OLLAMA_NO_CLOUD=1 OLLAMA_NUM_PARALLEL=1 OLLAMA_MAX_LOADED_MODELS=1 /home/pacientevirtual/deps/ollama-0.40.6/bin/ollama serve
+```
+
+Em outro PowerShell na raiz do clone:
+
+```powershell
+wsl -d PacienteVirtual-Ubuntu2404 -u pacientevirtual --exec /usr/bin/env DEVSPHERE_TEST_API_BIN=/home/pacientevirtual/build/pacientevirtual/backend/devsphere-api DEVSPHERE_TEST_REAL_AI=1 DEVSPHERE_OLLAMA_CRITIC_MAX_TOKENS=4096 /home/pacientevirtual/.venvs/pacientevirtual/bin/python -m unittest tools.tests.test_real_ai_pipeline -v
+wsl -d PacienteVirtual-Ubuntu2404 -u pacientevirtual --exec /usr/bin/env DEVSPHERE_PYTHON=/home/pacientevirtual/.venvs/pacientevirtual/bin/python /usr/bin/ctest --test-dir /home/pacientevirtual/build/pacientevirtual/backend --output-on-failure
+```
+
+CTest/PDF exige DEVSPHERE_PYTHON explícito: tentativa sem esse ambiente falhou por
+ReportLab ausente no Python de sistema; a repetição com o venv passou. As suítes
+Python usam PYTHONPATH da raiz/worker/tests e DEVSPHERE_TEST_API_BIN/TEST_BINARY
+apontando ao build acima. Rodar testes unitários com ambiente limpo, sem herdar
+limites do benchmark. API/worker devem compartilhar banco/fontes explícitos em
+ext4. start-local-api.sh usa repo/build, diferente do build /home testado; não
+presumir esses caminhos iguais. Scripts Bash rodam dentro do WSL, não no PowerShell.
+
+### Arquivos alterados e estado Git
+
+Snapshot histórico do working tree medido antes de publicar: a base remota
+ffb20eb sozinha não contém os patches desta revisão. No inventário pré-documentação havia 27 caminhos modificados e 3 testes novos.
+Esse é o estado histórico da medição, não uma declaração do estado Git após publicação.
+Ambientes, modelos, relatórios e bancos permanecem fora do versionamento.
+Hashes do código final constam no JSON de modelos.
+
+| Grupo | Arquivos |
+| --- | --- |
+| Portabilidade | `.gitattributes`, `backend/CMakeLists.txt`, `backend/scripts/create-dev-users.sh`, `tools/check-local-ai.sh`, `tools/start-local-api.sh`, `tools/start-local-ollama.sh`, `tools/start-worker.sh` |
+| Backend/contrato | `backend/src/database.cpp`, `backend/src/http_server.cpp`, `backend/openapi/openapi.yaml`, `tools/tests/test_next_http.py` |
+| Interface | `frontend/pages/teacher-feedback.html`, `frontend/scripts/auth/register-page.js`, `frontend/scripts/services/feedback-service.js`, `frontend/scripts/student/clinical-session.js`, `frontend/scripts/teacher/feedback.js` |
+| IA/diagnóstico | `worker/core.py`, `worker/doctor.py`, `worker/tests/test_doctor.py`, `worker/tests/test_local_ocr.py`, `worker/tests/test_ollama_protocol.py` |
+| Novos testes | `tools/tests/browser_public_forms.cjs`, `tools/tests/browser_pending_usability.cjs`, `tools/tests/test_real_ai_pipeline.py` |
+| Documentação | `README.md`, `backend/README.md`, `worker/README.md`, `docs/VALIDACAO_IA_OUTRA_MAQUINA.md`, `docs/MODELOS_LOCAIS_NEXT_2026.json`, `docs/PENDENCIAS_NEXT_2026.md` |
+
+### Pendências que permanecem
+
+Revisão clínica/pedagógica por versão, tags/rubrica, licenças e regras institucionais;
+segurança independente e isolamento/infraestrutura de produção; fontes maiores,
+repetibilidade ampla, carga e recuperação; acessibilidade assistiva/zoom/contraste,
+navegadores adicionais e cenários adicionais de rede/sessão. Quotas/reserva em
+bytes e reconciliação de órfãos não foram implementadas nesta tarefa. Sem base
+institucional ou serviço permanente provisionado. Não há garantia de 100% de
+usabilidade, homologação ou aprovação clínica automática.
+
+
+### Conferência do roteiro local — 20/10/2026
+
+READMEs raiz/backend/worker/tools atualizados com preparo macOS e PowerShell/WSL,
+configuração explícita por terminal, contas sem senha no histórico, MFA privado,
+Ollama loopback, API C++20, worker, interface, saúde/logs e encerramento.
+Duas revisões independentes conferiram comandos e corrigiram isolamento das
+variáveis dos unitários, seis testes estruturais, âncora do benchmark e limite
+Linux do ensaio RAG (/proc). macOS revisado por leitura, sem novo reteste.
+
+Validação adicional: 52 blocos Bash com sintaxe válida; links locais dos quatro
+READMEs e JSON de modelos válidos; `pip check` Linux sem conflitos. Smoke com
+SQLite sintético temporário passou migrations, `worker.run --check`, health e
+HTML da API. Windows acessou o loopback WSL em 18087. Servidor próprio encerrado;
+nenhuma inferência, conta pessoal ou alteração de firewall. Porta 18087 foi apenas
+do ensaio; a inicialização normal permanece 8080. Isso não equivale a testar
+manualmente todo navegador Windows. Relatório local ignorado:
+`validation-reports/documentation-smoke-20261020-130724.json`.
+
+A publicação desta revisão exige atualização e leitura de confirmação dos dois
+Notions antes do commit; resultado e SHA são acrescentados lá após push/fetch.
+Os resultados anteriores descrevem snapshots da validação e continuam históricos.
+
+## Histórico das rodadas anteriores
+
+## Continuação dos testes e WSL — 19/10/2026
+
+A repetição expôs instabilidade: `next2026-v1` concluiu três de seis tentativas;
+as outras três truncaram a crítica, inclusive com teto 2048 ou 4096. Aumentar o
+teto sozinho não resolveu. Todos os relatórios foram preservados.
+
+Contrato crítico limitado implementado (`next2026-v2`): até 12 alertas de 240
+caracteres e dois resumos de 400, sem campos adicionais/vazios, com validação local
+integral e sem recorte. É resumo complementar não exaustivo e exige revisão humana
+item a item. Os 51 testes selecionados passaram em 11,879 s. As tentativas reais
+abaixo mostram que a correção continua experimental, sem estabilidade comprovada.
+
+| Prompt | Teto da crítica | Resultado | Tempo (s) | Relatório local |
+| --- | --- | --- | --- | --- |
+| next2026-v1 | 768 | generation_truncated | 269.328 | `validation-reports/benchmark-rtx3060.json` |
+| next2026-v1 | 2048 | completo 18/22 | 140.422 | `validation-reports/benchmark-rtx3060-critic2048.json` |
+| next2026-v1 | 2048 | generation_truncated | 148.719 | `validation-reports/benchmark-repeatability-20261019-1.json` |
+| next2026-v1 | 2048 | completo 18/22 | 124.734 | `validation-reports/benchmark-repeatability-20261019-2.json` |
+| next2026-v1 | 4096 | generation_truncated | 155.265 | `validation-reports/benchmark-critic4096-repeat-20261019-1.json` |
+| next2026-v1 | 4096 | completo 18/22 | 126.641 | `validation-reports/benchmark-critic4096-repeat-20261019-2.json` |
+| next2026-v2 | 4096 | invalid_critic | 111.422 | `validation-reports/benchmark-bounded-v2-20261019-1.json` |
+| next2026-v2 | 4096 | invalid_critic | 141.437 | `validation-reports/benchmark-bounded-v2-20261019-2.json` |
+| next2026-v2 | 4096 | invalid_critic | 109.594 | `validation-reports/benchmark-bounded-v2-diagnostic-20261019.json` |
+
+Diagnóstico v2: Gemma concluiu 452 tokens sem truncar; um dos cinco alertas tinha 265 caracteres para limite 240, resumos com 377/320. Rejeição maxLength, sem campos extras/vazios. Não é falta de memória; ajustar concisão e repetir no retorno, sem recorte ou relaxamento silencioso.
+
+Configuração v2: Qwen3:8b/Gemma3:4b, contextos 8192/16384, saídas 6000/4096,
+batch 64, timeout 900 s, temperatura 0,2, think=false, execução sequencial.
+Diagnóstico local registra apenas tipos, contagens, comprimentos e restrições,
+nunca texto da fonte/caso/crítica. Sem OOM/timeout observado nessas rodadas.
+RAM global, ocupação total NVIDIA e alocação do provedor são medidas distintas;
+valores por execução estão no JSON de modelos. RSS Windows não medido.
+
+Cadastro corrigido após reproduzir bloqueio pela validação nativa: 16 cenários
+Chrome 155 (aluno/docente, 320/375/768/1280 px, corrigindo cada senha) passaram em
+5,400 s, sem chamadas à API. Não comprova cadastro integrado. Seis testes do
+contrato clínico e um de backup seguro passaram. Worker completo: 48 aprovações
+e um erro de importação `resource`; auditoria de fontes: uma falha e cinco erros
+POSIX/symlink no Windows. São falhas de execução, sem SKIP fictício ou alteração
+de proteções. Guard Live Server passou; fluxo integrado ainda depende do Linux.
+
+WSL2/Ubuntu e reinício autorizados. Runtime 3.0.3.0 e VirtualMachinePlatform
+instalados; Ubuntu ainda não registrado por `HCS_E_SERVICE_NOT_AVAILABLE` antes
+do reinício. Imagem oficial verificada já em G:. Sem rede espelhada, firewall
+alterado ou porta exposta. Após reiniciar: registrar Ubuntu, preparar dependências
+Linux, compilar C++20 e executar CTest, worker/tools, Live Server e o novo ensaio
+opt-in `tools.tests.test_real_ai_pipeline`. Ele usa PDFs sintéticos, FTS/grants,
+inferência real, rastreabilidade e revogação; foi preparado/revisado, não executado.
+
+Não há garantia de 100% de usabilidade. Persistem estabilidade da crítica,
+plataforma completa, acessibilidade/fluxos de erro e revisão clínica/institucional.
+Naquela etapa, sem commit/push/merge. Nenhum caso gerado foi materializado, aprovado ou publicado.
+
+## Atualização Windows — 19/10/2026
+
+Clone remoto `NEXT_2026`, commit `ffb20eb9f4a580f0b8e16b9ff408541febd786a5`
+confirmado sem atualização posterior na consulta. O pacote inicial sem Git foi preservado.
+O histórico abaixo refere-se às rodadas anteriores no Mac.
+
+- Concluído: ambiente Windows/Python 3.12.1/Ollama 0.40.6/driver 596.36 verificado;
+  Qwen3:8b e Gemma3:4b instalados com digests confirmados, idênticos ao histórico.
+- Concluído: geração integral real sintética com JSON/contrato/referências válidos,
+  18 perguntas/22 exames e crítica Gemma sequencial em 140,422 s. O teto inicial 768
+  truncou a crítica em 269,328 s; relatório preservado. Somente o teto da crítica
+  mudou para 2048 na execução completa. Sem OOM/timeout observado nesses dois testes.
+- Medido: 71 amostras; pico total da GPU 7225 MiB, pico RAM global 10.088.321.024 bytes,
+  mínimo disponível 4.828.442.624 bytes. Alocação Ollama 6.091.995.873 bytes é medida
+  distinta. RSS cliente/processos Windows não medido. Esses valores incluem sistema/outros processos.
+- Concluído: Tesseract 5.5.3.20260724 por+eng e Poppler 26.07.0; PDF textual e OCR
+  reais sintéticos passaram. Correções de portabilidade no teste Arial e no parser
+  da versão Tesseract com prefixo v; 48 testes aprovados em 11,293 s. Doctor disponível.
+- Mantido: sem banco pessoal, fontes reais, materialização, aprovação ou publicação;
+  sem commit/push/merge. Relatórios, telemetria e ambientes ignorados pelo Git.
+- Pendente: repetibilidade ampla, fontes maiores e RAG real integrado; plataforma
+  completa C++20/daemon POSIX neste PC. WSL2/Ubuntu autorizado; runtime 3.0.3.0
+  instalado, VirtualMachinePlatform habilitado, reinicialização pendente. Ubuntu
+  ainda não instalado (`HCS_E_SERVICE_NOT_AVAILABLE` antes de reiniciar).
+  Não presumir rede/GPU/sandbox prontas.
+- Pendente: revisão clínica/docente por versão, dificuldade/tags/rubrica,
+  licenças e regras institucionais, segurança independente, sandbox e infraestrutura.
+
+Detalhes/reprodução: [validação Windows](VALIDACAO_IA_OUTRA_MAQUINA.md) e
+[modelos/medidas](MODELOS_LOCAIS_NEXT_2026.json). A primeira execução completa
+bem-sucedida não constitui validação clínica ou homologação da plataforma.
+
+## Histórico — 16/10/2026
+
 Conciliação do código com as duas páginas do Notion em 16/10/2026. Este registro
 separa evidência técnica local, avaliação humana e configuração externa. Nenhum
 agente pode declarar aprovação clínica, auditoria independente ou homologação.
@@ -82,7 +322,7 @@ scripts documentados no README; um health positivo não comprova binário atuali
 - Coordenador: conversão corrigida para `pages: []`, validação de conclusão/modelo
   do Ollama, erros legíveis, timeout configurável, métricas e testes de PDFs/protocolo;
   retirada de fonte bloqueia grantees preservando titular/admin e histórico.
-- Testes: CTest2/2; tools23/23; worker51/51 com ResourceWarning como erro; Chrome
+- Testes: CTest 2/2; tools23/23; worker51/51 com ResourceWarning como erro; Chrome
   passou sem erros JavaScript. Base pessoal não acessada; sem migration nova.
 - O diagnóstico real encontrou Ollama0.40.5, Qwen/Gemma instalados, Tesseract5.5.3
   por+eng e Poppler26.10.0. Nenhum modelo ficou carregado ao fim.
@@ -109,7 +349,7 @@ continuam pendentes. Os itens concluídos acima não removem esses bloqueios.
 - Coordenador: contexto separado da crítica, métricas de memória distinguíveis,
   perfil experimental isolado e teste real de geração; entrada sintética e roteiro
   para outra máquina. Sem migration/commit/push ou uso da base pessoal.
-- Resultados atuais: tools29/29, worker54/54 (ResourceWarning como erro), CTest2/2
+- Resultados atuais: tools29/29, worker54/54 (ResourceWarning como erro), CTest 2/2
   e Live Server real passaram. Guardas de portas também passaram.
 
 **Bloqueio agora demonstrado:** perfil q8_0/Flash Attention/uma execução passou JSON
@@ -142,7 +382,7 @@ bytes, reserva de disco e remediação continuam pendentes. Nenhuma base pessoal
 foi auditada. Veja AUDITORIA_ARMAZENAMENTO.md.
 
 Totais finais desta rodada:35 testes de ferramentas passaram (29 da integração
-+6 da auditoria),55 worker passaram, CTest2/2 e cenário Live Server real passaram.
++6 da auditoria),55 worker passaram, CTest 2/2 e cenário Live Server real passaram.
 UTF-8, contratos, sintaxe e diff também conferidos. Benchmark nativo sem resource
 foi simulado em regressão; não é teste real no Windows. Código/modelos continuam
 sem geração integral validada no M1/8GB e aguardam teste na outra máquina.

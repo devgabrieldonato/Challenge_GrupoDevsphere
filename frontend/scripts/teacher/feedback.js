@@ -8,19 +8,34 @@ const status = document.querySelector("#feedbackStatus");
 const backLink = document.querySelector("#backToReview");
 const exportButton = document.querySelector("#exportFeedback");
 let loadedSubmission = null;
+let loadedFeedback = null;
+const feedbackFields = ["strengths", "difficulties", "missedEvidence",
+  "prioritizationComment", "justificationComment", "nextAttemptGuidance", "generalObservation"];
 
 if (!submissionId) {
   status.className = "status error";
   status.textContent = "Abra um atendimento antes de preparar a devolutiva.";
 } else {
   SubmissionService.get(submissionId)
-    .then((submission) => {
+    .then(async (submission) => {
       loadedSubmission = submission;
+      // Restaura todos os campos antes de liberar a edição, evitando apagar rascunhos ao reabrir.
+      const feedbacks = await FeedbackService.listForStudent(submission.studentId);
+      loadedFeedback = feedbacks.find((item) => String(item.submissionId) === submissionId) || null;
+      for (const field of feedbackFields) form.elements.namedItem(field).value = loadedFeedback?.[field] || "";
+      const completed = loadedFeedback?.status === "completed";
+      // A permissão vem da API: administração pode consultar sem assumir a autoria docente.
+      const readOnly = completed || loadedFeedback?.canEdit === false;
+      for (const field of feedbackFields) form.elements.namedItem(field).readOnly = readOnly;
+      form.querySelectorAll('button[type="submit"]').forEach((button) => { button.disabled = readOnly; });
       form.hidden = false;
       form.submissionId.value = submissionId;
       backLink.href = `teacher-review.html?id=${encodeURIComponent(submissionId)}`;
       status.className = "status success";
-      status.textContent = "Atendimento carregado. Preencha a avaliação docente.";
+      status.textContent = completed ? "Devolutiva concluída. Consulta disponível." :
+        readOnly ? "Devolutiva disponível somente para consulta. A edição pertence ao docente responsável." :
+        loadedFeedback ? "Rascunho carregado. Continue a avaliação docente." :
+        "Atendimento carregado. Preencha a avaliação docente.";
       form.strengths.focus();
     })
     .catch(() => {
@@ -32,6 +47,7 @@ if (!submissionId) {
 // Rascunhos podem ser incompletos; a conclusão exige todos os campos obrigatórios.
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (loadedFeedback?.status === "completed" || loadedFeedback?.canEdit === false) return;
   const action = event.submitter?.value || "draft";
   if (action === "complete" && !form.reportValidity()) return;
 
@@ -44,9 +60,13 @@ form.addEventListener("submit", async (event) => {
     action === "complete" ? "Concluindo devolutiva…" : "Salvando rascunho…";
 
   try {
-    const feedback = await FeedbackService.create(submissionId, data);
+    // Atualiza o mesmo registro restaurado; a conclusão continua separada e autorizada pela API.
+    const feedback = loadedFeedback?.id
+      ? await FeedbackService.update(loadedFeedback.id, data)
+      : await FeedbackService.create(submissionId, data);
+    loadedFeedback = feedback;
     if (action === "complete" && feedback.id && feedback.status !== "completed") {
-      await FeedbackService.complete(feedback.id);
+      loadedFeedback = await FeedbackService.complete(feedback.id);
     }
     status.className = "status success";
     status.textContent =
@@ -55,7 +75,10 @@ form.addEventListener("submit", async (event) => {
     status.className = "status error";
     status.textContent = error.message || "Não foi possível salvar a devolutiva.";
   } finally {
-    buttons.forEach((button) => { button.disabled = false; });
+    buttons.forEach((button) => { button.disabled = button.type === "submit" && loadedFeedback?.status === "completed"; });
+    if (loadedFeedback?.status === "completed") {
+      for (const field of feedbackFields) form.elements.namedItem(field).readOnly = true;
+    }
   }
 });
 

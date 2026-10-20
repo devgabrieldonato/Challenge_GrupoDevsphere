@@ -365,6 +365,137 @@ class NextHttpTests(unittest.TestCase):
         # Finalização com outra chave não produz segunda submissão.
         self.assertEqual(self.submit_report(report)[0], 400)
 
+    def test_feedback_requires_current_submission_authorization(self):
+        """Revalida vínculo e instituição após abrir um rascunho autorizado."""
+        teacher_id = self.ids["teacher@test.local"]
+        student_id = self.ids["a@test.local"]
+        with closing(sqlite3.connect(self.db)) as db:
+            original_institution = db.execute("SELECT institution_id FROM users WHERE id=?", (student_id,)).fetchone()[0]
+            version_id = db.execute("SELECT id FROM case_versions LIMIT 1").fetchone()[0]
+        for revoked in ("assignment", "institution"):
+            # Cada revogação usa um rascunho novo, sem desligar os triggers imutáveis.
+            with closing(sqlite3.connect(self.db)) as db, db:
+                activity_id = db.execute(
+                    "INSERT INTO activities(title,case_version_id,teacher_id) VALUES('Vínculo sintético revogável',?,?)",
+                    (version_id, teacher_id),
+                ).lastrowid
+                submission_id = db.execute(
+                    "INSERT INTO submissions(student_id,case_version_id,activity_id) VALUES(?,?,?)",
+                    (student_id, version_id, activity_id),
+                ).lastrowid
+            status, feedback, _ = self.request(
+                "POST", f"/api/v1/submissions/{submission_id}/feedback",
+                {"strengths": "Rascunho sintético preservado."}, cookie=self.teacher,
+            )
+            self.assertEqual(status, 201, feedback)
+            feedback_id = feedback["id"]
+            try:
+                with closing(sqlite3.connect(self.db)) as db, db:
+                    if revoked == "assignment":
+                        db.execute("UPDATE activities SET teacher_id=? WHERE id=?", (self.ids["admin@test.local"], activity_id))
+                    else:
+                        db.execute("UPDATE users SET institution_id='feedback-isolated-institution' WHERE id=?", (student_id,))
+                    before = db.execute("SELECT * FROM teacher_feedback WHERE id=?", (feedback_id,)).fetchone()
+                self.assertEqual(self.request("GET", f"/api/v1/submissions/{submission_id}", cookie=self.teacher)[0], 404)
+                for method, suffix, payload in (("PUT", "", {"strengths": "Alteração indevida."}),
+                                                 ("POST", "/complete", {})):
+                    with self.subTest(revoked=revoked, method=method):
+                        self.assertEqual(self.request(method, f"/api/v1/feedback/{feedback_id}{suffix}", payload, cookie=self.teacher)[0], 403)
+                        with closing(sqlite3.connect(self.db)) as db:
+                            self.assertEqual(db.execute("SELECT * FROM teacher_feedback WHERE id=?", (feedback_id,)).fetchone(), before)
+            finally:
+                with closing(sqlite3.connect(self.db)) as db, db:
+                    db.execute("UPDATE users SET institution_id=? WHERE id=?", (original_institution, student_id))
+                    db.execute("UPDATE activities SET teacher_id=? WHERE id=?", (teacher_id, activity_id))
+
+    def test_feedback_post_preserves_draft_authorship_and_completed_content(self):
+        """POST repetido só atualiza rascunho próprio; conflitos não alteram o registro."""
+        with closing(sqlite3.connect(self.db)) as db, db:
+            version_id = db.execute("SELECT id FROM case_versions LIMIT 1").fetchone()[0]
+            submission_id = db.execute(
+                "INSERT INTO submissions(student_id,case_version_id,reviewer_id) VALUES(?,?,?)",
+                (self.ids["a@test.local"], version_id, self.ids["teacher@test.local"]),
+            ).lastrowid
+        path = f"/api/v1/submissions/{submission_id}/feedback"
+        status, feedback, _ = self.request("POST", path, {"strengths": "Rascunho sintético original."}, cookie=self.teacher)
+        self.assertEqual(status, 201, feedback)
+        feedback_id = feedback["id"]
+        status, updated, _ = self.request("POST", path, {"strengths": "Rascunho próprio atualizado."}, cookie=self.teacher)
+        self.assertEqual(status, 201, updated)
+        self.assertEqual(updated["id"], feedback_id)
+        with closing(sqlite3.connect(self.db)) as db:
+            self.assertEqual(db.execute("SELECT strengths FROM teacher_feedback WHERE id=?", (feedback_id,)).fetchone()[0],
+                             "Rascunho próprio atualizado.")
+        for state, actors in (("draft", (self.admin,)), ("completed", (self.teacher, self.admin))):
+            if state == "completed":
+                self.assertEqual(self.request("POST", f"/api/v1/feedback/{feedback_id}/complete", {}, cookie=self.teacher)[0], 200)
+            with closing(sqlite3.connect(self.db)) as db:
+                before = db.execute("SELECT * FROM teacher_feedback WHERE id=?", (feedback_id,)).fetchone()
+            for actor in actors:
+                with self.subTest(state=state, author=actor == self.teacher):
+                    status, conflict, _ = self.request("POST", path, {"strengths": "Sobrescrita sintética indevida."}, cookie=actor)
+                    self.assertEqual(status, 409, conflict)
+                    self.assertEqual(conflict["error"]["code"], "feedback_conflict")
+                    with closing(sqlite3.connect(self.db)) as db:
+                        self.assertEqual(db.execute("SELECT * FROM teacher_feedback WHERE id=?", (feedback_id,)).fetchone(), before)
+                        self.assertEqual(db.execute("SELECT COUNT(*) FROM teacher_feedback WHERE submission_id=?", (submission_id,)).fetchone()[0], 1)
+
+    def test_feedback_edit_metadata_preserves_authorship(self):
+        """Administrador consulta rascunho alheio sem assumir autoria de edição."""
+        with closing(sqlite3.connect(self.db)) as db, db:
+            version_id = db.execute("SELECT id FROM case_versions LIMIT 1").fetchone()[0]
+            submission_id = db.execute(
+                "INSERT INTO submissions(student_id,case_version_id,reviewer_id) VALUES(?,?,?)",
+                (self.ids["a@test.local"], version_id, self.ids["teacher@test.local"]),
+            ).lastrowid
+        status, feedback, _ = self.request("POST", f"/api/v1/submissions/{submission_id}/feedback",
+                                          {"strengths": "Autoria docente preservada."}, cookie=self.teacher)
+        self.assertEqual(status, 201, feedback)
+        feedback_id = feedback["id"]
+        path = f"/api/v1/students/{self.ids['a@test.local']}/feedback"
+        for actor, expected in ((self.teacher, True), (self.admin, False)):
+            with self.subTest(canEdit=expected):
+                status, listed, _ = self.request("GET", path, cookie=actor)
+                self.assertEqual(status, 200, listed)
+                visible = next(item for item in listed if item["id"] == feedback_id)
+                self.assertIs(visible.get("canEdit"), expected)
+        self.assertEqual(self.request("PUT", f"/api/v1/feedback/{feedback_id}",
+                                      {"strengths": "Tentativa administrativa alheia."}, cookie=self.admin)[0], 404)
+        self.assertEqual(self.request("POST", f"/api/v1/feedback/{feedback_id}/complete", {}, cookie=self.admin)[0], 404)
+        self.assertEqual(self.request("POST", f"/api/v1/feedback/{feedback_id}/complete", {}, cookie=self.teacher)[0], 200)
+        for actor in (self.teacher, self.admin, self.a):
+            status, listed, _ = self.request("GET", path, cookie=actor)
+            self.assertEqual(status, 200, listed)
+            visible = next(item for item in listed if item["id"] == feedback_id)
+            self.assertIs(visible.get("canEdit"), False)
+            self.assertEqual(visible["strengths"], "Autoria docente preservada.")
+
+    def test_admin_can_restore_feedback_only_within_institution(self):
+        """Listar rascunhos permite retomada administrativa sem atravessar instituições."""
+        status, submission, _ = self.submit_report(self.clinical_report())
+        self.assertEqual(status, 201, submission)
+        submission_id = submission["id"]
+        status, feedback, _ = self.request("POST", f"/api/v1/submissions/{submission_id}/feedback",
+                                          {"strengths": "Rascunho administrativo sintético."}, cookie=self.admin)
+        self.assertEqual(status, 201, feedback)
+        student_id = self.ids["a@test.local"]
+        path = f"/api/v1/students/{student_id}/feedback"
+        status, visible, _ = self.request("GET", path, cookie=self.admin)
+        self.assertEqual(status, 200, visible)
+        restored = next(item for item in visible if item["id"] == feedback["id"])
+        self.assertEqual(restored["strengths"], "Rascunho administrativo sintético.")
+        self.assertEqual(restored["status"], "draft")
+        self.assertFalse(any(item["id"] == feedback["id"] for item in self.request("GET", path, cookie=self.a)[1]))
+        with closing(sqlite3.connect(self.db)) as db, db:
+            institution = db.execute("SELECT institution_id FROM users WHERE id=?", (student_id,)).fetchone()[0]
+            db.execute("UPDATE users SET institution_id='feedback-other-institution' WHERE id=?", (student_id,))
+        try:
+            self.assertEqual(self.request("GET", path, cookie=self.admin)[0], 404)
+            self.assertEqual(self.request("GET", f"/api/v1/submissions/{submission_id}", cookie=self.admin)[0], 404)
+        finally:
+            with closing(sqlite3.connect(self.db)) as db, db:
+                db.execute("UPDATE users SET institution_id=? WHERE id=?", (institution, student_id))
+
     def test_upload_owner_is_session_and_cross_user_denied(self):
         status, data, _ = self.upload(
             extra={"ownerId": str(self.ids["b@test.local"]), "role": "admin"}

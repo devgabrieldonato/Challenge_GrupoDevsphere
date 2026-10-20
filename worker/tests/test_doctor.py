@@ -131,6 +131,22 @@ class DoctorTests(unittest.TestCase):
         self.assertNotIn("must-never-appear", json.dumps(report))
         self.assertNotIn("secret-path", json.dumps(report))
 
+    def test_windows_tesseract_version_prefix_is_recognized(self):
+        """O instalador Windows usa v antes da versão; isso não significa OCR indisponível."""
+        def windows_command(arguments, timeout):
+            if "--version" in arguments:
+                return "tesseract v5.5.3.20260724\n leptonica-1.87.0\n"
+            return self.fake_command(arguments, timeout)
+
+        with FakeInventory() as fixture, mock.patch.object(
+            doctor, "command_output", side_effect=windows_command
+        ):
+            report = self.diagnose(fixture)
+        self.assertEqual(report["status"], "available")
+        self.assertEqual(report["checks"]["ocr"]["status"], "available")
+        self.assertEqual(report["checks"]["ocr"]["tesseractVersion"], "5.5.3.20260724")
+        self.assertNotIn("tesseract_unavailable", [issue["code"] for issue in report["issues"]])
+
     def test_missing_model_is_not_success(self):
         with FakeInventory(
             {"/api/tags": (200, {"models": [TAGS["models"][0]]})}

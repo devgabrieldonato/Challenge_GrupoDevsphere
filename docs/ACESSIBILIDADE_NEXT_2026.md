@@ -241,3 +241,22 @@ as 12 combinações de zoom real 200%/400%, sem rolagem horizontal.
 Regressão posterior ao ajuste: validation-reports/accessibility-1792530480853-12e9c3ea/summary.json, com 36 cenários axe sem violações, 175 verificações sem falhas e oito auditorias Lighthouse de acessibilidade com 100/100. Leitor de tela real continua como verificação manual pendente. git diff --check aprovado; sem commit ou push nesta etapa.
 
 Revisão pré-commit independente: nenhum bloqueador ou arquivo privado identificado. Ajustado o contêiner do h1 do atendimento para div e explicitada a restauração do tema entre fatores no teste Web Developer. Novo ensaio validation-reports/web-developer-1792530904588.json passou nas três páginas e 12 combinações, com asserção do tema real. Sintaxe JavaScript e diff conferidos. READMEs/macOS/Windows preservados e documentação atualizada antes do commit autorizado.
+
+## Correção do link de salto na sessão do aluno — 20/10/2026
+
+A página student-cases carregava tokens e estilos próprios, mas não os utilitários de base.css. Isso deixava Ir para o conteúdo permanentemente visível e exibia o texto auxiliar do botão de tema. Regras skip-link e visually-hidden foram extraídas para accessibility.css, importado pela base e pela sessão. O link continua operável e visível ao receber foco; Enter transfere o foco ao conteúdo. O rótulo do tema permanece na árvore acessível.
+
+Regressão final: validation-reports/accessibility-1792533379406-bbab8320/summary.json, 36 cenários, 167 verificações aprovadas, zero violações/falhas/erros. Rodada com --skip-lighthouse; notas anteriores não são novas medições. Captura do aluno no tema escuro inspecionada. A primeira rodada tinha uma asserção incorreta ao tentar focar o fundo durante diálogo modal; o teste agora respeita o confinamento de foco. A reutilização imediata da porta anterior foi recusada pelo guard e a rodada final usou a porta sintética 18088. A API manual 8080 foi preservada.
+
+READMEs corrigidos para a regra real de MFA: obrigatório em produção para professor/admin; no desenvolvimento, exigido quando configurado no processo da API. Aluno não entra nessa condição. Live Server e sistema operacional não determinam a regra; nenhuma configuração do Mac foi verificada nesta rodada. Alterações locais sem commit/push.
+
+## Perfil local sem MFA e preparação da publicação
+
+A pedido do usuário, a API development deste Windows foi reiniciada sem carregar
+as variáveis de MFA. Login real do administrador sem OTP retornou HTTP 200 e
+a sessão criada pelo ensaio foi encerrada com HTTP 204. API saudável na porta
+8080, em loopback. Arquivos privados de MFA preservados; nenhum segredo ou banco
+versionado. O inicializador específico desta máquina permanece em .local/, ignorado.
+O README documenta a alternativa para macOS e Bash/WSL com guarda de development.
+Nenhuma alteração na regra obrigatória de MFA em produção ou no backend C++20.
+Commit/push/fetch na NEXT_2026 autorizados para publicar esta correção e o roteiro.

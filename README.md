@@ -269,7 +269,11 @@ ficam ativas; cadastro público exige aprovação. Não exclua o banco para recu
 login. Não use `--help`: o binário não implementa essa opção. A senha tem mínimo
 de 12 caracteres e limite de 1024 bytes no backend.
 
-**Administrador e professor exigem MFA.** Provisione uma vez, com arquivos novos
+**MFA para administrador e professor.** Em produção é obrigatório. Em desenvolvimento,
+o backend solicita o segundo fator quando o MFA daquela conta está carregado
+no processo da API. Este roteiro o provisiona também no ambiente local. A regra
+é do backend, independente do macOS/Windows e do uso de Live Server.
+Provisione uma vez, com arquivos novos
 fora do repositório, sem imprimir ou anexar seu conteúdo a logs/Notion/Git:
 
 ```bash
@@ -281,6 +285,29 @@ Abra os arquivos de recuperação **privadamente**, cadastre a URI TOTP no seu
 autenticador e guarde os códigos. A ferramenta recusa destinos existentes e
 arquivos dentro do clone. Se já provisionado, reutilize os arquivos corretos para
 os IDs deste banco; não provisione de novo sem procedimento de rotação.
+
+#### Desenvolvimento local sem autenticador (opcional)
+
+Para testes locais no macOS ou no Bash do Ubuntu/WSL, use esta alternativa ao
+terminal API com MFA. Entre na raiz do clone e pare somente a instância anterior
+antes de reiniciar. A conta e a senha continuam obrigatórias. Os arquivos privados
+de MFA são preservados; nenhum deles deve ser versionado.
+
+```bash
+source .local/ambiente-local.sh
+# Recusa este modo fora do ambiente de desenvolvimento.
+if [[ "${DEVSPHERE_ENV:-}" == development ]]; then
+  # Retira MFA somente do ambiente deste processo, mesmo se herdado do terminal.
+  for name in ${!DEVSPHERE_MFA_@}; do unset "$name"; done
+  "$PV_API"
+else
+  printf 'Modo sem autenticador permitido somente em development.\n' >&2
+fi
+```
+
+Não carregue os arquivos admin-mfa.env/professor-mfa.env nessa alternativa.
+Em produção, o backend continua exigindo MFA de professor/admin; este bloco não
+altera essa regra. Live Server serve a interface e não determina a autenticação.
 
 ### 5. Ollama e modelos
 

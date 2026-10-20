@@ -87,6 +87,17 @@ async function login(context,role){const page=await context.newPage();await goto
 async function check(name,action){try{await action();report.checks.push({name,passed:true});}catch(e){report.checks.push({name,passed:false,error:e.name+': '+e.message.slice(0,250)});}}
 async function theme(page,value){await page.evaluate(v=>{localStorage.setItem('pacientevirtual.theme',v);},value);await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('html').getAttribute('data-theme'),value);}
 async function audit(page,label){await owns();await check(label+':identidade-institucional',async()=>{
+  // O link de salto fica fora da tela até receber foco; o rótulo do tema só ocupa espaço na árvore AX.
+  if (!await page.locator('dialog[open]').count()) {
+  const skip=page.locator('.skip-link');
+  await skip.evaluate(el=>el.blur());
+  assert.ok(await skip.evaluate(el=>el.getBoundingClientRect().bottom<=0),'Link de salto oculto sem foco');
+  await skip.focus();assert.ok(await skip.evaluate(el=>el.getBoundingClientRect().top>=0),'Link de salto visível com foco');
+  await skip.press('Enter');
+  assert.ok(await page.evaluate(()=>document.activeElement===document.getElementById(document.querySelector('.skip-link').hash.slice(1))),'Link de salto transfere foco ao conteúdo');
+  }
+  assert.ok(await page.locator('#themeToggle .visually-hidden').evaluate(el=>el.getBoundingClientRect().width<=1&&el.getBoundingClientRect().height<=1),'Rótulo acessível não aparece ao lado do ícone');
+  if(label==='student:/pages/student-cases.html:dark')await page.screenshot({path:path.join(reportDir,'student-skip-link-dark.png'),fullPage:true});
   assert.equal(await page.locator('.brand-lockup').count(),1);
   assert.equal(await page.locator('.brand-product-institutions, .page-context').count(),0);
   const marks=await page.locator('.partner-marks').evaluate(el=>({background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopWidth,hidden:el.getAttribute('aria-hidden')}));

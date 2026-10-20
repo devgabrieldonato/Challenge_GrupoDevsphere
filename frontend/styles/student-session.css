@@ -1,5 +1,6 @@
 /* A sessão usa os mesmos tokens de tema dos demais portais. */
 @import url("./tokens.css");
+@import url("./accessibility.css");
 
 /* Base da página: caixas incluem bordas; fontes em rem respeitam a ampliação definida pelo usuário. */
 * {

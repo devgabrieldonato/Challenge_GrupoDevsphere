@@ -109,7 +109,10 @@ ambiente, nunca por código, argumentos, arquivos de documentação ou Git.
 ## Recriar banco e contas locais
 
 Prefira a sequência do roteiro principal acima, incluindo leitura silenciosa da
-senha e provisionamento MFA; sem MFA professor/admin não conseguem autenticar.
+senha e provisionamento MFA. Em produção, professor/admin exigem MFA; em
+desenvolvimento, ele é solicitado quando configurado para a conta no processo
+da API. O roteiro local também o configura. Live Server e sistema operacional
+não alteram essa regra.
 As etapas abaixo são referência do CLI, com caminhos do build no clone.
 
 Use este procedimento depois de criar um clone, iniciar outra pasta ou apagar o

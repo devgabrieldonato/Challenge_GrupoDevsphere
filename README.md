@@ -20,6 +20,35 @@ Consulte [pendências e evidências](docs/PENDENCIAS_NEXT_2026.md),
 [Live Server real](docs/LIVE_SERVER_VALIDACAO.md) e
 [validação da IA na outra máquina](docs/VALIDACAO_IA_OUTRA_MAQUINA.md).
 
+## Identidade visual e CSS
+
+Cabeçalho com as marcas originais **FIAP + Faculdade Moinhos de Vento — Paciente
+Virtual**, paleta institucional azul e rosa discreto, tipografia e espaçamentos
+revisados. As 18 entradas, incluindo a compatibilidade da raiz, compartilham o
+rodapé institucional de 2026. O cabeçalho mostra somente as marcas e o nome
+Paciente Virtual ampliado ao lado, sem painel branco. No tema escuro, as marcas
+são exibidas em branco por CSS; os PNGs originais permanecem intactos.
+
+A grade responsiva usa **Bootstrap Grid 5.3.8** e o controle de tema usa ícones
+**Bootstrap Icons 1.13.2** (sol/lua). Arquivos e licenças ficam em
+`frontend/vendor/`, sem CDN ou instalação npm para iniciar o produto. O restante
+dos estilos é específico da aplicação em `frontend/styles/institutional.css`,
+carregado depois das folhas existentes. Logos em `frontend/assets/brand/`,
+preservando os arquivos fornecidos. Confira [fontes e versões](frontend/vendor/README.md).
+
+## Acessibilidade e tema escuro
+
+Use **Tema escuro** no cabeçalho de qualquer página. O botão funciona com Tab e
+Espaço/Enter, informa seu estado e salva somente a preferência visual nesta origem;
+sem escolha anterior, acompanha o tema do sistema. Estilos incluem foco visível,
+reflow, contraste, movimento reduzido e impressão clara. Não exige instalar npm
+para usar a plataforma.
+
+Auditorias reais: Lighthouse 100/100 em oito combinações de páginas/temas;
+axe em 17 páginas e estados adicionais; Web Developer e zoom real 200%/400%.
+Escopo, relatórios, comandos e validação humana ainda pendente com leitor de tela
+estão em [Acessibilidade NEXT_2026](docs/ACESSIBILIDADE_NEXT_2026.md).
+
 ## Executar localmente no macOS e Windows
 
 Este é o roteiro operacional principal, atualizado em 20/10/2026. Os exemplos

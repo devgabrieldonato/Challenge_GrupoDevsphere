@@ -8,9 +8,32 @@ import {
   node,
   asList,
   message,
-  button
+  button as actionButton
 } from '../services/ui.js';
 const status = document.getElementById('contributionStatus');
+let pendingActionFocus = null;
+// O utilitário desabilita o botão durante a operação; alguns navegadores então
+// movem o foco ao body. Guarda o acionador antes disso, sem roubar foco posterior.
+function button(label, action) {
+  const control = actionButton(label, async () => {
+    try {
+      await action();
+    } finally {
+      if (pendingActionFocus === control) pendingActionFocus = null;
+    }
+  });
+  control.addEventListener('click', () => {
+    if (document.activeElement === control) pendingActionFocus = control;
+  }, true);
+  return control;
+}
+document.addEventListener('focusin', event => {
+  if (pendingActionFocus && event.target !== pendingActionFocus && event.target !== document.body) pendingActionFocus = null;
+});
+document.addEventListener('pointerdown', event => {
+  if (pendingActionFocus && !pendingActionFocus.contains(event.target)) pendingActionFocus = null;
+});
+let documentReturnFocus = null;
 let activeDocument = null,
   currentRole = null, currentUserId = null;
 const labels = {
@@ -30,6 +53,9 @@ const labels = {
 };
 // Prévia usa texto puro: Markdown não confiável nunca é inserido como HTML.
 async function preview(id) {
+  // O acionador pode estar temporariamente desabilitado pelo utilitário assíncrono.
+  // Guardá-lo antes de abrir permite retornar ao contexto ao fechar por Escape.
+  documentReturnFocus = pendingActionFocus || document.activeElement;
   try {
     const d = await apiRequest(`/documents/${id}`);
     activeDocument = d.id;
@@ -40,10 +66,29 @@ async function preview(id) {
     message(status, e.message, true);
   }
 }
-document.getElementById('closeDocument').onclick = () => document.getElementById('documentDialog').close();
+const documentDialog = document.getElementById('documentDialog');
+document.getElementById('closeDocument').onclick = () => documentDialog.close();
+documentDialog.addEventListener('close', () => {
+  const destination = documentReturnFocus;
+  documentReturnFocus = null;
+  // Não toma o foco se o usuário já navegou para outro controle após o fechamento.
+  if (destination?.isConnected && !destination.disabled &&
+      (document.activeElement === document.body || documentDialog.contains(document.activeElement))) {
+    destination.focus();
+  }
+});
+// Rótulos visíveis persistem depois da digitação e identificam cada fonte.
+function labeledControl(card, control, label, id) {
+  control.id = id;
+  const caption = node('label', label);
+  caption.htmlFor = id;
+  card.append(caption, control);
+  return caption;
+}
 // Página e instruções ficam explícitas para limitar o escopo do material de referência.
 function documentCard(d) {
   const card = node('article');
+  card.dataset.recordKey = `document-${d.id}`;
   const owner=Number(d.ownerId)===Number(currentUserId);
   card.append(node('h3', d.name || d.originalName || d.filename || d.title || `Documento ${d.id}`));
   card.append(node('p', labels[d.status] || d.status || 'Recebido'));
@@ -56,7 +101,9 @@ function documentCard(d) {
   const query = node('input');
   query.placeholder = 'Busca na biblioteca aprovada (opcional)';
   query.setAttribute('aria-label', 'Tema para recuperar referências aprovadas');
-  card.append(pages, instructions, query);
+  labeledControl(card, pages, 'Páginas do documento (opcional; exemplo: 1,2,3)', `source-${d.id}-pages`);
+  labeledControl(card, instructions, 'Orientações pedagógicas', `source-${d.id}-instructions`);
+  labeledControl(card, query, 'Tema para recuperar referências aprovadas (opcional)', `source-${d.id}-query`);
   if (d.warnings?.length) card.append(node('p', `Avisos: ${d.warnings.join(' · ')}`));
   const actions = node('div', '', 'next-actions');
   actions.append(button('Ver Markdown', () => preview(d.id)));
@@ -121,7 +168,11 @@ function documentCard(d) {
     const target=node('input');target.type='number';target.min='1';target.placeholder='ID do usuário';target.setAttribute('aria-label','ID do usuário para acesso à fonte');
     const mode=node('select');mode.setAttribute('aria-label','Operação de acesso à fonte');mode.add(new Option('Conceder acesso','grant'));mode.add(new Option('Revogar acesso','revoke'));
     const reason=node('textarea');reason.placeholder='Motivo administrativo da revogação, sem dados clínicos';reason.setAttribute('aria-label','Motivo administrativo da revogação');reason.maxLength=2000;reason.hidden=true;
-    mode.onchange=()=>{reason.hidden=mode.value!=='revoke';};card.append(target,mode,reason);
+    labeledControl(card, target, 'ID do usuário para acesso à fonte', `source-${d.id}-target`);
+    labeledControl(card, mode, 'Operação de acesso à fonte', `source-${d.id}-mode`);
+    const reasonLabel = labeledControl(card, reason, 'Motivo administrativo da revogação', `source-${d.id}-reason`);
+    reasonLabel.hidden = true;
+    mode.onchange=()=>{reason.hidden=reasonLabel.hidden=mode.value!=='revoke';};
     actions.append(button('Aplicar permissão da fonte',async()=>{
       try{
         if(!Number.isInteger(Number(target.value)) || Number(target.value)<1)throw Error('Informe um ID válido.');
@@ -147,6 +198,7 @@ function documentCard(d) {
 
 function jobCard(job) {
   const card = node('article');
+  card.dataset.recordKey = `job-${job.id}`;
   card.append(node('h3', `Trabalho ${job.id} · ${job.operation||job.type||''}`));
   card.append(node('p', labels[job.state || job.status] || job.state || job.status || 'Estado indisponível'));
   if (job.error || job.errorMessage) card.append(node('p', job.errorMessage || (typeof job.error ===
@@ -196,6 +248,15 @@ async function load() {
   }
   const results = await Promise.allSettled([apiRequest('/documents'), apiRequest('/jobs'), apiRequest(
     '/contributions')]);
+  // Guarda o foco atual imediatamente antes de substituir cartões; navegação
+  // feita durante a consulta é respeitada e controles externos não são alterados.
+  const previousFocus = document.activeElement === document.body && pendingActionFocus
+    ? pendingActionFocus : document.activeElement;
+  const previousCard = previousFocus?.closest('[data-record-key]');
+  const previousList = previousCard?.parentElement;
+  const focusId = previousFocus?.id;
+  const focusText = previousFocus?.textContent;
+  const focusTag = previousFocus?.tagName;
   results.forEach((r, i) => {
     const container = document.getElementById(['documents', 'jobs', 'drafts'][i]);
     container.replaceChildren();
@@ -209,6 +270,7 @@ async function load() {
       if (i < 2) container.append(i === 0 ? documentCard(item) : jobCard(item));
       else {
         const card = node('article');
+        card.dataset.recordKey = `draft-${item.id}`;
         card.append(node('h3', item.title || item.key), node('p',
           `${labels[item.state]||item.state} · versão ${item.version}`));
         const link = node('a', 'Abrir contribuição', 'button');
@@ -218,6 +280,18 @@ async function load() {
       }
     }
   });
+  if (previousCard && !previousFocus.isConnected && document.activeElement === document.body) {
+    const replacement = Array.from(previousList.children).find(card => card.dataset.recordKey === previousCard.dataset.recordKey);
+    const controls = replacement?.querySelectorAll('button, input, select, textarea, a[href]') || [];
+    const control = Array.from(controls).find(item => !item.disabled && !item.hidden &&
+      (focusId ? item.id === focusId : item.tagName === focusTag && item.textContent === focusText));
+    // Se a ação desapareceu ao mudar de estado, o título mantém o contexto.
+    const destination = control || replacement?.querySelector('h3') || previousList.previousElementSibling;
+    if (destination) {
+      if (!control) destination.tabIndex = -1;
+      destination.focus();
+    }
+  }
   message(status, results.some(x => x.status === 'rejected') ?
     'Algumas consultas falharam. Atualize para tentar novamente.' : 'Consulta atualizada.');
 }
@@ -271,6 +345,8 @@ document.getElementById('saveMarkdown').onclick = async () => {
 // Busca autorizada apresenta documento/página e texto puro para permitir rastrear a referência.
 document.getElementById('librarySearchForm').onsubmit = async event => {
   event.preventDefault();
+  const searchStatus = document.getElementById('librarySearchStatus');
+  message(searchStatus, 'Buscando referências aprovadas…');
   try {
     const result = await apiRequest('/library/search', {
       method: 'POST',
@@ -289,7 +365,8 @@ document.getElementById('librarySearchForm').onsubmit = async event => {
         .text));
       container.append(card);
     }
+    message(searchStatus, matches.length ? `${matches.length} trechos aprovados e autorizados encontrados.` : 'Nenhum trecho aprovado e autorizado foi encontrado.');
   } catch (e) {
-    message(status, e.message, true);
+    message(searchStatus, e.message, true);
   }
 };

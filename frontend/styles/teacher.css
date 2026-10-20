@@ -24,7 +24,7 @@
   font-weight: 650;
 }
 .teacher-sidebar a[aria-current="page"] {
-  background: #e8edff;
+  background: var(--color-selected-background);
   color: var(--color-primary-dark);
 }
 .teacher-content {
@@ -36,13 +36,13 @@
 .evidence {
   padding: .75rem;
   border-radius: 8px;
-  background: #f1f4f8;
+  background: var(--color-surface-subtle);
 }
 .upload-zone {
   padding: 2rem;
-  border: 2px dashed #9fb0c1;
+  border: 2px dashed var(--color-control-border);
   border-radius: var(--radius-medium);
-  background: #fbfcfe;
+  background: var(--color-surface);
   text-align: center;
 }
 .upload-zone input {
@@ -60,10 +60,11 @@
   }
   .teacher-sidebar ul {
     display: flex;
-    overflow-x: auto;
+    flex-wrap: wrap;
   }
   .teacher-sidebar li {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-width: 0;
   }
 }
 .section-gap {
@@ -75,9 +76,9 @@
 
 /* Identifica simulações sem depender apenas de cor. */
 .badge-test {
-  border-color: #a06a00;
-  background: #fff3cd;
-  color: #654300;
+  border-color: var(--color-warning);
+  background: var(--color-warning-background);
+  color: var(--color-warning);
 }
 
 /* Resume a pontuação validada e mantém os valores legíveis em telas estreitas. */
@@ -108,14 +109,14 @@
   padding: .65rem .75rem;
   border-left: 4px solid currentColor;
   border-radius: 4px;
-  background: #f6f8fb;
+  background: var(--color-surface-subtle);
   font-weight: 650;
 }
 .score-positive {
-  color: #176b43;
+  color: var(--color-success);
 }
 .score-negative {
-  color: #9d2b2b;
+  color: var(--color-danger);
 }
 
 /* Mantém a importação manual acessível, porém visualmente secundária. */
@@ -138,3 +139,6 @@
     text-align: left;
   }
 }
+
+.teacher-layout > *, .score-summary > * { min-width: 0; }
+.teacher-sidebar a { overflow-wrap: anywhere; }

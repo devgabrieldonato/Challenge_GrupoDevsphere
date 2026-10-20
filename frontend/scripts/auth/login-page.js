@@ -37,6 +37,8 @@ form?.addEventListener("submit", async (event) => {
   } catch (error) {
     status.className = "status error";
     status.textContent = error.details?.error?.code === "mfa_required" ? "Informe o código do autenticador ou um código de recuperação." : (error.message || "Não foi possível entrar. Tente novamente.");
-    password.focus();
+    // O desafio MFA deve levar ao código, sem exigir nova digitação da senha.
+    const focusTarget = error.details?.error?.code === "mfa_required" ? form.otp : password;
+    (focusTarget || password).focus();
   } finally { submit.disabled = false; }
 });

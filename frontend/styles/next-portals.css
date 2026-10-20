@@ -8,7 +8,7 @@
   border:1px solid var(--color-border);
   padding:1rem;
   border-radius:12px;
-  background:white
+  background:var(--color-surface)
 }
 .next-list h2{
   margin-top:0
@@ -18,7 +18,7 @@
   overflow-wrap:anywhere;
   max-height:32rem;
   overflow:auto;
-  background:#f4f6fa;
+  background:var(--color-surface-subtle);
   padding:1rem
 }
 .next-form{
@@ -42,10 +42,10 @@
   margin-top:.8rem
 }
 .next-meta{
-  color:#526172
+  color:var(--color-muted)
 }
 .next-json{
-  font:14px/1.5 monospace;
+  font:0.875rem/1.5 monospace;
   min-height:24rem!important
 }
 nav a{
@@ -76,7 +76,7 @@ nav a{
 #documentPreview {
    width: 100%;
    min-height: 24rem;
-   font: 14px/1.5 monospace;
+   font: 0.875rem/1.5 monospace;
 
 }
 
@@ -86,3 +86,13 @@ nav a{
    margin: 1rem 0;
 
 }
+
+/* Controles nativos seguem o tema, inclusive em formulários fora de .field. */
+.next-form, .next-form > *, .next-list article { min-width: 0; }
+.next-form input, .next-form select, .next-form textarea, #documentPreview {
+  background: var(--color-surface); color: var(--color-ink);
+  border: 1px solid var(--color-control-border); border-radius: var(--radius-small);
+}
+.next-form input[type="checkbox"] { accent-color: var(--color-primary); }
+#documentDialog { background: var(--color-surface); color: var(--color-ink); padding: 1rem; border: 1px solid var(--color-control-border); }
+#documentDialog::backdrop { background: var(--color-overlay); }

@@ -118,6 +118,25 @@ Hashes do código final constam no JSON de modelos.
 | Novos testes | `tools/tests/browser_public_forms.cjs`, `tools/tests/browser_pending_usability.cjs`, `tools/tests/test_real_ai_pipeline.py` |
 | Documentação | `README.md`, `backend/README.md`, `worker/README.md`, `docs/VALIDACAO_IA_OUTRA_MAQUINA.md`, `docs/MODELOS_LOCAIS_NEXT_2026.json`, `docs/PENDENCIAS_NEXT_2026.md` |
 
+### Evolução de acessibilidade — 20/10/2026
+
+Tema escuro compartilhado, contraste/foco e reflow implementados. Lighthouse
+atingiu 100/100 nas oito combinações representativas; axe, teclado, zoom real e
+funções oficiais do Web Developer foram ampliados com dados sintéticos.
+Relato do Narrador aceito pelo usuário ainda aguardado; testes em outros leitores
+reais, navegadores e acessibilidade do PDF exportado permanecem pendentes.
+Ver [escopo e evidências](ACESSIBILIDADE_NEXT_2026.md). Não interpretar a lista
+histórica abaixo como ausência de todos esses avanços, nem as notas como certificação.
+
+### Identidade institucional — 20/10/2026
+
+Repaginação local com Bootstrap Grid 5.3.8 e Bootstrap Icons 1.13.2, logos originais
+FIAP/Faculdade Moinhos de Vento, rodapé solicitado nas 18 entradas e temas mantidos.
+Nova auditoria: 36 cenários, 175 checks, zero violações e oito Lighthouse 100/100;
+Web Developer/zoom real e regressão funcional passaram. Ver seção final de
+[acessibilidade e evidências](ACESSIBILIDADE_NEXT_2026.md). Cabeçalho final transparente,
+com Paciente Virtual ampliado e marcas brancas via CSS no tema escuro.
+
 ### Pendências que permanecem
 
 Revisão clínica/pedagógica por versão, tags/rubrica, licenças e regras institucionais;

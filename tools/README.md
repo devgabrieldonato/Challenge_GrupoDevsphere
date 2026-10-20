@@ -38,3 +38,14 @@ python3 -m unittest discover -s tools -p 'test_*.py'
 ```
 
 O validador verifica quantidades, campos dos itens, IDs, pais, ciclos, evidências prioritárias, hipóteses e referências. Ele não substitui a revisão clínica do professor.
+
+## Auditorias de acessibilidade
+
+`tests/browser_accessibility.cjs` usa Chrome Windows real, API C++20 no WSL e
+contas/banco temporários. Executa axe, teclado, layout, árvore AX e Lighthouse.
+`tests/browser_web_developer.cjs` exercita a extensão oficial instalada em
+Chromium Linux descartável, incluindo zoom real e leitura sem CSS.
+
+[Comandos completos, versões e limites](../docs/ACESSIBILIDADE_NEXT_2026.md#reproduzir-neste-computador).
+Os relatórios são locais/ignorados. Web Developer não possui nota própria e
+pontuação Lighthouse não substitui teste real com leitor de tela.

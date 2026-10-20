@@ -70,7 +70,7 @@
 .decision-box textarea {
   width: 100%;
   padding: .72rem .8rem;
-  border: 1px solid #b9c6d4;
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-small);
   resize: vertical;
 }
@@ -84,3 +84,7 @@
     grid-template-columns: 1fr;
   }
 }
+
+.auth-layout > *, .role-grid > *, .registration-item > * { min-width: 0; }
+.decision-box textarea { background: var(--color-surface); color: var(--color-ink); }
+@media (max-width: 420px) { .auth-card { padding: 1rem; } }

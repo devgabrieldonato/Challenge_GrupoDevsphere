@@ -77,6 +77,9 @@ async function chooseAction(itemKey) {
   render();
   try {
     adopt(await ClinicalSessionService.choose(session.id, itemKey));
+    // Confirma a atualização sem repetir o mapa inteiro para leitores de tela.
+    const chosen = path.find(step => step.id === itemKey);
+    $('investigationStatus').textContent = `${chosen?.title || "Ação"} registrada. ${path.length} ações no percurso.`;
   } catch (error) {
     notify(error.message);
   } finally {
@@ -553,6 +556,8 @@ $('caseForm').onsubmit = async event => {
     $('caseChoice').hidden = true;
     $('caseSession').hidden = false;
     $('caseActions').hidden = false;
+    // O formulário anterior fica oculto; o foco acompanha a nova etapa da jornada.
+    $('caseIntroTitle').focus();
   } catch (e) {
     notify(e.message);
   } finally {

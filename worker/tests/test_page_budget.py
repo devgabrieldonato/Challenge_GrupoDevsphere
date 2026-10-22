@@ -94,7 +94,7 @@ class PageBudgetTests(unittest.TestCase):
             )
         self.assertEqual(caught.exception.code, "select_fewer_pages")
         self.assertEqual(provider.calls, [])
-        self.assertTrue(caught.exception.retryable)
+        self.assertFalse(caught.exception.retryable)
 
     @unittest.skipUnless(
         importlib.util.find_spec("jsonschema"), "Instale requisitos worker"

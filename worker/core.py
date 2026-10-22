@@ -50,93 +50,10 @@ def private_file(path, root):
 
 
 def extract_pdf(path, pages=None):
-    """Extrai páginas/tabelas; OCR só utiliza executáveis locais conhecidos."""
-    try:
-        import pdfplumber
-    except ImportError:
-        raise JobError(
-            "missing_dependency",
-            "Instale worker/requirements.txt para converter PDFs.",
-            True,
-        )
-    if path.stat().st_size > MAX_BYTES or path.read_bytes()[:5] != b"%PDF-":
-        raise JobError("invalid_pdf", "Envie PDF válido de até 10 MiB.")
-    results, warnings = [], []
-    try:
-        with pdfplumber.open(path) as pdf:
-            if len(pdf.pages) > 100 or not pdf.pages:
-                raise JobError(
-                    "page_limit", "O documento deve possuir de 1 a 100 páginas."
-                )
-            selected = (
-                list(range(1, len(pdf.pages) + 1))
-                if pages is None or (isinstance(pages, list) and not pages)
-                else pages
-            )
-            if (
-                not isinstance(selected, list)
-                or not selected
-                or any(
-                    type(n) is not int or n < 1 or n > len(pdf.pages) for n in selected
-                )
-            ):
-                raise JobError("invalid_pages", "Seleção de páginas inválida.")
-            for number in sorted(set(selected)):
-                page = pdf.pages[number - 1]
-                text = (page.extract_text() or "").strip()
-                method = "text"
-                tables = page.extract_tables() or []
-                if len(text) < 20:
-                    text = ocr_page(path, number)
-                    method = "ocr"
-                    warnings.append(
-                        f"Página {number}: OCR; revise números, unidades e ordem de leitura."
-                    )
-                table_md = []
-                for table in tables:
-                    rows = [
-                        [
-                            safe_text(cell or "").replace("|", "\\|").replace("\n", " ")
-                            for cell in row
-                        ]
-                        for row in table
-                    ]
-                    if rows:
-                        width = max(map(len, rows))
-                        rows = [row + [""] * (width - len(row)) for row in rows]
-                        lines = ["| " + " | ".join(row) + " |" for row in rows]
-                        lines.insert(1, "| " + " | ".join(["---"] * width) + " |")
-                        table_md.append("\n".join(lines))
-                results.append(
-                    {
-                        "page": number,
-                        "method": method,
-                        "text": safe_text(text),
-                        "tables": table_md,
-                    }
-                )
-    except JobError:
-        raise
-    except Exception:
-        raise JobError(
-            "unreadable_pdf",
-            "Não foi possível ler o PDF; confira integridade e proteção por senha.",
-        )
-    markdown = "\n\n".join(
-        f"## Página {page['page']}\n\n{page['text']}\n\n" + "\n\n".join(page["tables"])
-        for page in results
-    )
-    if len(markdown) > MAX_TEXT:
-        raise JobError("text_limit", "Texto excede o limite; selecione menos páginas.")
-    warnings.append(
-        "Confira tabelas, unidades, imagens e fidelidade antes de gerar. Não houve anonimização automática."
-    )
-    return {
-        "markdown": markdown,
-        "pages": results,
-        "warnings": warnings,
-        "sourceHash": hashlib.sha256(path.read_bytes()).hexdigest(),
-    }
+    """Delega à extração geométrica, preservando contrato e pontos de teste do OCR."""
+    from .pdf_extraction import extract_pdf as extract_geometry
+    return extract_geometry(path, pages, error_class=JobError, ocr=ocr_page,
+                            sanitize=safe_text, max_bytes=MAX_BYTES, max_text=MAX_TEXT)
 
 
 def ocr_page(path, page):
@@ -234,31 +151,37 @@ def model_limits(review=False):
     }
 
 
-def require_context(messages, review=False):
-    """Estimativa operacional documentada; tokenizer exato depende do modelo instalado.
-
-    Reserva 512 tokens para template/gramática e estima três bytes UTF-8 por token (não garante a contagem real).
-    Não corta mensagens: excesso falha antes da chamada. O servidor também rejeita
-    respostas truncadas e informa contagem real no resultado da inferência.
-    """
+def context_budget(messages, review=False):
+    """Orça as mensagens finais, preservando reservas e indicando estimativa, não tokenizer."""
     limits = model_limits(review)
-    estimated = (
-        (len(json.dumps(messages, ensure_ascii=False).encode()) + 2) // 3
-        + 512
-        + 16 * len(messages)
-    )
-    if estimated + limits["output"] > limits["context"]:
-        raise JobError(
-            "select_fewer_pages",
-            "As páginas selecionadas excedem o orçamento de contexto. Selecione menos páginas; nenhum texto foi cortado.",
-            True,
-        )
+    message_bytes = len(json.dumps(messages, ensure_ascii=False).encode())
+    message_reserve = 16 * len(messages)
+    estimated = (message_bytes + 2) // 3 + 512 + message_reserve
+    total = estimated + limits["output"]
     return {
         "estimatedInputTokens": estimated,
         "reservedOutputTokens": limits["output"],
         "contextTokens": limits["context"],
+        "totalEstimatedTokens": total,
+        "remainingTokens": limits["context"] - total,
+        "templateReserveTokens": 512,
+        "messageReserveTokens": message_reserve,
+        "messageUtf8Bytes": message_bytes,
+        "fits": total <= limits["context"],
         "estimate": "UTF8 bytes/3 + 512 + 16/message; não é tokenização exata",
     }
+
+
+def require_context(messages, review=False):
+    """Revalida as mesmas mensagens no envio; excesso determinístico não é repetido."""
+    budget = context_budget(messages, review)
+    if not budget["fits"]:
+        raise JobError(
+            "select_fewer_pages",
+            "As páginas selecionadas excedem o orçamento de contexto. Selecione menos páginas; nenhum texto foi cortado.",
+            False,
+        )
+    return budget
 
 
 def prepare_generation_request(request):
@@ -266,7 +189,7 @@ def prepare_generation_request(request):
     req = dict(request)
     markdown = req.get("markdown", "")
     if not isinstance(markdown, str):
-        raise JobError("invalid_pages", "Fonte paginada inválida.", True)
+        raise JobError("invalid_pages", "Fonte paginada inválida.", False)
     headings = list(
         re.finditer(r"^## Página ([1-9][0-9]*)[ \t]*$", markdown, re.MULTILINE)
     )
@@ -274,7 +197,7 @@ def prepare_generation_request(request):
         raise JobError(
             "invalid_pages",
             "Preserve os cabeçalhos ## Página N para selecionar e referenciar a fonte.",
-            True,
+            False,
         )
     page_map = {}
     for index, heading in enumerate(headings):
@@ -283,7 +206,7 @@ def prepare_generation_request(request):
             raise JobError(
                 "invalid_pages",
                 "Cabeçalho de página duplicado na fonte revisada.",
-                True,
+                False,
             )
         end = (
             headings[index + 1].start() if index + 1 < len(headings) else len(markdown)
@@ -309,7 +232,7 @@ def prepare_generation_request(request):
         raise JobError(
             "invalid_pages",
             "Página fora das referências autorizadas pelo processo principal.",
-            True,
+            False,
         )
     req["markdown"] = "\n\n".join(page_map[page] for page in selected)
     primary_bytes = len(req["markdown"].encode())
@@ -318,7 +241,7 @@ def prepare_generation_request(request):
         raise JobError(
             "select_fewer_pages",
             "As páginas selecionadas excedem o limite de fontes. Selecione menos páginas; nenhum texto foi cortado.",
-            True,
+            False,
         )
     # Reserva espaço para instruções, referências e template; require_context confere a mensagem final.
     remaining = (
@@ -618,7 +541,7 @@ def validate_case(case):
         raise JobError("invalid_case", "Qualidade pedagógica inválida.", True)
 
 
-def generate_case(request, provider=None):
+def generation_input(request):
     """Gera rascunho usando fontes autorizadas recebidas do backend, com revisão separada."""
     request = prepare_generation_request(request)
     markdown = request.get("markdown", "")
@@ -627,9 +550,6 @@ def generate_case(request, provider=None):
             "insufficient_source",
             "Selecione conteúdo suficiente (100 a 120.000 caracteres).",
         )
-    model = os.environ.get("DEVSPHERE_GENERATOR_MODEL", "qwen3:8b")
-    critic = os.environ.get("DEVSPHERE_CRITIC_MODEL", "gemma3:4b")
-    provider = provider or Ollama()
     schema = json.loads(
         (ROOT / "docs/schemas/clinical-case.schema.json").read_text(encoding="utf-8")
     )
@@ -645,7 +565,6 @@ def generate_case(request, provider=None):
         "Inclua metadata com publicSummary, publicTags, audience, skills, durationMinutes, difficulty sugerida e area quando conhecida. "
         "Sugira dificuldade e tags sem revelar diagnóstico; docente deve conferir todas as combinações."
     )
-    started = time.monotonic()
     messages = [
         {"role": "system", "content": system},
         {
@@ -662,8 +581,70 @@ def generate_case(request, provider=None):
             ),
         },
     ]
+    return request, messages, schema
+
+
+def effective_limits():
+    """Expõe somente parâmetros públicos efetivamente lidos neste processo auxiliar."""
+    provider = Ollama()  # Valida endereço e timeout sem executar HTTP/inferência.
+    return {
+        "generation": model_limits(),
+        "review": model_limits(True),
+        "timeoutSeconds": provider.timeout,
+        "generatorModel": os.environ.get("DEVSPHERE_GENERATOR_MODEL", "qwen3:8b"),
+        "criticModel": os.environ.get("DEVSPHERE_CRITIC_MODEL", "gemma3:4b"),
+        "configurationSource": "worker_process",
+    }
+
+
+def prepare_generation_preview(request):
+    """Prévia sem inferência, sem conteúdo clínico; mesmo preparo usado pela geração."""
+    result = {
+        "budgetPreview": True,
+        "fits": False,
+        "budget": None,
+        "selection": None,
+        "review": {
+            "status": "requires_generated_case",
+            "message": "O orçamento da crítica depende do caso completo e será conferido antes do Gemma.",
+        },
+        "diagnosedAt": int(time.time()),
+        "workerLoadedAt": request.get("workerLoadedAt"),
+    }
+    try:
+        result["limits"] = effective_limits()
+        prepared, messages, _schema = generation_input(request)
+        budget = context_budget(messages)
+        result.update(
+            fits=budget["fits"], budget=budget, selection=prepared["selection"],
+            code="budget_fits" if budget["fits"] else "select_fewer_pages",
+            message="Entrada estimada e reserva cabem no contexto; isto não garante execução ou qualidade." if budget["fits"] else "Entrada estimada e reserva excedem o contexto; nenhum texto foi cortado.",
+        )
+    except JobError as error:
+        result.update(code=error.code, message=error.message)
+    return result
+
+
+def generate_case(request, provider=None):
+    """Gera e critica sequencialmente; valida orçamento sobre as mensagens finais."""
+    started = time.monotonic()
+    request, messages, schema = generation_input(request)
+    markdown = request["markdown"]
+    model = os.environ.get("DEVSPHERE_GENERATOR_MODEL", "qwen3:8b")
+    critic = os.environ.get("DEVSPHERE_CRITIC_MODEL", "gemma3:4b")
+    provider = provider or Ollama()
     generation_budget = require_context(messages)
-    case, provenance = provider.generate(model, messages, schema)
+    preparation_seconds = time.monotonic() - started
+    phase_started = time.monotonic()
+    try:
+        case, provenance = provider.generate(model, messages, schema)
+    except JobError as error:
+        # Métricas operacionais fechadas; não incluem fonte, prompt ou resposta parcial.
+        error.metrics = {"phase":"qwen", "elapsedSeconds":round(time.monotonic()-phase_started,3),
+                         "preparationSeconds":round(preparation_seconds,3)}
+        raise
+    generation_seconds = time.monotonic() - phase_started
+    validation_started = time.monotonic()
     if isinstance(case, dict):
         case["status"] = "awaiting_human_review"
     validate_case(case)
@@ -740,8 +721,16 @@ def generate_case(request, provider=None):
             ),
         },
     ]
+    validation_seconds = time.monotonic() - validation_started
     review_budget = require_context(critic_messages, review=True)
-    review, critic_meta = provider.generate(critic, critic_messages, critic_schema)
+    phase_started = time.monotonic()
+    try:
+        review, critic_meta = provider.generate(critic, critic_messages, critic_schema)
+    except JobError as error:
+        error.metrics = {"phase":"gemma", "elapsedSeconds":round(time.monotonic()-phase_started,3),
+                         "qwenSeconds":round(generation_seconds,3),"validationSeconds":round(validation_seconds,3)}
+        raise
+    critique_seconds = time.monotonic() - phase_started
     # Não recorta alertas para caber: resposta fora do contrato falha integralmente.
     # validate_case já confirmou a dependência antes de executar a crítica.
     import jsonschema
@@ -849,6 +838,10 @@ def generate_case(request, provider=None):
                 }
                 for source in request.get("sources", [])
             ],
+            "phaseTimings": {"preparationSeconds":round(preparation_seconds,3),
+                             "qwenSeconds":round(generation_seconds,3),
+                             "validationSeconds":round(validation_seconds,3),
+                             "gemmaSeconds":round(critique_seconds,3)},
             "promptVersion": PROMPT_VERSION,
             "generator": provenance,
             "critic": critic_meta,

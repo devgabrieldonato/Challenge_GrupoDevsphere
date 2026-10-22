@@ -405,3 +405,14 @@ Totais finais desta rodada:35 testes de ferramentas passaram (29 da integração
 UTF-8, contratos, sintaxe e diff também conferidos. Benchmark nativo sem resource
 foi simulado em regressão; não é teste real no Windows. Código/modelos continuam
 sem geração integral validada no M1/8GB e aguardam teste na outra máquina.
+
+
+## 22/10/2026 — Reteste das correções no Windows: pendente
+
+- [x] Corrigir duplicação por molduras na extração e compartilhar orçamento entre prévia e geração.
+- [x] Testes isolados anteriores ao incidente: 75 worker, 24 HTTP, 2 C++, 7 medidor.
+- [x] Registrar travamento/reinício relatado no M1 e cancelar por manutenção o trabalho interrompido, preservando histórico.
+- [ ] Validar este conjunto de alterações no Windows/RTX 3060, com fluxo real de José Almir até crítica do Gemma e rascunho na interface.
+- [ ] Medir duração, tokens, RAM/GPU e repetibilidade; revisão clínica continua pendente.
+
+Responsável pela próxima execução: equipe técnica com acesso ao Windows. Estado: aguardando equipamento disponível. Critérios e evidências: [validação M1 e checklist Windows](VALIDACAO_MAC_M1.md). Testes Windows históricos não encerram este reteste. Geração integral local no M1 não recomendada para apresentação.

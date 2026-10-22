@@ -107,27 +107,53 @@ function documentCard(d) {
   if (d.warnings?.length) card.append(node('p', `Avisos: ${d.warnings.join(' · ')}`));
   const actions = node('div', '', 'next-actions');
   actions.append(button('Ver Markdown', () => preview(d.id)));
-  if(owner) for (const operation of ['convert', 'generate']) actions.append(button(operation === 'convert' ?
-    'Converter para Markdown' : 'Gerar rascunho', async () => {
-      try {
-        const pageList = pages.value.trim() ? pages.value.split(',').map(x => Number(x.trim())) : [];
-        if (pageList.some(x => !Number.isInteger(x) || x < 1)) throw Error(
-          'Informe páginas inteiras positivas separadas por vírgula.');
-        await apiRequest(`/documents/${d.id}/jobs`, {
-          method: 'POST',
-          body: JSON.stringify({
-            operation,
-            pages: pageList,
-            instructions: instructions.value,
-            query: query.value,
-            idempotencyKey: crypto.randomUUID()
-          })
-        });
-        await load();
-      } catch (e) {
-        message(status, e.message, true);
+  // A prévia é calculada pelo próprio worker; mudar a entrada invalida o resultado.
+  let budgetState = null;
+  const budgetStatus = node('p', 'Confira o orçamento antes de gerar.');
+  budgetStatus.setAttribute('role', 'status');
+  const inputState = () => JSON.stringify([pages.value, instructions.value, query.value]);
+  const generationButton = button('Gerar rascunho', () => submitOperation('generate'));
+  generationButton.disabled = true;
+  for (const control of [pages, instructions, query]) control.addEventListener('input', () => {
+    budgetState = null; generationButton.disabled = true;
+    budgetStatus.textContent = 'Entrada alterada; confira o orçamento novamente.';
+  });
+  async function submitOperation(operation) {
+    try {
+      const signature = inputState();
+      if (operation === 'generate' && (!budgetState?.fits || budgetState.signature !== signature))
+        throw Error('Confira o orçamento desta seleção antes de gerar.');
+      const pageList = pages.value.trim() ? pages.value.split(',').map(x => Number(x.trim())) : [];
+      if (pageList.some(x => !Number.isInteger(x) || x < 1)) throw Error('Informe páginas inteiras positivas separadas por vírgula.');
+      const job = await apiRequest(`/documents/${d.id}/jobs`, {
+        method: 'POST', body: JSON.stringify({operation, pages:pageList,
+          instructions:instructions.value, query:query.value, idempotencyKey:crypto.randomUUID()})
+      });
+      if (operation !== 'budget') { await load(); return; }
+      budgetStatus.textContent = 'Prévia na fila; aguardando o worker, sem inferência.';
+      // Poll limitado. Não altera a fila nem simula worker disponível.
+      for (let attempt=0; attempt<30; attempt++) {
+        await new Promise(resolve => setTimeout(resolve,1000));
+        const result = await apiRequest(`/jobs/${job.id}`);
+        if (result.status === 'failed' || result.status === 'cancelled') throw Error(result.error?.message || 'A prévia não foi concluída.');
+        if (result.status !== 'completed') continue;
+        if (signature !== inputState()) { budgetStatus.textContent='Entrada alterada; confira novamente.'; return; }
+        const preview = result.result;
+        budgetState = {...preview, signature};
+        generationButton.disabled = !preview?.fits;
+        budgetStatus.textContent = preview?.budget
+          ? `Estimativa: entrada ${preview.budget.estimatedInputTokens}; saída reservada ${preview.budget.reservedOutputTokens}; contexto ${preview.budget.contextTokens}; saldo ${preview.budget.remainingTokens}. ${preview.message || ''} A crítica será conferida após gerar o caso.`
+          : preview?.message || 'Orçamento indisponível.';
+        return;
       }
-    }));
+      throw Error('O worker não concluiu a prévia em 30 segundos. Consulte os trabalhos antes de solicitar outra.');
+    } catch(e) { message(status,e.message,true); }
+  }
+  if(owner) {
+    actions.append(button('Converter para Markdown',()=>submitOperation('convert')),
+      button('Conferir orçamento',()=>submitOperation('budget')),generationButton);
+    card.append(budgetStatus);
+  }
   // Aprovar a fonte não aprova casos gerados. O backend exige docente habilitado na área.
   if (currentRole === 'teacher' && d.status === 'converted') {
     const confirmation = node('label');
@@ -208,7 +234,7 @@ function jobCard(job) {
   if (result) {
     const pre = node('pre', typeof result === 'string' ? result : JSON.stringify(result, null, 2));
     card.append(pre);
-    if ((job.operation === 'generate') && (job.state || job.status) === 'completed') card.append(button(
+    if ((job.operation === 'generate') && !result.budgetPreview && (job.state || job.status) === 'completed') card.append(button(
       'Salvar proposta como contribuição', async () => {
         try {
           const saved = await apiRequest(`/jobs/${job.id}/contribution`, {

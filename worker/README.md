@@ -337,3 +337,10 @@ ferramentas 41+1skip opt-in e RAG real 3/3 separado. Interface/LiveServer
 passaram após correções de rascunho, autoria e teclado. Sem publicação de casos,
 aprovação clínica ou homologação de 100% de usabilidade. Comandos/versões/métricas e
 pendências em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md`.
+
+
+## Validação M1 de 22/10/2026
+
+Extração sem duplicação e orçamento compartilhado implementados. O teste real interrompeu-se com travamento e reinício relatados pelo usuário; geração local integral não indicada para apresentação neste Mac. Nenhum caso completo foi salvo. Consulte [evidências, limites e decisão C](../docs/VALIDACAO_MAC_M1.md). Não repetir geração pesada automaticamente.
+
+**Próximo teste: Windows/RTX 3060 — pendente para estas correções.** Validar extração, orçamento, geração Qwen3:8b, crítica Gemma3:4b e rascunho pela interface, medindo tempo e memória. Resultados Windows anteriores não validam automaticamente esta revisão.

@@ -13,7 +13,9 @@ import sys
 import tempfile
 import time
 import uuid
-from .core import JobError, generate_case, extract_pdf, private_file
+from .core import JobError, generate_case, extract_pdf, private_file, prepare_generation_preview
+
+WORKER_LOADED_AT = int(time.time())
 
 
 def connect(path):
@@ -365,6 +367,8 @@ def execute_child(request):
 
         socket.socket = no_network
         return extract_pdf(Path(request["documentPath"]), request.get("pages"))
+    if operation == "budget":
+        return prepare_generation_preview(request)
     if operation == "generate":
         return generate_case(request)
     raise JobError("invalid_operation", "Operação desconhecida.")
@@ -398,10 +402,13 @@ def execute(db, job, storage_root):
             "Confirme autorização de uso e desidentificação do material.",
         )
     req = json.loads(job["request_json"])
+    # A API persiste a prévia como generate sem alterar CHECK/schema; nunca executa inferência.
+    preview = (job["operation"] == "generate" and req.get("operation") == "budget")
     # Nunca confia em caminhos, identidade, modelos ou conteúdo enviados no payload público.
     req = {key: req[key] for key in ("pages", "instructions", "query") if key in req}
     req.update(
-        operation=job["operation"],
+        operation="budget" if preview else job["operation"],
+        workerLoadedAt=WORKER_LOADED_AT,
         sourceId=document["id"],
         sourceHash=document["sha256"],
         area=dict(document).get("area", "general"),
@@ -551,6 +558,7 @@ def main():
                     "code": error.code,
                     "message": error.message,
                     "retryable": error.retryable,
+                    "metrics": getattr(error, "metrics", None),
                 },
             }
         except Exception:

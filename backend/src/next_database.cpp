@@ -622,7 +622,8 @@ std::string Database::materializeJob(const SessionUser &actor,
                  "extract(result_json,'$.contribution'),'documentId',document_"
                  "id,'provenance',json_extract(result_json,'$.provenance')) "
                  "FROM worker_jobs WHERE id=? AND owner_id=? AND "
-                 "operation='generate' AND status='completed'),'null')",
+                 "operation='generate' AND status='completed' AND "
+                 "COALESCE(json_extract(request_json,'$.operation'),'generate')<>'budget'),'null')",
                  {jobId, sid(actor.id)});
     require(info != "null", "geração concluída não encontrada");
     require(

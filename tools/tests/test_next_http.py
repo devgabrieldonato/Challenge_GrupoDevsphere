@@ -651,6 +651,20 @@ class NextHttpTests(unittest.TestCase):
             409,
         )
 
+    def test_budget_job_is_owner_only_idempotent_and_not_a_case(self):
+        doc = self.document()
+        body = {"operation":"budget", "pages":[1], "idempotencyKey":secrets.token_hex(10)}
+        self.assertEqual(self.request("POST", f"/api/v1/documents/{doc}/jobs", body, cookie=self.a)[0],409)
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE source_documents SET status='converted',markdown='## Página 1\nMaterial sintético.' WHERE id=?",(doc,))
+        self.assertEqual(self.request("POST", f"/api/v1/documents/{doc}/jobs",body,cookie=self.b)[0],404)
+        status,job,_=self.request("POST", f"/api/v1/documents/{doc}/jobs",body,cookie=self.a)
+        self.assertEqual(status,202,job)
+        self.assertEqual(self.request("POST",f"/api/v1/documents/{doc}/jobs",body,cookie=self.a)[1]['id'],job['id'])
+        with closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("UPDATE worker_jobs SET status='completed',result_json=? WHERE id=?",(json.dumps({'budgetPreview':True,'fits':True}),job['id']))
+        self.assertNotEqual(self.request("POST",f"/api/v1/jobs/{job['id']}/contribution",{},cookie=self.a)[0],201)
+
     def quota_actor(self):
         """Conta sintética exclusiva evita interferência na quota de outros testes."""
         email = f"quota-{uuid.uuid4().hex}@test.local"

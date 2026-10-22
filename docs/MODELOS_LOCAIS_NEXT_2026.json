@@ -1186,5 +1186,21 @@
       "inferencePerformed": false,
       "reportPath": "validation-reports/documentation-smoke-20261020-130724.json"
     }
+  },
+  "macCorrectionRetest20261022": {
+    "status": "pending_windows_retest",
+    "date": "2026-10-22",
+    "models": [
+      "qwen3:8b",
+      "gemma3:4b"
+    ],
+    "generatorContext": 8192,
+    "generatorOutput": 6000,
+    "target": "Windows 16 GB RAM / RTX 3060 12 GB; plataforma via WSL2 conforme roteiro",
+    "completedOnWindows": false,
+    "macOutcome": "User reported full freeze and reboot during real generation; exact cause unconfirmed; final measurements unavailable.",
+    "releaseDecision": "Do not demonstrate full local generation live on this M1; preserve feature for later validation.",
+    "clinicalValidation": "pending_human_review",
+    "evidence": "docs/VALIDACAO_MAC_M1.md"
   }
 }

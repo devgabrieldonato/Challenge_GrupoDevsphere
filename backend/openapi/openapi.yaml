@@ -1873,6 +1873,7 @@ components:
           enum:
           - convert
           - generate
+          - budget
         status:
           enum:
           - queued
@@ -2152,6 +2153,7 @@ components:
           enum:
           - convert
           - generate
+          - budget
         pages:
           description: Páginas físicas selecionadas; ausente ou lista vazia usa todas as páginas convertidas. Não há truncamento silencioso.
           type: array

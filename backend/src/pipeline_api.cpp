@@ -531,7 +531,7 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
       }
       if (r.method == "POST" && action == "jobs") {
         auto operation = field(s, r.body, "operation");
-        if (operation != "convert" && operation != "generate")
+        if (operation != "convert" && operation != "generate" && operation != "budget")
           throw Failure(400, "invalid_operation", "Operação inválida.");
         if (s.query("SELECT owner_id FROM source_documents WHERE id=?", {id}) !=
             uid(u))
@@ -540,7 +540,7 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
         if (s.query("SELECT status FROM source_documents WHERE id=?", {id}) ==
             "withdrawn")
           throw Failure(409, "source_withdrawn", "Fonte retirada.");
-        if (operation == "generate" &&
+        if ((operation == "generate" || operation == "budget") &&
             s.query(
                 "SELECT length(markdown)>0 FROM source_documents WHERE id=?",
                 {id}) != "1")
@@ -569,7 +569,7 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
             if (s.query(
                     "SELECT document_id=? AND operation=? AND request_json=? "
                     "FROM worker_jobs WHERE id=?",
-                    {id, operation, r.body, prior}) != "1")
+                    {id, operation == "budget" ? "generate" : operation, r.body, prior}) != "1")
               throw Failure(409, "idempotency_conflict",
                             "Chave já utilizada com outra solicitação.");
             const auto previous =
@@ -586,11 +586,13 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
                           {uid(u)})) >= 3)
             throw Failure(429, "queue_full",
                           "Você já possui três trabalhos pendentes.");
+          // A prévia usa a fila autenticada existente; o worker reconhece a operação
+          // no request_json e não executa inferência nem produz contribuição.
           auto jobId = randomToken(16);
           s.query("INSERT INTO "
                   "worker_jobs(id,owner_id,document_id,operation,request_json,"
                   "idempotency_key) VALUES(?,?,?,?,?,?)",
-                  {jobId, uid(u), id, operation, r.body, key});
+                  {jobId, uid(u), id, operation == "budget" ? "generate" : operation, r.body, key});
           s.audit(u, "job_queued", jobId);
           s.query("COMMIT");
           return json("{\"id\":\"" + jobId + "\",\"status\":\"queued\"}", 202);

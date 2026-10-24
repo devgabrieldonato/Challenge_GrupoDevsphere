@@ -1,5 +1,7 @@
 # Validação estrutural de casos
 
+> **Modo local protegido:** inferência desabilitada por padrão. Para executar e apresentar no Mac, siga o [roteiro protegido](../docs/MODO_APRESENTACAO_MAC.md). Conversão e orçamento não carregam Qwen/Gemma. Geração integral permanece pendente no Windows.
+
 ## Execução macOS e Windows/WSL2
 
 Siga o [roteiro completo dos dois sistemas](../README.md#executar-localmente-no-macos-e-windows)

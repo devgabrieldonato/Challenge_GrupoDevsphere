@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Serviço auxiliar separado: a API permanece disponível enquanto o worker processa.
 set -euo pipefail
+
+# Inferência exige opt-in explícito; a execução local padrão não carrega modelos.
+export DEVSPHERE_INFERENCE_ENABLED="${DEVSPHERE_INFERENCE_ENABLED:-0}"
 TASK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${TASK_ROOT}"
 export DEVSPHERE_DB_PATH="${DEVSPHERE_DB_PATH:-${TASK_ROOT}/backend/data/devsphere.db}"

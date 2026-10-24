@@ -1,5 +1,7 @@
 # Paciente Virtual
 
+> **Modo local protegido:** inferência desabilitada por padrão. Para executar e apresentar no Mac, siga o [roteiro protegido](docs/MODO_APRESENTACAO_MAC.md). Conversão e orçamento não carregam Qwen/Gemma. Geração integral permanece pendente no Windows.
+
 Plataforma educacional para estudantes e professores de Medicina. O aluno
 escolhe um caso clínico, conduz a investigação, formula hipóteses e recebe uma
 pontuação pedagógica. O professor revisa o percurso, as evidências disponíveis
@@ -1051,3 +1053,11 @@ pendências em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md`.
 Extração sem duplicação e orçamento compartilhado implementados. O teste real interrompeu-se com travamento e reinício relatados pelo usuário; geração local integral não indicada para apresentação neste Mac. Nenhum caso completo foi salvo. Consulte [evidências, limites e decisão C](docs/VALIDACAO_MAC_M1.md). Não repetir geração pesada automaticamente.
 
 **Próximo teste: Windows/RTX 3060 — pendente para estas correções.** Validar extração, orçamento, geração Qwen3:8b, crítica Gemma3:4b e rascunho pela interface, medindo tempo e memória. Resultados Windows anteriores não validam automaticamente esta revisão.
+
+## Remover trabalhos da listagem
+
+Na página **Contribuições → Trabalhos de processamento**, use **Remover da lista** em um trabalho concluído, cancelado ou com falha. A confirmação explica o alcance: o PDF, o Markdown, o resultado, rascunhos e histórico são preservados. Use o filtro **Removidos da lista** e **Restaurar na lista** para recuperar a exibição. O filtro padrão mostra somente visíveis; **Todos** reúne os registros retornados. A listagem mantém o limite de 100 registros e prioriza os visíveis.
+
+Um trabalho na fila ou em execução deve ser cancelado antes: clique em **Cancelar**, atualize e aguarde o estado **Cancelado** (ou outro estado terminal). Solicitação de cancelamento não é confirmação de encerramento. Arquivar não interrompe o worker. Se não gostou do resultado, remova o trabalho encerrado e faça uma **nova solicitação no cartão do documento**; a conversão/geração continua sujeita a permissões, quotas e à política operacional. No Mac protegido, geração real continua bloqueada.
+
+O backend usa `POST /api/v1/jobs/{id}/archive` e `/restore`, exclusivamente para o titular, sem privilégio especial de administrador sobre trabalhos alheios. A migration `016_job_archive.sql` adiciona `archived_at`; não apaga registros ou arquivos. Transições são transacionais, auditadas e idempotentes. Retentativa de arquivado retorna `409 job_archived`; trabalho ativo retorna `409 job_active`. Arquivar não reinicia tentativas, renova prazos nem devolve quota. Exclusão física de documentos e retirada de contribuições são operações distintas.

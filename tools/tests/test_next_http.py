@@ -80,6 +80,8 @@ class NextHttpTests(unittest.TestCase):
             DEVSPHERE_HOST="127.0.0.1",
             DEVSPHERE_ENV="development",
             DEVSPHERE_SEED_PASSWORD=cls.password,
+            # Fixture HTTP não inicia worker/modelos; permite testar contratos legados de fila.
+            DEVSPHERE_INFERENCE_ENABLED=os.environ.get("DEVSPHERE_INFERENCE_ENABLED", "1"),
             DEVSPHERE_JOB_REQUEST_LIMIT="12",
             DEVSPHERE_JOB_WINDOW_SECONDS="3600",
             DEVSPHERE_JOB_INSTITUTION_PENDING_LIMIT="12",

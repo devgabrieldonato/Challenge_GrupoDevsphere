@@ -1,5 +1,7 @@
 # Validação local da IA no Windows
 
+> **Migração de configuração (23/10/2026):** a inferência passou a exigir `DEVSPHERE_INFERENCE_ENABLED=1` explicitamente. No Windows futuro, habilite somente no ambiente de benchmark/API/worker autorizado e renove a prévia. No Mac desta apresentação, mantenha `0`. Esta alteração não valida os modelos; resultados anteriores são históricos. Veja [modo protegido](MODO_APRESENTACAO_MAC.md).
+
 ## Estado atual validado — 20/10/2026
 
 Clone `C:\Users\vinic\Projetos\Challenge_GrupoDevsphere`, branch `NEXT_2026`.

@@ -37,6 +37,12 @@
 <main id="conteudo" class="page-main" tabindex="-1">
 <h1>Materiais e minhas contribuições</h1>
 <p>Envie apenas PDFs autorizados e previamente desidentificados. Um caso gerado é um rascunho e exige revisão docente antes da publicação.</p>
+<!-- A política vem do servidor; o navegador apenas explica o bloqueio. -->
+<section id="inferencePolicy" class="card runtime-policy" aria-labelledby="inferencePolicyTitle">
+<h2 id="inferencePolicyTitle">Disponibilidade da geração</h2>
+<p id="inferencePolicyStatus" role="status" aria-live="polite">Consultando política e worker…</p>
+<details id="workerDiagnostics" hidden><summary>Diagnóstico operacional do worker</summary><dl id="workerDiagnosticFields"></dl></details>
+</section>
 <section class="card">
 <h2>Enviar PDF</h2>
 <form id="uploadForm" class="next-form">
@@ -56,11 +62,19 @@
 <button id="refreshContributions" class="button" type="button">Atualizar documentos e trabalhos</button>
 <section>
 <h2>Documentos</h2>
+<label for="documentFilter">Materiais exibidos</label>
+<select id="documentFilter"><option value="active">Ativos</option><option value="withdrawn">Retirados</option><option value="all">Todos</option></select>
+<p id="documentCounts" role="status" aria-live="polite"></p>
 <div id="documents" class="next-list">
 </div>
 </section>
 <section>
 <h2>Trabalhos de processamento</h2>
+<!-- Remover organiza a lista sem apagar fontes, resultados ou rastreabilidade. -->
+<p>Você pode remover da lista trabalhos concluídos, com falha ou cancelados e restaurá-los depois. O documento, o Markdown, os rascunhos e o histórico são preservados.</p>
+<label for="jobFilter">Trabalhos exibidos</label>
+<select id="jobFilter"><option value="visible">Visíveis</option><option value="archived">Removidos da lista</option><option value="all">Todos</option></select>
+<p id="jobCounts" role="status" aria-live="polite"></p>
 <div id="jobs" class="next-list">
 </div>
 </section>

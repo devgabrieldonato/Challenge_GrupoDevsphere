@@ -253,3 +253,8 @@ Totais finais desta rodada:35 testes de ferramentas passaram (29 da integração
 UTF-8, contratos, sintaxe e diff também conferidos. Benchmark nativo sem resource
 foi simulado em regressão; não é teste real no Windows. Código/modelos continuam
 sem geração integral validada no M1/8GB e aguardam teste na outra máquina.
+
+
+## Complemento — apresentação protegida em 23/10/2026
+
+Inferência exige opt-in exato em API, worker e adaptador. Migration 015 adiciona heartbeat técnico, recibos mínimos de exclusão e revisão monotônica da extração. Prévia autorizada tem validade de 120s e usa a configuração do worker. Retirados ficam filtrados; purga é desabilitada por padrão e bloqueada por histórico/vínculos. Não houve homologação de retenção. Checkpoints e watchdog foram exercitados somente com processos leves. Consulte [modo protegido, contratos e limites](MODO_APRESENTACAO_MAC.md).

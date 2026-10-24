@@ -14,6 +14,7 @@ import tempfile
 import time
 import uuid
 from .core import JobError, generate_case, extract_pdf, private_file, prepare_generation_preview
+from .runtime_policy import (require_inference, inference_enabled, heartbeat, require_runtime_schema, config_hash, input_hash, HEARTBEAT_SECONDS)
 
 WORKER_LOADED_AT = int(time.time())
 
@@ -100,6 +101,9 @@ def claim(db, now=None):
         db.execute(
             "UPDATE worker_jobs SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE status='queued' AND cancel_requested=1"
         )
+        if not inference_enabled():
+            # Trabalhos reais permanecem no histórico, sem gastar tentativa nem executar modelo.
+            db.execute("UPDATE worker_jobs SET status='failed',lease_until=NULL,error_json=?,updated_at=CURRENT_TIMESTAMP WHERE status='queued' AND operation='generate' AND COALESCE(json_extract(request_json,'$.operation'),'generate')!='budget'", (json.dumps({"code":"inference_disabled", "message":"Inferência desabilitada; histórico preservado, sem execução de modelo.", "retryable":False}),))
         job = db.execute(
             "SELECT * FROM worker_jobs WHERE status='queued' AND attempts<max_attempts AND next_attempt_at<=? ORDER BY created_at,id LIMIT 1",
             (now,),
@@ -370,8 +374,25 @@ def execute_child(request):
     if operation == "budget":
         return prepare_generation_preview(request)
     if operation == "generate":
+        require_inference()
         return generate_case(request)
     raise JobError("invalid_operation", "Operação desconhecida.")
+
+
+def validate_preview(db, job, preview_id, request, now=None):
+    """Reautoriza a prévia persistida sem confiar em hashes enviados pelo navegador."""
+    now = int(time.time()) if now is None else now
+    row = db.execute("SELECT * FROM worker_jobs WHERE id=? AND owner_id=? AND document_id=? AND operation='generate' AND status='completed'", (preview_id, job["owner_id"], job["document_id"])).fetchone()
+    if not row:
+        raise JobError("stale_preview", "Confira novamente o orçamento antes de gerar.", False)
+    previous_request = json.loads(row["request_json"])
+    result = json.loads(row["result_json"] or "{}")
+    if previous_request.get("operation") != "budget" or result.get("budgetPreview") is not True or result.get("fits") is not True:
+        raise JobError("stale_preview", "Prévia inexistente ou incompatível; confira novamente o orçamento.", False)
+    if result.get("configHash") != config_hash():
+        raise JobError("stale_config", "Configuração do worker mudou; confira novamente o orçamento.", False)
+    if type(result.get("validUntil")) is not int or not now < result["validUntil"] or result.get("inputHash") != input_hash(request):
+        raise JobError("stale_preview", "Entrada, fontes ou validade da prévia mudaram; confira novamente o orçamento.", False)
 
 
 def execute(db, job, storage_root):
@@ -404,6 +425,9 @@ def execute(db, job, storage_root):
     req = json.loads(job["request_json"])
     # A API persiste a prévia como generate sem alterar CHECK/schema; nunca executa inferência.
     preview = (job["operation"] == "generate" and req.get("operation") == "budget")
+    if job["operation"] == "generate" and not preview:
+        require_inference()
+    preview_job_id = req.get("previewJobId")
     # Nunca confia em caminhos, identidade, modelos ou conteúdo enviados no payload público.
     req = {key: req[key] for key in ("pages", "instructions", "query") if key in req}
     req.update(
@@ -443,6 +467,8 @@ def execute(db, job, storage_root):
             f"source:{document['id']}#page:{p['page']}"
             for p in json.loads(document["pages_json"])
         ] + [f"source:{c['document_id']}#page:{c['page']}" for c in chunks]
+    if job["operation"] == "generate" and not preview:
+        validate_preview(db, job, preview_job_id, req)
     with tempfile.TemporaryDirectory(prefix="devsphere-job-") as directory:
         os.chmod(directory, 0o700)
         source = Path(directory) / "input.json"
@@ -458,6 +484,7 @@ def execute(db, job, storage_root):
                 "LC_ALL",
                 "TMPDIR",
                 "SYSTEMROOT",
+                "DEVSPHERE_INFERENCE_ENABLED",
                 "DEVSPHERE_OLLAMA_URL",
                 "DEVSPHERE_OLLAMA_CONTEXT",
                 "DEVSPHERE_OLLAMA_MAX_TOKENS",
@@ -488,8 +515,12 @@ def execute(db, job, storage_root):
             start_new_session=True,
         )
         started = time.monotonic()
+        heartbeat_at = started
         try:
             while process.poll() is None:
+                if time.monotonic() - heartbeat_at >= HEARTBEAT_SECONDS:
+                    heartbeat(db)
+                    heartbeat_at = time.monotonic()
                 cancelled = db.execute(
                     "SELECT cancel_requested,expires_at,status FROM worker_jobs WHERE id=?",
                     (job["id"],),
@@ -585,11 +616,18 @@ def main():
         )
         db.close()
         return
+    try:
+        require_runtime_schema(db)
+        heartbeat(db)
+    except (RuntimeError, sqlite3.Error) as error:
+        db.close()
+        parser.exit(2, f"Não foi possível iniciar diagnóstico: {error}\n")
     print(
         f"Worker iniciado. Banco: {Path(args.db).resolve()}. Aguardando trabalhos…",
         flush=True,
     )
     while True:
+        heartbeat(db)
         sync_library(db)
         job = claim(db)
         if job:

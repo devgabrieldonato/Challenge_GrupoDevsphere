@@ -1202,5 +1202,28 @@
     "releaseDecision": "Do not demonstrate full local generation live on this M1; preserve feature for later validation.",
     "clinicalValidation": "pending_human_review",
     "evidence": "docs/VALIDACAO_MAC_M1.md"
+  },
+  "protectedPresentation20261023": {
+    "date": "2026-10-23",
+    "platform": "MacBook Air M1 8 GB",
+    "inferenceEnabled": false,
+    "sourcePurgeEnabled": false,
+    "runtimeContract": "worker-runtime-v1",
+    "previewTtlSeconds": 120,
+    "heartbeatFreshnessSeconds": 30,
+    "modelsLoadedOnFinalRead": 0,
+    "heavyInferencePerformed": false,
+    "automatedTestsPassed": 150,
+    "realAiTestsNotExecuted": 3,
+    "browserScenarios": [
+      "journeys_pdf_feedback",
+      "protected_ui",
+      "real_live_server_5501"
+    ],
+    "migration": "015_worker_runtime.sql",
+    "previousBusinessTablesPreserved": 44,
+    "windowsFullGenerationRetest": "pending",
+    "clinicalAndInstitutionalApproval": "pending",
+    "documentation": "docs/MODO_APRESENTACAO_MAC.md"
   }
 }

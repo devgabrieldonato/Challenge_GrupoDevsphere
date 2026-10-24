@@ -96,3 +96,11 @@ nav a{
 .next-form input[type="checkbox"] { accent-color: var(--color-primary); }
 #documentDialog { background: var(--color-surface); color: var(--color-ink); padding: 1rem; border: 1px solid var(--color-control-border); }
 #documentDialog::backdrop { background: var(--color-overlay); }
+
+/* Política operacional e diagnóstico permanecem legíveis nos dois temas. */
+.runtime-policy { border-inline-start: .3rem solid var(--color-primary); }
+#workerDiagnosticFields { display:grid; grid-template-columns:minmax(9rem,1fr) minmax(0,2fr); gap:.4rem 1rem; overflow-wrap:anywhere; }
+#workerDiagnosticFields dt { font-weight:600; }
+#workerDiagnosticFields dd { margin:0; }
+#documentFilter { max-width:100%; margin:.5rem 0; padding:.5rem; background:var(--color-surface); color:var(--color-ink); }
+@media (max-width:600px) { #workerDiagnosticFields { grid-template-columns:1fr; } }

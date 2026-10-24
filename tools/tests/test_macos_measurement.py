@@ -36,8 +36,8 @@ class MeasurementTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'synthetic.db'
             db = sqlite3.connect(path)
-            db.execute('CREATE TABLE worker_jobs(id TEXT,document_id TEXT,operation TEXT,status TEXT,attempts INTEGER,cancel_requested INTEGER,error_json TEXT,result_json TEXT,created_at TEXT)')
-            db.execute("INSERT INTO worker_jobs VALUES('old','doc','generate','failed',1,0,?,NULL,'2026-01-01')", (json.dumps({'code':'select_fewer_pages','message':'SECRET'}),))
+            db.execute("CREATE TABLE worker_jobs(id TEXT,document_id TEXT,operation TEXT,status TEXT,attempts INTEGER,cancel_requested INTEGER,error_json TEXT,result_json TEXT,created_at TEXT,request_json TEXT DEFAULT '{}')")
+            db.execute("INSERT INTO worker_jobs VALUES('old','doc','generate','failed',1,0,?,NULL,'2026-01-01','{}')", (json.dumps({'code':'select_fewer_pages','message':'SECRET'}),))
             db.commit()
             db.close()
             before = path.read_bytes()

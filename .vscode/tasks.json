@@ -3,7 +3,7 @@
   "tasks": [
     {
       "label": "Devsphere: API local (8080)",
-      "detail": "Compila e mantém a API C++ ativa para o frontend aberto pelo Live Server.",
+      "detail": "Modo local protegido: modelos desabilitados; API/worker permitem os fluxos leves.",
       "type": "process",
       "command": "${workspaceFolder}/tools/start-local-api.sh",
       "isBackground": true,
@@ -16,6 +16,11 @@
       "runOptions": {
         "runOn": "folderOpen",
         "instanceLimit": 1
+      },
+      "options": {
+        "env": {
+          "DEVSPHERE_INFERENCE_ENABLED": "0"
+        }
       }
     },
     {
@@ -30,7 +35,13 @@
       },
       "runOptions": {
         "instanceLimit": 1
-      }
+      },
+      "options": {
+        "env": {
+          "DEVSPHERE_INFERENCE_ENABLED": "0"
+        }
+      },
+      "detail": "Modo local protegido: modelos desabilitados; API/worker permitem os fluxos leves."
     }
   ]
 }

@@ -1032,7 +1032,66 @@ paths:
       security:
       - sessionCookie: []
         requestGuard: []
+  /runtime:
+    get:
+      summary: Política da API e heartbeat real do worker
+      description: Sem inferência. Alive até 30 segundos (tolerância futura 5s). Configuração operacional por allowlist somente para administrador; demais usuários recebem política, estado e hashes. Ausente/desatualizado não autoriza geração.
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Estado operacional, sem fontes, segredos ou caminhos privados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeDiagnostic'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /documents/{documentId}/deletion-eligibility:
+    get:
+      summary: Motivos que permitem ou impedem exclusão definitiva
+      description: Somente titular ou administração na mesma instituição; default bloqueado por retenção. Não modifica material.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Elegibilidade e códigos de motivos, sem caminhos internos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceDeletionEligibility'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /documents/{documentId}:
+    delete:
+      summary: Exclui fonte retirada sem vínculos, com opt-in de desenvolvimento
+      description: Exige DEVSPHERE_ALLOW_SOURCE_PURGE=1 e DEVSPHERE_ENV=development. Histórico de processamento, versões, leitores, grants ou biblioteca impedem exclusão. Recibo mínimo torna reenvio idempotente; falha física pós-commit retorna cleanupPending sem declarar limpeza completa. Não apaga casos nem avaliações.
+      parameters:
+      - name: documentId
+        in: path
+        required: true
+        schema:
+          type: string
+      security:
+      - sessionCookie: []
+        requestGuard: []
+      responses:
+        '200':
+          description: Registro e arquivo excluídos, ou recibo de reenvio.
+        '202':
+          description: Registro removido e limpeza física pendente; requer manutenção administrativa.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Retenção, dependência, estado ou arquivo inseguro impede exclusão.
     get:
       summary: Extração, paginação e alertas
       responses:
@@ -1260,8 +1319,8 @@ paths:
           type: string
   /documents/{documentId}/jobs:
     post:
-      summary: Enfileira conversão ou geração
-      description: Quota persistente padrão12 solicitações por usuário/hora compartilhada com retries manuais. Cancelar não devolve quota. Replay idempotente não consome novamente; configuração inválida retorna503. Tetos técnicos queued/running padrão12 por instituição e24 globais; excesso retorna429 institution_queue_full/global_queue_full.
+      summary: Enfileira conversão, prévia sem inferência ou geração autorizada
+      description: Inferência exige DEVSPHERE_INFERENCE_ENABLED=1; protegido por padrão, inclusive retries. budget é persistido como generate com request_json.operation=budget e nunca executa modelo. Quotas separadas por usuário/hora, padrão 30 prévias e 12 conversões/gerações; reenvio idempotente não consome novamente. Capacidade compartilhada da fila continua limitada. Geração exige previewJobId válido no worker; prévia vale 120s e é revalidada por identidade, fonte, entrada e configuração. Criar trabalhos protegidos não habilita provedor pelo payload.
       responses:
         '202':
           description: Operação concluída.
@@ -1294,7 +1353,8 @@ paths:
         requestGuard: []
   /jobs:
     get:
-      summary: Trabalhos próprios
+      summary: Trabalhos próprios, incluindo os removidos da lista
+      description: Inclui archivedAt para o filtro da interface. Visíveis são priorizados no limite existente de 100 registros; remover da lista não apaga histórico, resultado, fonte ou contribuição, nem devolve quota.
       responses:
         '200':
           description: Operação concluída.
@@ -1377,7 +1437,7 @@ paths:
   /jobs/{jobId}/retry:
     post:
       summary: Reagenda dentro do prazo e limite
-      description: Retentativa manual aceita consome a quota persistente de solicitações e é auditada em transação; excesso retorna429. Estado inválido não consome. Tetos pendentes por instituição/global também são aplicados dentro da transação.
+      description: Arquivado retorna 409 job_archived; restaure antes de solicitar. Retentativa manual aceita consome a quota persistente de solicitações e é auditada em transação; excesso retorna429. Estado inválido não consome. Tetos pendentes por instituição/global também são aplicados dentro da transação.
       responses:
         '200':
           description: Operação concluída.
@@ -1402,6 +1462,64 @@ paths:
       security:
       - sessionCookie: []
         requestGuard: []
+  /jobs/{jobId}/archive:
+    post:
+      summary: Remove um trabalho encerrado da lista principal
+      description: Arquivamento reversível, exclusivo do titular. Somente completed, failed ou cancelled. Não modifica resultado, tentativas, quotas, documento, Markdown ou contribuições. Replay é idempotente; apenas transição efetiva gera auditoria. Ativo retorna 409 job_active; cancele e aguarde antes de arquivar.
+      security:
+      - sessionCookie: []
+        requestGuard: []
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+      responses:
+        '200':
+          description: Trabalho com estado de arquivamento atualizado ou preservado no replay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineJob'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Estado incompatível; trabalho ativo não pode ser removido da lista.
+  /jobs/{jobId}/restore:
+    post:
+      summary: Restaura um trabalho na lista principal
+      description: Exclusivo do titular; idempotente e auditado somente quando muda. Não executa, reenvia ou aprova o trabalho. Falhas ou cancelamentos mantêm suas condições anteriores de retentativa.
+      security:
+      - sessionCookie: []
+        requestGuard: []
+      parameters:
+      - name: jobId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+      responses:
+        '200':
+          description: Trabalho com estado de arquivamento atualizado ou preservado no replay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineJob'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Estado incompatível; trabalho ativo não pode ser removido da lista.
   /jobs/{jobId}/contribution:
     post:
       summary: Materializa rascunho idempotente de resultado validado
@@ -1858,6 +1976,7 @@ components:
     PipelineJob:
       type: object
       required:
+      - archivedAt
       - id
       - documentId
       - operation
@@ -1890,6 +2009,11 @@ components:
           - object
           - 'null'
           additionalProperties: true
+        archivedAt:
+          type:
+          - string
+          - 'null'
+          description: Momento da remoção reversível da lista principal; null indica visível. Não é descarte físico nem conclusão/cancelamento.
         resultAccess:
           enum:
           - available
@@ -1899,7 +2023,7 @@ components:
           type:
           - object
           - 'null'
-          description: Erros recuperáveis incluem select_fewer_pages, invalid_pages, provider_timeout, generation_truncated, provider_incomplete, provider_invalid_response e provider_busy.
+          description: inference_disabled, select_fewer_pages, invalid_pages, stale_preview e stale_config são determinísticos e não geram repetição automática idêntica. provider_busy ou indisponibilidade transitória podem admitir retentativa limitada; consulte retryable.
         cancelRequested:
           type: integer
           enum:
@@ -2146,6 +2270,43 @@ components:
       required:
       - hypothesis
       - justification
+    RuntimeDiagnostic:
+      type: object
+      required: [apiInferenceEnabled, worker]
+      properties:
+        apiInferenceEnabled:
+          type: boolean
+        worker:
+          type: object
+          required: [status]
+          properties:
+            status:
+              enum: [absent, alive, stale]
+            instanceId:
+              type: string
+            heartbeatAt:
+              type: integer
+            startedAt:
+              type: integer
+            configHash:
+              type: string
+            inferenceEnabled:
+              type: boolean
+            config:
+              type: object
+              description: Somente administrador; limites permitidos do worker, não ambiente completo nem medição física.
+    SourceDeletionEligibility:
+      type: object
+      required: [eligible, retentionPolicyEnabled, reasons]
+      properties:
+        eligible:
+          type: boolean
+        retentionPolicyEnabled:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            type: string
     JobRequest:
       type: object
       properties:
@@ -2168,6 +2329,10 @@ components:
         query:
           type: string
           maxLength: 1000
+        previewJobId:
+          type: string
+          description: Obrigatório na execução de geração real; identifica prévia concluída do mesmo proprietário e documento. Não autoriza inferência por si só.
+          pattern: '^[a-f0-9]{32}$'
         idempotencyKey:
           type: string
           maxLength: 128

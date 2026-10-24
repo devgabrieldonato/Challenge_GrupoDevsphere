@@ -416,3 +416,28 @@ sem geração integral validada no M1/8GB e aguardam teste na outra máquina.
 - [ ] Medir duração, tokens, RAM/GPU e repetibilidade; revisão clínica continua pendente.
 
 Responsável pela próxima execução: equipe técnica com acesso ao Windows. Estado: aguardando equipamento disponível. Critérios e evidências: [validação M1 e checklist Windows](VALIDACAO_MAC_M1.md). Testes Windows históricos não encerram este reteste. Geração integral local no M1 não recomendada para apresentação.
+
+
+## 23/10/2026 — Apresentação protegida no Mac
+
+Responsáveis técnicos: agentes backend/frontend/worker e coordenador. Base Git 1160b7b, branch NEXT_2026; entrega local sem commit/push.
+
+- [x] Inferência negada por padrão na API, na fila, nos processos auxiliares e antes de cada chamada do adaptador. Payload não habilita modelos.
+- [x] Heartbeat real com diagnóstico por papel, versão/limites permitidos e detecção de ausência ou expiração.
+- [x] Prévia sem inferência com configuração/input hashes, validade de 120 s, quota separada e revalidação no worker.
+- [x] Campos preservados em memória ao atualizar e filtrar; prévia invalidada por mudanças de entrada/fonte/revisão/configuração/tempo.
+- [x] Retirados traduzidos e ocultos por padrão; filtros e elegibilidade explícita. Purga default negada, somente opt-in de desenvolvimento sem dependências; retenção institucional não homologada.
+- [x] Exclusão sintética testada: titular/instituição, repetição idempotente, vínculos, links/caminho inseguro, rollback e falha física pós-commit com cleanupPending.
+- [x] Checkpoints privados por registro; recuperação após saída abrupta; watchdog apenas para filhos próprios e testes leves.
+- [x] Regressão: 85 testes worker, 66 ferramentas (63 passaram e 3 de IA real não executados), 2 C++. Total 150 passaram.
+- [x] Chrome: jornadas, PDF automático, histórico/devolutiva; interface protegida, formulários/filtros/TTL/worker stale ou ausente; Live Server real 5501 → API 8080 sem proxy. Fixtures HTTP de heartbeat/orçamento em testes da UI são identificadas; teste integrado API+worker executou conversão e orçamento reais sem provedor disponível.
+- [x] Migration 015 aplicada na base local com backup consistente. Conteúdo das 44 tabelas anteriores conferido sem alteração; integridade e foreign keys passaram. Nenhuma fonte pessoal removida.
+- [x] API 8080 e worker local configurados explicitamente com inferência e purga desabilitadas. Consulta do Ollama sem modelos carregados.
+- [ ] Windows/RTX 3060: geração completa José Almir, 18/22, crítica Gemma, medição e repetibilidade deste diff.
+- [ ] Revisão clínica, retenção/licenças institucionais, segurança independente e infraestrutura final.
+
+Roteiro, configuração, recuperação e limites: [Modo de apresentação no Mac](MODO_APRESENTACAO_MAC.md). Nenhuma inferência pesada foi executada nesta etapa.
+
+### Organização dos trabalhos — 23/10/2026
+
+Implementados remoção reversível da lista e restauração, com filtro de visíveis/removidos/todos, autorização por titular e preservação de fontes, resultados, quotas e contribuições. Migration 016 incremental. Trabalho ativo deve terminar ou confirmar cancelamento antes da remoção. Nenhuma inferência real no Mac. Verificado: 7/7 testes novos, regressão de ferramentas com 70 aprovados/3 de IA não executados, CTest 2/2 e Chrome real. Migration 016 com backup e 50 tabelas anteriores preservadas; nenhuma remoção automática de trabalhos pessoais.

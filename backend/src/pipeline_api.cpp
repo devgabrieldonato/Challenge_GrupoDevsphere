@@ -1,6 +1,7 @@
 #include "pipeline_api.hpp"
 #include "security.hpp"
 #include <cerrno>
+#include <ctime>
 #include <cstdlib>
 #include <fcntl.h>
 #include <filesystem>
@@ -85,7 +86,8 @@ bool access(Sql &s, const std::string &id, const SessionUser &u) {
              "g.document_id=d.id AND g.user_id=?))))",
              {id, uid(u), uid(u), u.role, uid(u)}) == "1";
 }
-// Limite persistente compartilhado por conversão e geração. Cancelamentos,
+// Conversão/geração compartilham 12 solicitações/hora; prévias têm quota
+// independente de 30/hora. Cancelamentos,
 // conclusão e falhas não devolvem a quota; retries aceitos contam na auditoria.
 // A configuração inválida bloqueia novas solicitações em vez de desabilitar o
 // limite.
@@ -105,23 +107,42 @@ int quotaConfiguration(const char *name, int fallback, int minimum,
                   "Configuração de limite de processamento inválida.");
   return static_cast<int>(parsed);
 }
-void requireJobQuota(Sql &s, const SessionUser &actor) {
+void requireJobQuota(Sql &s, const SessionUser &actor, bool budget = false) {
   const int limit =
-      quotaConfiguration("DEVSPHERE_JOB_REQUEST_LIMIT", 12, 1, 120);
+      budget ? quotaConfiguration("DEVSPHERE_BUDGET_REQUEST_LIMIT", 30, 1, 120)
+             : quotaConfiguration("DEVSPHERE_JOB_REQUEST_LIMIT", 12, 1, 120);
   const int seconds =
       quotaConfiguration("DEVSPHERE_JOB_WINDOW_SECONDS", 3600, 60, 86400);
   const auto modifier = "-" + std::to_string(seconds) + " seconds";
   const auto used =
       s.query("SELECT (SELECT COUNT(*) FROM worker_jobs WHERE owner_id=? AND "
-              "created_at>datetime('now',?))+(SELECT COUNT(*) FROM audit_logs "
-              "WHERE user_id=? AND action='job_retry_queued' AND "
+              "created_at>datetime('now',?) AND "
+              "(coalesce(json_extract(request_json,'$.operation'),operation)='budget')=CAST(? AS INTEGER))+(SELECT COUNT(*) FROM audit_logs "
+              "WHERE user_id=? AND action=? AND "
               "created_at>datetime('now',?))",
-              {uid(actor), modifier, uid(actor), modifier});
+              {uid(actor), modifier, budget ? "1" : "0", uid(actor),
+               budget ? "budget_retry_queued" : "job_retry_queued", modifier});
   if (std::stoll(used) >= limit)
     throw Failure(429, "job_request_limit",
                   "Limite de solicitações de processamento atingido. Aguarde a "
                   "renovação da janela de uso.");
 }
+// A política exige opt-in no processo; campos do navegador jamais habilitam IA.
+bool inferenceEnabled() {
+  const char *value = std::getenv("DEVSPHERE_INFERENCE_ENABLED");
+  return value && std::string(value) == "1";
+}
+void requireInference(Sql &s, const SessionUser &u, const std::string &id) {
+  if (!inferenceEnabled()) {
+    s.audit(u, "inference_blocked", id);
+    throw Failure(403, "inference_disabled",
+                  "Geração desabilitada neste ambiente de apresentação. A prévia não executa modelos.");
+  }
+}
+// O heartbeat vem do worker, e não dos padrões do servidor HTTP. A lista
+// explícita de campos impede que um registro inesperado exponha ambiente/logs.
+HttpResponse runtimeResponse(Sql &s, const SessionUser &u);
+
 // Tetos técnicos para a fila compartilhada; não representam política
 // institucional homologada. Exigem a transação de escrita do chamador.
 void requireSharedQueueCapacity(Sql &s, const SessionUser &actor) {
@@ -210,6 +231,118 @@ HttpResponse json(const std::string &data, int status = 200) {
            {"Cache-Control", "no-store"}},
           data};
 }
+HttpResponse runtimeResponse(Sql &s, const SessionUser &u) {
+  const auto selected = s.query("SELECT instance_id FROM worker_runtime ORDER BY heartbeat_at DESC LIMIT 1");
+  if (selected.empty())
+    return json(std::string("{\"apiInferenceEnabled\":") + (inferenceEnabled() ? "true" : "false") + ",\"worker\":{\"status\":\"absent\"}}");
+  const auto runtime = s.query(
+    "SELECT json_object('status',CASE WHEN heartbeat_at BETWEEN unixepoch()-30 AND unixepoch()+5 THEN 'alive' ELSE 'stale' END,"
+    "'instanceId',instance_id,'configHash',config_hash,'heartbeatAt',heartbeat_at,'startedAt',started_at,"
+    "'inferenceEnabled',CASE WHEN json_type(config_json,'$.inferenceEnabled')='true' THEN json('true') ELSE json('false') END) "
+    "FROM worker_runtime WHERE instance_id=?", {selected});
+  auto result = s.query("SELECT json_object('apiInferenceEnabled',json(?),'worker',json(?))",
+                       {inferenceEnabled() ? "true" : "false", runtime});
+  if (u.role == "admin") {
+    const auto safeConfig = s.query(
+      "SELECT json_object('generatorModel',substr(json_extract(config_json,'$.generatorModel'),1,160),"
+      "'criticModel',substr(json_extract(config_json,'$.criticModel'),1,160),"
+      "'timeoutSeconds',CASE WHEN json_type(config_json,'$.timeoutSeconds') IN ('integer','real') THEN json_extract(config_json,'$.timeoutSeconds') END,"
+      "'concurrency',CASE WHEN json_type(config_json,'$.concurrency')='integer' THEN json_extract(config_json,'$.concurrency') END,"
+      "'contractVersion',substr(json_extract(config_json,'$.contractVersion'),1,160),'configurationSource','worker_process','codeVersion',substr(json_extract(config_json,'$.codeVersion'),1,160),"
+      "'configurationLoadedAt',CASE WHEN json_type(config_json,'$.configurationLoadedAt')='integer' THEN json_extract(config_json,'$.configurationLoadedAt') END,"
+      "'generation',json_object('context',CASE WHEN json_type(config_json,'$.generation.context') IN ('integer','real') THEN json_extract(config_json,'$.generation.context') END,'output',CASE WHEN json_type(config_json,'$.generation.output') IN ('integer','real') THEN json_extract(config_json,'$.generation.output') END,"
+      "'batch',CASE WHEN json_type(config_json,'$.generation.batch') IN ('integer','real') THEN json_extract(config_json,'$.generation.batch') END,'sourceBytes',CASE WHEN json_type(config_json,'$.generation.sourceBytes') IN ('integer','real') THEN json_extract(config_json,'$.generation.sourceBytes') END),"
+      "'review',json_object('context',CASE WHEN json_type(config_json,'$.review.context') IN ('integer','real') THEN json_extract(config_json,'$.review.context') END,'output',CASE WHEN json_type(config_json,'$.review.output') IN ('integer','real') THEN json_extract(config_json,'$.review.output') END,"
+      "'batch',CASE WHEN json_type(config_json,'$.review.batch') IN ('integer','real') THEN json_extract(config_json,'$.review.batch') END,'sourceBytes',CASE WHEN json_type(config_json,'$.review.sourceBytes') IN ('integer','real') THEN json_extract(config_json,'$.review.sourceBytes') END)) "
+      "FROM worker_runtime WHERE instance_id=?", {selected});
+    result = s.query("SELECT json_set(?,'$.worker.config',json(?))", {result,safeConfig});
+  }
+  return json(result);
+}
+
+// Retenção institucional não é presumida. Purge exige habilitação operacional
+// de desenvolvimento e ausência de qualquer vínculo de conteúdo ou histórico.
+bool purgeEnabled() {
+  const char *value=std::getenv("DEVSPHERE_ALLOW_SOURCE_PURGE");
+  const char *environment=std::getenv("DEVSPHERE_ENV");
+  return value && std::string(value)=="1" && environment && std::string(environment)=="development";
+}
+std::string deletionEligibility(Sql &s,const std::string &id) {
+  return s.query(
+    "SELECT json_object('eligible',json(CASE WHEN count(*)=0 THEN 'true' ELSE 'false' END),"
+    "'retentionPolicyEnabled',json(?),'reasons',json_group_array(reason)) FROM ("
+    "SELECT 'retention_policy' reason WHERE ?='0' UNION ALL "
+    "SELECT 'source_not_withdrawn' WHERE (SELECT status FROM source_documents WHERE id=?)<>'withdrawn' UNION ALL "
+    "SELECT 'processing_history' WHERE EXISTS(SELECT 1 FROM worker_jobs WHERE document_id=?) UNION ALL "
+    "SELECT 'case_versions' WHERE EXISTS(SELECT 1 FROM version_sources WHERE document_id=?) UNION ALL "
+    "SELECT 'contribution_reference' WHERE EXISTS(SELECT 1 FROM case_versions WHERE instr(content_json,?)>0 OR instr(metadata_json,?)>0) UNION ALL "
+    "SELECT 'library_chunks' WHERE EXISTS(SELECT 1 FROM library_chunks WHERE document_id=?) UNION ALL "
+    "SELECT 'source_readers' WHERE EXISTS(SELECT 1 FROM source_readers WHERE document_id=?) UNION ALL "
+    "SELECT 'document_grants' WHERE EXISTS(SELECT 1 FROM document_grants WHERE document_id=?))",
+    {purgeEnabled()?"true":"false",purgeEnabled()?"1":"0",id,id,id,id,id,id,id,id});
+}
+// O diretório configurado é confiável, mas o nome persistido deve corresponder
+// exatamente ao ID. Todos os componentes do diretório resolvido são abertos
+// com NOFOLLOW; o arquivo nunca é seguido se for link ou compartilhado por hardlink.
+class QuarantinedSource {
+  int directory_{-1};
+  std::string original_, quarantined_;
+  bool moved_{false}, committed_{false};
+public:
+  QuarantinedSource(const std::string &id,const std::string &stored) {
+    const char *source=std::getenv("DEVSPHERE_SOURCE_DIR");
+    const char *database=std::getenv("DEVSPHERE_DB_PATH");
+    auto configured=std::filesystem::absolute(source?std::filesystem::path(source):
+      std::filesystem::path(database?database:"data/devsphere.db").parent_path()/"sources").lexically_normal();
+    original_=id+".pdf";
+    if(std::filesystem::path(stored).lexically_normal()!=configured/original_)
+      throw Failure(409,"unsafe_source_path","Arquivo não elegível: caminho interno inconsistente.");
+    std::error_code error;
+    auto resolved=std::filesystem::canonical(configured,error);
+    if(error) throw Failure(503,"storage_unavailable","Diretório privado indisponível.");
+    directory_=open("/",O_RDONLY|O_DIRECTORY|O_CLOEXEC);
+    for(const auto &part:resolved.relative_path()) {
+      int next=openat(directory_,part.c_str(),O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
+      close(directory_); directory_=next;
+      if(next<0) throw Failure(503,"unsafe_source_path","Diretório privado não seguro.");
+    }
+    struct stat st{};
+    if(fstatat(directory_,original_.c_str(),&st,AT_SYMLINK_NOFOLLOW)!=0 || !S_ISREG(st.st_mode) || st.st_nlink!=1) {
+      close(directory_); directory_=-1;
+      throw Failure(409,"unsafe_source_file","Arquivo ausente, link ou tipo não suportado; exclusão bloqueada.");
+    }
+    quarantined_=".purge-"+randomToken(32)+".pdf";
+    struct stat existing{};
+    if(fstatat(directory_,quarantined_.c_str(),&existing,AT_SYMLINK_NOFOLLOW)==0 || errno!=ENOENT ||
+       renameat(directory_,original_.c_str(),directory_,quarantined_.c_str())!=0) {
+      close(directory_); directory_=-1;
+      throw Failure(503,"source_quarantine_failed","Não foi possível reservar a remoção do arquivo.");
+    }
+    moved_=true;
+    if(fsync(directory_)!=0) {
+      renameat(directory_,quarantined_.c_str(),directory_,original_.c_str());
+      close(directory_); directory_=-1;
+      throw Failure(503,"source_quarantine_failed","Não foi possível sincronizar a reserva da remoção.");
+    }
+  }
+  ~QuarantinedSource() {
+    if(directory_>=0) {
+      if(moved_&&!committed_) renameat(directory_,quarantined_.c_str(),directory_,original_.c_str());
+      close(directory_);
+    }
+  }
+  const std::string &name() const { return quarantined_; }
+  void commit() noexcept { committed_=true; }
+  bool remove() noexcept {
+    if(unlinkat(directory_,quarantined_.c_str(),0)!=0) return false;
+    moved_=false;
+    return fsync(directory_)==0;
+  }
+};
+void requireSourceOwner(Sql &s,const std::string &id,const SessionUser &u) {
+  if(u.role!="admin" && s.query("SELECT owner_id FROM source_documents WHERE id=?",{id})!=uid(u))
+    throw Failure(403,"forbidden","Somente titular ou administração pode excluir material.");
+}
 std::string textPart(const HttpRequest &r, const std::string &name) {
   const std::string marker = "name=\"" + name + "\"";
   auto at = r.body.find(marker);
@@ -226,7 +359,7 @@ const std::string documentFields =
     "json_object('id',id,'ownerId',owner_id,'name',original_name,'originalName'"
     ",original_name,'sha256',sha256,'status',status,'area',area,'markdown',"
     "markdown,'pages',json(pages_json),'warnings',json(warnings_json),'"
-    "createdAt',created_at)";
+    "createdAt',created_at,'updatedAt',updated_at,'extractionRevision',extraction_revision)";
 const std::string invalidJobSources =
     R"SQL((operation='generate' AND result_json IS NOT NULL AND (
  NOT EXISTS(SELECT 1 FROM source_documents main_source JOIN users owner ON owner.id=main_source.owner_id
@@ -249,17 +382,19 @@ const std::string jobFields =
     invalidJobSources +
     " THEN 'revoked' ELSE 'available' "
     "END,'error',json(error_json),'cancelRequested',cancel_requested,'"
-    "updatedAt',updated_at)";
+    "updatedAt',updated_at,'archivedAt',archived_at)";
 } // namespace
 
 std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
                                           const SessionUser &u) {
   if (r.path.rfind("/api/v1/documents", 0) != 0 &&
       r.path.rfind("/api/v1/jobs", 0) != 0 &&
-      r.path.rfind("/api/v1/library", 0) != 0)
+      r.path.rfind("/api/v1/library", 0) != 0 && r.path != "/api/v1/runtime")
     return std::nullopt;
   try {
     Sql s;
+    if (r.method == "GET" && r.path == "/api/v1/runtime")
+      return runtimeResponse(s,u);
     if (r.method == "GET" && r.path == "/api/v1/documents")
       return json(
           s.query("SELECT coalesce(json_group_array(json(value)),'[]') FROM "
@@ -366,9 +501,45 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
     if (std::regex_match(
             r.path, match,
             std::regex("^/api/v1/documents/([a-f0-9]{32})(?:/"
-                       "(jobs|approve|withdraw|grants|pdf|dependencies))?$"))) {
+                       "(jobs|approve|withdraw|grants|pdf|dependencies|deletion-eligibility))?$"))) {
       auto id = match[1].str(), action = match[2].str();
+      // Recibo mínimo torna reenvio idempotente sem reter PDF ou texto clínico.
+      if (r.method == "DELETE" && action.empty()) {
+        const auto receipt=s.query("SELECT json_object('status','deleted','cleanupPending',json(CASE WHEN cleanup_pending=1 THEN 'true' ELSE 'false' END)) FROM source_purge_receipts WHERE document_id=? AND institution_id=(SELECT institution_id FROM users WHERE id=?) AND (owner_id=? OR ?='admin')", {id,uid(u),uid(u),u.role});
+        if(!receipt.empty()) return json(receipt);
+      }
       requireSource(s, id, u);
+      if ((r.method == "GET" && action == "deletion-eligibility") || (r.method == "DELETE" && action.empty())) {
+        requireSourceOwner(s,id,u);
+        if(r.method=="GET") return json(deletionEligibility(s,id));
+        s.query("BEGIN IMMEDIATE");
+        try {
+          requireSource(s,id,u);
+          requireSourceOwner(s,id,u);
+          auto eligibility=deletionEligibility(s,id);
+          if(s.query("SELECT json_extract(?,'$.eligible')",{eligibility})!="1")
+            throw Failure(409,"source_delete_blocked","Material não elegível. Consulte os motivos antes de excluir.");
+          const auto owner=s.query("SELECT owner_id FROM source_documents WHERE id=?",{id});
+          const auto institution=s.query("SELECT institution_id FROM users WHERE id=?",{owner});
+          const auto path=s.query("SELECT storage_path FROM source_documents WHERE id=?",{id});
+          QuarantinedSource file(id,path);
+          s.query("DELETE FROM library_index_state WHERE document_id=?",{id});
+          s.query("DELETE FROM source_documents WHERE id=?",{id});
+          s.query("INSERT INTO source_purge_receipts(document_id,owner_id,institution_id,quarantine_name,cleanup_pending) VALUES(?,?,?,?,1)",{id,owner,institution,file.name()});
+          s.audit(u,"source_purged",id);
+          s.query("COMMIT");
+          file.commit();
+          const bool removed=file.remove();
+          if(removed) {
+            try { s.query("UPDATE source_purge_receipts SET cleanup_pending=0,quarantine_name=NULL WHERE document_id=?",{id}); }
+            catch(...) { return json("{\"status\":\"deleted\",\"cleanupPending\":true}",202); }
+          }
+          return json(removed?"{\"status\":\"deleted\",\"cleanupPending\":false}":"{\"status\":\"deleted\",\"cleanupPending\":true}",removed?200:202);
+        } catch(...) {
+          if(!sqlite3_get_autocommit(s.db)) s.query("ROLLBACK");
+          throw;
+        }
+      }
       if (r.method == "GET" && action.empty()) {
         expose(s, id, u);
         return json(s.query("SELECT " + documentFields +
@@ -546,6 +717,8 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
                 {id}) != "1")
           throw Failure(409, "conversion_required",
                         "Converta e confira o texto primeiro.");
+        if (operation == "generate")
+          requireInference(s, u, id);
         if (field(s, r.body, "instructions").size() > 4000 ||
             field(s, r.body, "query").size() > 1000 || r.body.size() > 12000)
           throw Failure(400, "request_limit",
@@ -578,7 +751,7 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
             s.query("COMMIT");
             return json(previous);
           }
-          requireJobQuota(s, u);
+          requireJobQuota(s, u, operation == "budget");
           requireSharedQueueCapacity(s, u);
           if (std::stoll(
                   s.query("SELECT count(*) FROM worker_jobs WHERE "
@@ -606,12 +779,12 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
       return json(s.query(
           "SELECT coalesce(json_group_array(json(value)),'[]') FROM (SELECT " +
               jobFields +
-              " value FROM worker_jobs WHERE owner_id=? ORDER BY created_at "
+              " value FROM worker_jobs WHERE owner_id=? ORDER BY (archived_at IS NOT NULL),created_at "
               "DESC LIMIT 100)",
           {uid(u)}));
     if (std::regex_match(
             r.path, match,
-            std::regex("^/api/v1/jobs/([a-f0-9]{32})(?:/(cancel|retry))?$"))) {
+            std::regex("^/api/v1/jobs/([a-f0-9]{32})(?:/(cancel|retry|archive|restore))?$"))) {
       auto id = match[1].str(), action = match[2].str();
       if (s.query("SELECT owner_id FROM worker_jobs WHERE id=?", {id}) !=
           uid(u))
@@ -619,6 +792,30 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
       if (r.method == "GET" && action.empty())
         return json(s.query(
             "SELECT " + jobFields + " FROM worker_jobs WHERE id=?", {id}));
+      // Remover da lista é arquivamento, nunca descarte de fonte, resultado ou
+      // contribuição. A transação serializa a decisão com cancelamento/retry.
+      // Somente o titular altera sua organização; administração não o substitui.
+      if (r.method == "POST" && (action == "archive" || action == "restore")) {
+        s.query("BEGIN IMMEDIATE");
+        try {
+          if (action == "archive") {
+            if (s.query("SELECT status IN ('completed','failed','cancelled') FROM worker_jobs WHERE id=? AND owner_id=?", {id,uid(u)}) != "1")
+              throw Failure(409, "job_active", "Cancele o trabalho e aguarde o encerramento antes de removê-lo da lista.");
+            s.query("UPDATE worker_jobs SET archived_at=CURRENT_TIMESTAMP WHERE id=? AND owner_id=? AND archived_at IS NULL", {id,uid(u)});
+          } else {
+            s.query("UPDATE worker_jobs SET archived_at=NULL WHERE id=? AND owner_id=? AND archived_at IS NOT NULL", {id,uid(u)});
+          }
+          // Replay não altera carimbos, tentativas, quotas ou duplica auditoria.
+          if (sqlite3_changes(s.db) == 1)
+            s.query("INSERT INTO audit_logs(user_id,action,entity_type,metadata_json) VALUES(?,?,'worker_job',json_object('id',?))", {uid(u),action == "archive" ? "job_archived" : "job_restored",id});
+          auto response=s.query("SELECT " + jobFields + " FROM worker_jobs WHERE id=? AND owner_id=?", {id,uid(u)});
+          s.query("COMMIT");
+          return json(response);
+        } catch (...) {
+          s.query("ROLLBACK");
+          throw;
+        }
+      }
       if (r.method == "POST" && action == "cancel") {
         s.query("UPDATE worker_jobs SET cancel_requested=1,status=CASE WHEN "
                 "status='queued' THEN 'cancelled' ELSE status "
@@ -628,17 +825,26 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
         return json("{\"status\":\"cancellation_requested\"}");
       }
       if (r.method == "POST" && action == "retry") {
+        if (s.query("SELECT archived_at IS NOT NULL FROM worker_jobs WHERE id=?", {id}) == "1")
+          throw Failure(409, "job_archived", "Restaure o trabalho na lista antes de solicitar uma retentativa.");
+        const auto operation = s.query("SELECT coalesce(json_extract(request_json,'$.operation'),operation) FROM worker_jobs WHERE id=?", {id});
+        if (operation == "generate")
+          requireInference(s,u,id);
         // A verificação e o evento de consumo são atômicos. Requisições
         // rejeitadas ou repetidas em estado não elegível não consomem quota.
         s.query("BEGIN IMMEDIATE");
         try {
+          if (s.query("SELECT archived_at IS NOT NULL FROM worker_jobs WHERE id=?", {id}) == "1")
+            throw Failure(409, "job_archived", "Restaure o trabalho na lista antes de solicitar uma retentativa.");
+          if (s.query("SELECT coalesce(json_extract(error_json,'$.code'),'') IN ('select_fewer_pages','context_limit','invalid_configuration','invalid_pages','source_insufficient','inference_disabled','invalid_model_config','invalid_provider_url','preview_stale','preview_required','stale_preview','stale_config','insufficient_source') FROM worker_jobs WHERE id=?",{id})=="1")
+            throw Failure(409,"retry_requires_change","Altere a entrada ou configuração e crie nova solicitação; repetir esta falha não resolve sua causa.");
           if (s.query("SELECT status='failed' AND attempts<max_attempts AND "
                       "expires_at>CAST(strftime('%s','now') AS INTEGER) FROM "
                       "worker_jobs WHERE id=?",
                       {id}) != "1")
             throw Failure(409, "retry_unavailable",
                           "Retentativas esgotadas ou estado inválido.");
-          requireJobQuota(s, u);
+          requireJobQuota(s, u, operation == "budget");
           requireSharedQueueCapacity(s, u);
           if (std::stoll(
                   s.query("SELECT count(*) FROM worker_jobs WHERE owner_id=? "
@@ -654,7 +860,7 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
           if (sqlite3_changes(s.db) != 1)
             throw Failure(409, "retry_unavailable",
                           "Retentativa indisponível.");
-          s.audit(u, "job_retry_queued", id);
+          s.audit(u, operation == "budget" ? "budget_retry_queued" : "job_retry_queued", id);
           s.query("COMMIT");
           return json("{\"status\":\"queued\"}");
         } catch (...) {

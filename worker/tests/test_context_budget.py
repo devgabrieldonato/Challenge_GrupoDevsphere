@@ -97,3 +97,18 @@ class ContextBudgetTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# Opt-in restrito às fixtures deste módulo; nunca habilita o daemon real.
+def setUpModule():
+    global _policy_patch
+    from unittest.mock import patch
+    _policy_patch = patch.dict("os.environ", {"DEVSPHERE_INFERENCE_ENABLED": "1"})
+    _policy_patch.start()
+
+def tearDownModule():
+    _policy_patch.stop()
+
+
+if __name__ == "__main__":
+    unittest.main()

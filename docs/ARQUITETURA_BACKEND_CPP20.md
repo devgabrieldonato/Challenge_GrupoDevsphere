@@ -139,3 +139,8 @@ benchmark, infraestrutura e avaliação independente de segurança continuam
 pendências. Consulte [Segurança NEXT_2026](SEGURANCA_NEXT_2026.md).
 
 Atualização após a rodada inicial: Ollama, Qwen3:8b e Gemma3:4b estão instalados. Gemma passou em JSON curto; Qwen apresentou timeouts. Geração completa permanece pendente. Veja [resultados dos modelos](MODELOS_LOCAIS_NEXT_2026.json) e o README do worker.
+
+
+## Complemento — apresentação protegida em 23/10/2026
+
+Inferência exige opt-in exato em API, worker e adaptador. Migration 015 adiciona heartbeat técnico, recibos mínimos de exclusão e revisão monotônica da extração. Prévia autorizada tem validade de 120s e usa a configuração do worker. Retirados ficam filtrados; purga é desabilitada por padrão e bloqueada por histórico/vínculos. Não houve homologação de retenção. Checkpoints e watchdog foram exercitados somente com processos leves. Consulte [modo protegido, contratos e limites](MODO_APRESENTACAO_MAC.md).

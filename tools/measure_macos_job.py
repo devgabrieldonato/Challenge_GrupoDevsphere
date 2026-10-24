@@ -24,6 +24,8 @@ except ImportError:
     sys.path.insert(0, os.getcwd())
     from worker.doctor import LocalOllama, CheckError, local_url
 
+from tools.measurement_journal import Journal, recover_checkpoint
+
 TOKEN = re.compile(r"^[A-Za-z0-9_.:/-]{1,200}$")
 TERMINAL = {"completed", "failed", "cancelled"}
 
@@ -146,7 +148,7 @@ def read_job(db, document, excluded):
     rows = db.execute("""SELECT id,operation,status,attempts,cancel_requested,
       CASE WHEN length(error_json)<=8192 THEN error_json END AS error_json,
       CASE WHEN status='completed' AND length(result_json)<=1048576 THEN result_json END AS result_json
-      FROM worker_jobs WHERE document_id=? AND operation='generate'
+      FROM worker_jobs WHERE document_id=? AND operation='generate' AND COALESCE(json_extract(request_json,'$.operation'),'generate')<>'budget'
       ORDER BY created_at DESC,rowid DESC LIMIT 100""", (document,)).fetchall()
     return next((safe_job(row) for row in rows if row["id"] not in excluded), None)
 
@@ -197,14 +199,20 @@ def write_report(path, report):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", type=Path, required=True)
-    parser.add_argument("--document-id", required=True)
+    parser.add_argument("--db", type=Path)
+    parser.add_argument("--recover", type=Path, help="Recupera checkpoint sem consultar API, banco ou modelos")
+    parser.add_argument("--document-id")
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--duration", type=int, default=600)
     parser.add_argument("--interval", type=float, default=1)
     parser.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     parser.add_argument("--api-url", default="http://127.0.0.1:8080")
     args = parser.parse_args()
+    if args.recover:
+        write_report(args.report, recover_checkpoint(args.recover))
+        print(json.dumps({"event":"recovered","report":str(args.report)}))
+        return 0
+    if args.db is None or args.document_id is None:parser.error("Informe banco e documento, ou --recover.")
     if not 1 <= args.duration <= 600 or not 0.5 <= args.interval <= 10 or not TOKEN.fullmatch(args.document_id):
         parser.error("Duração 1..600, intervalo 0.5..10 e identificador opaco são obrigatórios.")
     if sys.platform != "darwin":
@@ -215,7 +223,7 @@ def main():
     if args.report.exists() or args.report.is_symlink() or not args.report.parent.is_dir():
         parser.error("Escolha um arquivo novo em diretório privado existente.")
     db = open_database(args.db)
-    excluded = {row[0] for row in db.execute("SELECT id FROM worker_jobs WHERE document_id=? AND operation='generate'", (args.document_id,))}
+    excluded = {row[0] for row in db.execute("SELECT id FROM worker_jobs WHERE document_id=? AND operation='generate' AND COALESCE(json_extract(request_json,'$.operation'),'generate')<>'budget'", (args.document_id,))}
     start = time.monotonic()
     report = {"startedAt": datetime.now(timezone.utc).isoformat(), "maximumDurationSeconds": args.duration,
               "requestedIntervalSeconds": args.interval, "samples": [], "transitions": [], "job": None,
@@ -226,6 +234,7 @@ def main():
                         "freePagesBytes não é memória disponível; free percent é saída de memory_pressure -Q, não prova de pressão crítica.",
                         "Amostragem sequencial pode exceder intervalo e perder picos. null significa sem medição; swap pode ser negado pelo sistema.",
                         "Conversão anterior, preparação, validação e salvamento não têm tempos independentes sem instrumentação da aplicação."]}
+    journal = Journal(args.report.with_suffix(args.report.suffix+".checkpoint.jsonl"), report)
     print(json.dumps({"event": "ready", "existingJobsExcluded": len(excluded)}), flush=True)
     previous = None
     low_count = 0
@@ -234,12 +243,14 @@ def main():
             point = sample(provider, api)
             point["elapsedSeconds"] = round(point.pop("monotonic") - start, 3)
             report["samples"].append(point)
+            journal.append("sample",point)
             job = read_job(db, args.document_id, excluded)
             report["job"] = job
             state = (job.get("id"), job.get("status"), job.get("attempts")) if job else None
             if state != previous:
                 transition = {"elapsedSeconds": point["elapsedSeconds"], "job": job}
                 report["transitions"].append(transition)
+                journal.append("transition",transition)
                 print(json.dumps({"event": "job_transition", **transition}), flush=True)
                 previous = state
             free = point["memoryPressureFreePercent"]
@@ -257,6 +268,8 @@ def main():
     finally:
         db.close()
         report["elapsedSeconds"] = round(time.monotonic() - start, 3)
+        journal.append("finish",{"stopReason":report["stopReason"],"elapsedSeconds":report["elapsedSeconds"]})
+        journal.close()
         write_report(args.report, report)
     print(json.dumps({"event": "finished", "stopReason": report["stopReason"], "elapsedSeconds": report["elapsedSeconds"]}), flush=True)
     return 0

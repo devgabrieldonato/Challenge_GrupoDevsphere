@@ -1,6 +1,7 @@
 """Contratos, conversão de PDF e geração local sem autoridade de publicação."""
 
 from __future__ import annotations
+from .runtime_policy import (require_inference, inference_enabled, config_hash, input_hash, PREVIEW_TTL_SECONDS)
 import copy
 import hashlib
 import html
@@ -325,6 +326,8 @@ class Ollama:
     def generate(self, model, messages, schema):
         """Solicita JSON completo; não confia no formato nem na correção clínica."""
 
+        require_inference()
+
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self, *args, **kwargs):
                 return None
@@ -587,6 +590,9 @@ def generation_input(request):
 def effective_limits():
     """Expõe somente parâmetros públicos efetivamente lidos neste processo auxiliar."""
     provider = Ollama()  # Valida endereço e timeout sem executar HTTP/inferência.
+    for variable, default in (("DEVSPHERE_GENERATOR_MODEL", "qwen3:8b"), ("DEVSPHERE_CRITIC_MODEL", "gemma3:4b")):
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}", os.environ.get(variable, default)):
+            raise JobError("invalid_model_config", "Identificador de modelo inválido.", False)
     return {
         "generation": model_limits(),
         "review": model_limits(True),
@@ -610,6 +616,10 @@ def prepare_generation_preview(request):
         },
         "diagnosedAt": int(time.time()),
         "workerLoadedAt": request.get("workerLoadedAt"),
+        "inferenceEnabled": inference_enabled(),
+        "configHash": config_hash(),
+        "inputHash": input_hash(request),
+        "validUntil": int(time.time()) + PREVIEW_TTL_SECONDS,
     }
     try:
         result["limits"] = effective_limits()
@@ -627,6 +637,7 @@ def prepare_generation_preview(request):
 
 def generate_case(request, provider=None):
     """Gera e critica sequencialmente; valida orçamento sobre as mensagens finais."""
+    require_inference()
     started = time.monotonic()
     request, messages, schema = generation_input(request)
     markdown = request["markdown"]
@@ -637,6 +648,7 @@ def generate_case(request, provider=None):
     preparation_seconds = time.monotonic() - started
     phase_started = time.monotonic()
     try:
+        require_inference()
         case, provenance = provider.generate(model, messages, schema)
     except JobError as error:
         # Métricas operacionais fechadas; não incluem fonte, prompt ou resposta parcial.
@@ -725,6 +737,7 @@ def generate_case(request, provider=None):
     review_budget = require_context(critic_messages, review=True)
     phase_started = time.monotonic()
     try:
+        require_inference()
         review, critic_meta = provider.generate(critic, critic_messages, critic_schema)
     except JobError as error:
         error.metrics = {"phase":"gemma", "elapsedSeconds":round(time.monotonic()-phase_started,3),

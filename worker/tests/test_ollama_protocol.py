@@ -242,3 +242,18 @@ class BoundedCriticTests(unittest.TestCase):
         result, _ = self.run_review(review)
         self.assertEqual(result["criticReview"]["concerns"], [])
         self.assertEqual(result["case"]["status"], "awaiting_human_review")
+
+
+# Opt-in restrito às fixtures deste módulo; nunca habilita o daemon real.
+def setUpModule():
+    global _policy_patch
+    from unittest.mock import patch
+    _policy_patch = patch.dict("os.environ", {"DEVSPHERE_INFERENCE_ENABLED": "1"})
+    _policy_patch.start()
+
+def tearDownModule():
+    _policy_patch.stop()
+
+
+if __name__ == "__main__":
+    unittest.main()

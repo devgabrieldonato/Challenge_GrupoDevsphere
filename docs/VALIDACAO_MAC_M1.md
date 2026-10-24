@@ -56,3 +56,7 @@ A prévia conta na quota compartilhada de trabalhos e não representa disponibil
 - [ ] Testar repetibilidade somente após conclusão integral sem pressão preocupante.
 
 Começar pelo contexto Qwen de 8.192 e saída de 6.000, registrando separadamente o Gemma. Execução da plataforma C++20/worker POSIX no Windows segue o roteiro WSL2 existente; benchmark Python nativo não comprova sozinho o fluxo web completo. As validações Windows anteriores permanecem históricas e não validam automaticamente este novo diff. Não há garantia antecipada de sucesso na RTX 3060. Não repetir inferência pesada no Mac para encerrar essa pendência.
+
+## Complemento de 23/10/2026
+
+A aplicação possui agora modo protegido com inferência desligada por padrão, heartbeat/diagnóstico e fluxo de conversão/orçamento sem modelos. O reteste pesado continua exclusivo do Windows. Nesta etapa passaram 150 testes automatizados, mais cenários Chrome/Live Server, com três ensaios reais de IA não executados. Migration 015 foi aplicada após backup e conferência de preservação das tabelas anteriores. Não repetir o incidente para obter métricas. Consulte o [roteiro protegido](MODO_APRESENTACAO_MAC.md).

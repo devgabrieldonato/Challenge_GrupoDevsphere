@@ -5,6 +5,9 @@
 # outro processo.
 set -euo pipefail
 
+# Inferência exige opt-in explícito; a execução local padrão não carrega modelos.
+export DEVSPHERE_INFERENCE_ENABLED="${DEVSPHERE_INFERENCE_ENABLED:-0}"
+
 SCRIPT_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIRECTORY}/.." && pwd)"
 BUILD_DIRECTORY="${PROJECT_ROOT}/build/backend"

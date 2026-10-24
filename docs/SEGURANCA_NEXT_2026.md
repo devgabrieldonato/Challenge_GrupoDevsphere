@@ -258,3 +258,7 @@ sem geração integral validada no M1/8GB e aguardam teste na outra máquina.
 ## Complemento — apresentação protegida em 23/10/2026
 
 Inferência exige opt-in exato em API, worker e adaptador. Migration 015 adiciona heartbeat técnico, recibos mínimos de exclusão e revisão monotônica da extração. Prévia autorizada tem validade de 120s e usa a configuração do worker. Retirados ficam filtrados; purga é desabilitada por padrão e bloqueada por histórico/vínculos. Não houve homologação de retenção. Checkpoints e watchdog foram exercitados somente com processos leves. Consulte [modo protegido, contratos e limites](MODO_APRESENTACAO_MAC.md).
+
+## Operação e capacidade — 24/10/2026
+
+Quotas de PDFs-fonte são calculadas no servidor sob BEGIN IMMEDIATE, por titular e instituição, incluindo retirados. Pré-admissão confere reserva de disco; isso não trava escritores externos nem representa quota de todo o SQLite/backup. Legados desconhecidos não são ignorados. O diagnóstico operacional é administrativo/institucional e não retorna conteúdo, IDs de terceiros ou caminhos. Quarentena/restauração só ocorrem em manutenção explícita, sem apagar conteúdo automaticamente, com plano/diário privados e revalidação. Safari/VoiceOver e PDF/UA permanecem verificação humana/específica; estrutura PDF e testes não substituem revisão independente. Procedimentos em [operação](OPERACAO_E_RECUPERACAO.md), [quotas](LIMITES_ARMAZENAMENTO.md) e [reconciliação](RECONCILIACAO_ARQUIVOS.md).

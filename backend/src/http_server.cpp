@@ -292,6 +292,10 @@ std::string reasonPhrase(int status) {
     return "Internal Server Error";
   case 501:
     return "Not Implemented";
+  case 503:
+    return "Service Unavailable";
+  case 507:
+    return "Insufficient Storage";
   default:
     return "Error";
   }

@@ -139,3 +139,9 @@ O backend usa `POST /api/v1/jobs/{id}/archive` e `/restore`, exclusivamente para
 Sete testes HTTP novos de arquivar/restaurar passaram. Regressão de ferramentas: 73 executados, 70 aprovados e três de IA real não executados. CTest: 2/2. Chrome com API e base reais descartáveis validou cancelar, recusar/aceitar confirmação, persistência após recarga, filtros, restauração, formulário/Markdown preservados e nova solicitação. A regressão anterior da interface protegida também passou. Nenhum modelo executado; a mensagem de baixo limite no ensaio do watchdog vem de fixture simulada, não de pressão real.
 
 Migration 016 aplicada à base local com backup consistente. Comparação das colunas anteriores das 50 tabelas de negócio conferidas sem diferenças, integridade válida e nenhuma violação de chave estrangeira. Nenhum trabalho pessoal removido automaticamente. API 8080 reiniciada exclusivamente para esta atualização; worker preservado e política de inferência desabilitada.
+
+## Capacidade e revisão assistiva — 24/10/2026
+
+API local já inclui migration 017 e painel Administração → Operação e recuperação. Quotas técnicas de PDFs-fonte e reserva mínima de disco podem bloquear envio com orientação segura; tamanhos legados NULL exigem conferência e não viram zero. Não apague conteúdo para limpar alertas. Veja [operação](OPERACAO_E_RECUPERACAO.md) e [reconciliação](RECONCILIACAO_ARQUIVOS.md).
+
+Para leitura assistiva, use um novo PDF sintético: título/idioma/marcadores e estrutura lógica foram adicionados sem reescrever arquivos antigos. [Safari e VoiceOver](ACESSIBILIDADE_SAFARI_PDF.md) ainda requerem sua verificação manual; automação nativa não foi habilitada. A política de modelos continua desligada.

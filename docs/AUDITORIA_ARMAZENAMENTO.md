@@ -57,9 +57,9 @@ continuam existindo e são contabilizadas enquanto os arquivos forem preservados
 
 Revise com o operador responsável e a política institucional. Arquivo órfão pode
 resultar de queda abrupta; registro ausente pode indicar falha de restauração.
-Preserve evidências e backup antes de qualquer ação separada. Cleanup automático,
-quota em bytes e reserva de disco permanecem pendentes; esta ferramenta entrega
-somente detecção e apoio à reconciliação.
+Preserve evidências e backup antes de qualquer ação separada. Esta auditoria continua somente de leitura. Quotas de bytes e piso de disco foram
+adicionados à admissão da API; a reconciliação explícita possui ferramenta separada.
+Não há cleanup automático. Consulte os guias abaixo.
 
 Seis testes sintéticos verificaram consistência, integridade, caminhos/links,
 limites, códigos de saída, relatório privado e preservação de banco/arquivos.
@@ -68,3 +68,7 @@ limites, códigos de saída, relatório privado e preservação de banco/arquivo
 ## Complemento — apresentação protegida em 23/10/2026
 
 Inferência exige opt-in exato em API, worker e adaptador. Migration 015 adiciona heartbeat técnico, recibos mínimos de exclusão e revisão monotônica da extração. Prévia autorizada tem validade de 120s e usa a configuração do worker. Retirados ficam filtrados; purga é desabilitada por padrão e bloqueada por histórico/vínculos. Não houve homologação de retenção. Checkpoints e watchdog foram exercitados somente com processos leves. Consulte [modo protegido, contratos e limites](MODO_APRESENTACAO_MAC.md).
+
+## Atualização operacional — 23/10/2026
+
+A detecção desta ferramenta não muda arquivos. A etapa posterior agora pode usar [reconciliação com plano/manutenção/aplicação explícita](RECONCILIACAO_ARQUIVOS.md), incluindo quarentena sem descarte e restauração de cópia com hash exato. [Quotas de PDFs-fonte e reserva de disco](LIMITES_ARMAZENAMENTO.md) são aplicadas pelo backend; tamanhos legados desconhecidos não são contados como zero. A ausência de política de retenção não autoriza expirar a quarentena.

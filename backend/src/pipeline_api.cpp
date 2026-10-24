@@ -1,5 +1,6 @@
 #include "pipeline_api.hpp"
 #include "security.hpp"
+#include "storage_limits.hpp"
 #include <cerrno>
 #include <ctime>
 #include <cstdlib>
@@ -142,6 +143,13 @@ void requireInference(Sql &s, const SessionUser &u, const std::string &id) {
 // O heartbeat vem do worker, e não dos padrões do servidor HTTP. A lista
 // explícita de campos impede que um registro inesperado exponha ambiente/logs.
 HttpResponse runtimeResponse(Sql &s, const SessionUser &u);
+HttpResponse operationsResponse(Sql &s, const SessionUser &u);
+// Caminho operacional é definido no processo, nunca recebido do navegador.
+std::filesystem::path sourceDirectory() {
+  if (const char *root = std::getenv("DEVSPHERE_SOURCE_DIR")) return std::filesystem::path(root);
+  const char *db = std::getenv("DEVSPHERE_DB_PATH");
+  return std::filesystem::path(db ? db : "data/devsphere.db").parent_path()/"sources";
+}
 
 // Tetos técnicos para a fila compartilhada; não representam política
 // institucional homologada. Exigem a transação de escrita do chamador.
@@ -258,6 +266,67 @@ HttpResponse runtimeResponse(Sql &s, const SessionUser &u) {
     result = s.query("SELECT json_set(?,'$.worker.config',json(?))", {result,safeConfig});
   }
   return json(result);
+}
+
+// Diagnóstico é leitura autorizada da instituição. Alarmes nunca reexecutam,
+// removem ou cancelam trabalhos. Ausência de métrica não equivale a valor zero.
+HttpResponse operationsResponse(Sql &s, const SessionUser &u) {
+  if (u.role != "admin")
+    throw Failure(403,"forbidden","Diagnóstico operacional restrito à administração.");
+  const int stallSeconds=quotaConfiguration("DEVSPHERE_QUEUE_ALERT_SECONDS",120,30,86400);
+  const int failureWindow=quotaConfiguration("DEVSPHERE_FAILURE_WINDOW_SECONDS",3600,60,86400);
+  const int failureThreshold=quotaConfiguration("DEVSPHERE_FAILURE_ALERT_COUNT",3,1,1000);
+  const auto queue=s.query(
+    "SELECT json_object('queued',COALESCE(SUM(j.status='queued'),0),'running',COALESCE(SUM(j.status='running'),0),"
+    "'oldestQueuedAgeSeconds',MAX(CASE WHEN j.status='queued' THEN MAX(0,unixepoch()-CAST(strftime('%s',j.created_at) AS INTEGER)) END),"
+    "'expiredLeases',COALESCE(SUM(j.status='running' AND j.lease_until IS NOT NULL AND j.lease_until<unixepoch()),0)) "
+    "FROM worker_jobs j JOIN users owner ON owner.id=j.owner_id "
+    "WHERE owner.institution_id=(SELECT institution_id FROM users WHERE id=?)",{uid(u)});
+  const auto failures=s.query(
+    "SELECT COUNT(*) FROM worker_jobs j JOIN users owner ON owner.id=j.owner_id WHERE owner.institution_id="
+    "(SELECT institution_id FROM users WHERE id=?) AND j.status='failed' AND j.updated_at>=datetime('now',?) "
+    "AND COALESCE(json_extract(j.error_json,'$.code'),'')<>'inference_disabled'",{uid(u),"-"+std::to_string(failureWindow)+" seconds"});
+  const auto heartbeat=s.query("SELECT COALESCE((SELECT CASE WHEN heartbeat_at BETWEEN unixepoch()-30 AND unixepoch()+5 THEN 'alive' ELSE 'stale' END FROM worker_runtime ORDER BY heartbeat_at DESC LIMIT 1),'absent')");
+  std::vector<std::string> alerts;
+  auto alert=[&](const char *code,const char *message,const char *action) {
+    alerts.push_back(s.query("SELECT json_object('code',?,'severity','warning','message',?,'action',?)",{code,message,action}));
+  };
+  const auto pending=std::stoll(s.query("SELECT json_extract(?,'$.queued')+json_extract(?,'$.running')",{queue,queue}));
+  if(heartbeat!="alive" && pending>0)
+    alert("worker_unavailable","Há trabalhos pendentes sem heartbeat recente do worker.","Confira o terminal do worker e a base configurada; não inicie instâncias concorrentes.");
+  if(s.query("SELECT COALESCE(json_extract(?,'$.oldestQueuedAgeSeconds'),0)>=CAST(? AS INTEGER)",{queue,std::to_string(stallSeconds)})=="1")
+    alert("queue_wait_exceeded","Há trabalho na fila acima do limite de espera configurado.","Confira disponibilidade, capacidade e erros do worker antes de tentar novamente.");
+  if(s.query("SELECT json_extract(?,'$.expiredLeases')>0",{queue})=="1")
+    alert("expired_job_lease","Há execução com prazo de posse expirado.","Siga o roteiro de recuperação; não altere estados manualmente nem zere tentativas.");
+  if(std::stoll(failures)>=failureThreshold)
+    alert("recurring_failures","Falhas recorrentes atingiram o limiar da janela operacional.","Inspecione os códigos dos trabalhos autorizados; preserve histórico e não repita falhas determinísticas.");
+  std::string storage="null";
+  try {
+    const auto state=storageSnapshot(s.db,u.id,sourceDirectory());
+    storage=s.query("SELECT json_object('measurement','filesystem_available_and_registered_pdf_bytes','availableBytes',CAST(? AS INTEGER),"
+      "'minimumFreeBytes',CAST(? AS INTEGER),'userUsedBytes',CASE WHEN CAST(? AS INTEGER)=0 THEN CAST(? AS INTEGER) END,"
+      "'institutionUsedBytes',CASE WHEN CAST(? AS INTEGER)=0 THEN CAST(? AS INTEGER) END,"
+      "'knownInstitutionBytes',CAST(? AS INTEGER),'unknownSizes',CAST(? AS INTEGER),"
+      "'userLimitBytes',CAST(? AS INTEGER),'institutionLimitBytes',CAST(? AS INTEGER))",
+      {std::to_string(state.availableBytes),std::to_string(state.limits.minFreeBytes),std::to_string(state.unknownSizes),std::to_string(state.userUsedBytes),
+       std::to_string(state.unknownSizes),std::to_string(state.institutionUsedBytes),std::to_string(state.institutionUsedBytes),std::to_string(state.unknownSizes),
+       std::to_string(state.limits.userBytes),std::to_string(state.limits.institutionBytes)});
+    if(state.availableBytes<state.limits.minFreeBytes)
+      alert("low_disk_space","O espaço disponível está abaixo da reserva configurada.","Suspenda novos envios e confira disco e backups; não apague fontes automaticamente.");
+    if(state.unknownSizes)
+      alert("storage_accounting_required","Há fontes legadas ainda sem tamanho conferido.","Uso total é desconhecido até a conferência segura. Consulte o procedimento de armazenamento.");
+    if(state.institutionUsedBytes>=state.limits.institutionBytes)
+      alert("institution_storage_limit","O limite de PDFs armazenados da instituição foi atingido.","Revise capacidade e a política de retenção; arquivar trabalhos não libera bytes.");
+  } catch(const StorageLimitError &e) {
+    alert(e.code.c_str(),"Não foi possível medir o armazenamento com segurança.","Confira configuração, diretório privado e o procedimento de recuperação.");
+  }
+  std::string array="[";
+  for(std::size_t index=0;index<alerts.size();++index){if(index)array+=",";array+=alerts[index];}
+  array+="]";
+  return json(s.query("SELECT json_object('observedAt',unixepoch(),'scope','institution','status',?,'workerState',?,"
+    "'queue',json(?),'failures',json_object('count',CAST(? AS INTEGER),'windowSeconds',CAST(? AS INTEGER),'threshold',CAST(? AS INTEGER)),"
+    "'queueAlertSeconds',CAST(? AS INTEGER),'storage',json(?),'alerts',json(?))",
+    {alerts.empty()?"ok":"warning",heartbeat,queue,failures,std::to_string(failureWindow),std::to_string(failureThreshold),std::to_string(stallSeconds),storage,array}));
 }
 
 // Retenção institucional não é presumida. Purge exige habilitação operacional
@@ -389,12 +458,14 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
                                           const SessionUser &u) {
   if (r.path.rfind("/api/v1/documents", 0) != 0 &&
       r.path.rfind("/api/v1/jobs", 0) != 0 &&
-      r.path.rfind("/api/v1/library", 0) != 0 && r.path != "/api/v1/runtime")
+      r.path.rfind("/api/v1/library", 0) != 0 && r.path != "/api/v1/runtime" && r.path != "/api/v1/operations")
     return std::nullopt;
   try {
     Sql s;
     if (r.method == "GET" && r.path == "/api/v1/runtime")
       return runtimeResponse(s,u);
+    if (r.method == "GET" && r.path == "/api/v1/operations")
+      return operationsResponse(s,u);
     if (r.method == "GET" && r.path == "/api/v1/documents")
       return json(
           s.query("SELECT coalesce(json_group_array(json(value)),'[]') FROM "
@@ -479,14 +550,16 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
                 {uid(u)})) >= 100)
           throw Failure(429, "quota_exceeded",
                         "Limite local de fontes atingido.");
+        // Conta bytes medidos no servidor sob a mesma reserva de escrita do INSERT.
+        requireStorageAdmission(s.db,u.id,data.size(),directory);
         PrivateUpload file(path);
         file.writeAndSync(data);
         s.query(
             "INSERT INTO "
             "source_documents(id,owner_id,storage_path,original_name,sha256,"
-            "authorized_use,deidentified,area) VALUES(?,?,?,?,?,1,1,?)",
+            "authorized_use,deidentified,area,byte_size) VALUES(?,?,?,?,?,1,1,?,?)",
             {id, uid(u), path.string(), name, digest,
-             textPart(r, "area").empty() ? "general" : textPart(r, "area")});
+             textPart(r, "area").empty() ? "general" : textPart(r, "area"),std::to_string(data.size())});
         s.audit(u, "source_uploaded", id);
         s.query("COMMIT");
         file.retain();
@@ -907,6 +980,9 @@ std::optional<HttpResponse> pipelineRoute(const HttpRequest &r,
     return json("{\"error\":{\"code\":\"not_found\",\"message\":\"Rota não "
                 "encontrada.\"}}",
                 404);
+  } catch (const StorageLimitError &e) {
+    return json("{\"error\":{\"code\":\"" + jsonEscape(e.code) +
+                    "\",\"message\":\"" + jsonEscape(e.what()) + "\"}}",e.status);
   } catch (const Failure &e) {
     return json("{\"error\":{\"code\":\"" + jsonEscape(e.code) +
                     "\",\"message\":\"" + jsonEscape(e.what()) + "\"}}",

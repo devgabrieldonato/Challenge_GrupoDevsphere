@@ -20,7 +20,7 @@ add_library(argon2 STATIC
 target_include_directories(argon2 PUBLIC vendor/argon2/include PRIVATE vendor/argon2/src)
 target_link_libraries(argon2 PRIVATE Threads::Threads)
 
-add_library(devsphere_core src/database.cpp src/next_database.cpp src/official_pdf.cpp src/security.cpp src/privileged_mfa.cpp)
+add_library(devsphere_core src/database.cpp src/next_database.cpp src/official_pdf.cpp src/security.cpp src/privileged_mfa.cpp src/storage_limits.cpp)
 target_include_directories(devsphere_core PUBLIC include)
 # O alvo SQLite::SQLite3 também existe no CMake 3.20+ suportado pelo projeto;
 # SQLite3::SQLite3 só foi introduzido no CMake 4.3.

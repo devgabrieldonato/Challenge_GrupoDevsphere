@@ -100,7 +100,7 @@ std::string renderOfficialPdf(const std::string &report) {
       !std::filesystem::is_regular_file(output) ||
       std::filesystem::file_size(output) > 20 * 1024 * 1024)
     throw std::runtime_error("PDF oficial indisponível; configure Python com "
-                             "reportlab e tente novamente");
+                             "reportlab e pypdf e tente novamente");
   std::ifstream pdf(output, std::ios::binary);
   std::string data{std::istreambuf_iterator<char>(pdf),
                    std::istreambuf_iterator<char>()};

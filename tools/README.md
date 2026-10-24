@@ -51,3 +51,20 @@ Chromium Linux descartável, incluindo zoom real e leitura sem CSS.
 [Comandos completos, versões e limites](../docs/ACESSIBILIDADE_NEXT_2026.md#reproduzir-neste-computador).
 Os relatórios são locais/ignorados. Web Developer não possui nota própria e
 pontuação Lighthouse não substitui teste real com leitor de tela.
+
+## Operação, armazenamento e acessibilidade — etapa de 23/10/2026
+
+O modo local protegido continua com `DEVSPHERE_INFERENCE_ENABLED=0`; nenhum modelo precisa ser carregado para estas funções.
+
+- **Administração → Operação e recuperação:** mostra fila, heartbeat, falhas recorrentes, espaço disponível e alertas com ações sugeridas. Atualização manual ou a cada 30 segundos enquanto a página estiver visível; não executa reparos automaticamente. Endpoint autenticado e restrito a administrador: `GET /api/v1/operations`, com escopo institucional.
+- **Limites de PDFs-fonte:** padrões configuráveis no processo da API: `DEVSPHERE_STORAGE_USER_BYTES=209715200`, `DEVSPHERE_STORAGE_INSTITUTION_BYTES=1073741824` e `DEVSPHERE_STORAGE_MIN_FREE_BYTES=536870912`. São 200 MiB/conta, 1 GiB/instituição e reserva de 512 MiB. PDFs retirados continuam contando. Não representa quota de todo o banco, relatórios, logs ou backups. Veja [limites, erros e legados](../docs/LIMITES_ARMAZENAMENTO.md).
+- **Reconciliação após queda:** plano somente leitura, manutenção com API/worker parados e aplicação explícita para quarentena/restauração por hash. Não apagar órfãos automaticamente nem reconstruir um PDF a partir de Markdown. Veja [procedimento de reconciliação](../docs/RECONCILIACAO_ARQUIVOS.md).
+- **PDF oficial:** novos relatórios possuem idioma, título, marcadores e estrutura lógica real para leitura assistiva. O Python da API precisa de **ReportLab e pypdf**; pypdf já consta em `worker/requirements.txt`. PDFs antigos não são reescritos. Veja [Safari, VoiceOver e PDF](../docs/ACESSIBILIDADE_SAFARI_PDF.md).
+
+A migration incremental `017_storage_bytes.sql` preserva fontes antigas com tamanho desconhecido (`NULL`). A admissão seguinte confere caminho/hash/arquivo antes de preencher bytes; fonte ausente/divergente bloqueia novos envios da instituição em vez de ser ignorada. O diagnóstico de leitura não altera essa contabilidade. Migrations devem seguir o backup consistente já documentado.
+
+Safari nativo foi identificado, mas sua sessão de automação está bloqueada pela preferência de automação remota desativada, que não foi alterada. Jornadas Safari e leitura real com VoiceOver permanecem pendentes humanas; estrutura PDF/árvore automática não certifica PDF/UA.
+
+As variáveis acima valem apenas no terminal/processo que as recebeu. Preserve o modo protegido ao reiniciar a API e mantenha banco/raiz de fontes coerentes com o worker. Encerramento: Ctrl+C no terminal original; não mate processos por nome. Os guias vinculados explicam manutenção e recuperação, sem apagar dados locais.
+
+Roteiro do painel, alertas, inicialização e recuperação: [Operação e recuperação](../docs/OPERACAO_E_RECUPERACAO.md).

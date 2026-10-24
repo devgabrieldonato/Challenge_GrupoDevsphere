@@ -60,3 +60,9 @@ Começar pelo contexto Qwen de 8.192 e saída de 6.000, registrando separadament
 ## Complemento de 23/10/2026
 
 A aplicação possui agora modo protegido com inferência desligada por padrão, heartbeat/diagnóstico e fluxo de conversão/orçamento sem modelos. O reteste pesado continua exclusivo do Windows. Nesta etapa passaram 150 testes automatizados, mais cenários Chrome/Live Server, com três ensaios reais de IA não executados. Migration 015 foi aplicada após backup e conferência de preservação das tabelas anteriores. Não repetir o incidente para obter métricas. Consulte o [roteiro protegido](MODO_APRESENTACAO_MAC.md).
+
+## Complemento operacional — 24/10/2026
+
+Sem inferência: 118 testes de ferramentas aprovados (3 de IA real não executados), 85 worker e 2 C++, total 205. Chrome verificou painel e jornadas/PDF/devolutiva. Reconciliação é manual com plano/diário; quota de PDFs-fonte e reserva são verificadas no backend. Migration 017 aplicada com backup e preservação dos dados anteriores, exceto limpeza normal de três sessões já expiradas. Auditoria readonly de seis fontes sem achados. API/worker ativos protegidos; nenhuma geração ou crítica real executada.
+
+Safari nativo instalado, mas automação remota desabilitada. VoiceOver e jornadas reais no Safari aguardam relato humano do roteiro. PDF novo tem estrutura lógica testada/inspecionada; isso não é certificação PDF/UA. Veja [procedimento](ACESSIBILIDADE_SAFARI_PDF.md).

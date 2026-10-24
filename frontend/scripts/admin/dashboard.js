@@ -163,3 +163,59 @@ async function loadReviewConfiguration() {
 }
 document.getElementById('refreshReviewConfiguration').onclick = loadReviewConfiguration;
 await loadReviewConfiguration();
+
+// Diagnóstico autorizado em canal separado: falhas operacionais não apagam
+// cadastros ou formulários. O texto recebido é sempre apresentado como dado.
+let operationsBusy = false, lastOperationsSignature = null;
+const operationsStatus = document.getElementById('operationsStatus');
+function bytesLabel(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `${(value / (1024 * 1024)).toLocaleString('pt-BR', {maximumFractionDigits: 2})} MiB`
+    : 'Não medido';
+}
+async function loadOperations() {
+  if (operationsBusy) return;
+  operationsBusy = true;
+  const refresh = document.getElementById('refreshOperations');
+  refresh.disabled = true;
+  try {
+    const data = await apiRequest('/operations');
+    const metrics = document.getElementById('operationsMetrics');
+    const alerts = document.getElementById('operationsAlerts');
+    metrics.replaceChildren(); alerts.replaceChildren();
+    const fields = [
+      ['Worker', {alive:'Ativo',stale:'Sinal desatualizado',absent:'Sem sinal registrado'}[data.workerState] || 'Estado não informado'],
+      ['Trabalhos na fila', data.queue?.queued ?? 'Não medido'],
+      ['Trabalhos em execução', data.queue?.running ?? 'Não medido'],
+      ['Maior espera na fila', data.queue?.oldestQueuedAgeSeconds == null ? 'Nenhum trabalho na fila' : `${data.queue.oldestQueuedAgeSeconds} segundos`],
+      ['Falhas na janela', `${data.failures?.count ?? 'Não medido'} (janela de ${data.failures?.windowSeconds ?? '—'} segundos)`],
+      ['Espaço disponível no volume de fontes', bytesLabel(data.storage?.availableBytes)],
+      ['Reserva mínima no volume', bytesLabel(data.storage?.minimumFreeBytes)],
+      ['PDFs da instituição', bytesLabel(data.storage?.institutionUsedBytes)],
+      ['Limite da instituição', bytesLabel(data.storage?.institutionLimitBytes)],
+      ['Fontes com tamanho pendente', data.storage?.unknownSizes ?? 'Não medido']
+    ];
+    for (const [label,value] of fields) metrics.append(node('dt',label),node('dd',String(value)));
+    for (const alert of data.alerts || []) {
+      const item = node('li');
+      item.append(node('strong',alert.message),node('p',alert.action)); alerts.append(item);
+    }
+    if (!data.alerts?.length) alerts.append(node('li','Nenhum alerta nesta consulta.'));
+    document.getElementById('operationsObservedAt').textContent = `Consulta em ${new Date(data.observedAt * 1000).toLocaleString('pt-BR')}. Escopo: sua instituição.`;
+    // Não repete anúncios assistivos a cada polling quando o estado é o mesmo.
+    const signature = JSON.stringify([data.status,data.workerState,data.queue?.queued,data.queue?.running,data.failures?.count,(data.alerts||[]).map(a=>a.code)]);
+    if (signature !== lastOperationsSignature) {
+      operationsStatus.textContent = data.alerts?.length ? `${data.alerts.length} alerta(s) precisam de conferência.` : 'Diagnóstico atualizado, sem alertas.';
+      lastOperationsSignature = signature;
+    }
+    operationsStatus.className = data.alerts?.length ? 'status error' : 'status';
+  } catch (error) {
+    lastOperationsSignature = null;
+    operationsStatus.className = 'status error';
+    operationsStatus.textContent = `Diagnóstico indisponível: ${error.message}. As medições anteriores podem estar desatualizadas. Tente atualizar.`;
+  } finally { operationsBusy = false; refresh.disabled = false; }
+}
+document.getElementById('refreshOperations').addEventListener('click',loadOperations);
+await loadOperations();
+const operationsTimer = setInterval(()=>{if(!document.hidden)void loadOperations();},30000);
+window.addEventListener('pagehide',()=>clearInterval(operationsTimer),{once:true});

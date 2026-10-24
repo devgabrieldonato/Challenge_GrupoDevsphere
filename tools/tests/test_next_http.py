@@ -681,10 +681,16 @@ class NextHttpTests(unittest.TestCase):
                 "SELECT id FROM users WHERE email=?", (email,)
             ).fetchone()[0]
             document_id = secrets.token_hex(16)
+            # A fixture de quota precisa representar uma fonte íntegra: um legado
+            # fictício ausente bloquearia corretamente novos uploads da instituição.
+            self.storage.mkdir(parents=True, exist_ok=True)
+            source = self.storage / f"{document_id}.pdf"
+            source.write_bytes(self.pdf)
+            source.chmod(0o600)
             db.execute(
-                "INSERT INTO source_documents(id,owner_id,storage_path,original_name,sha256,status,authorized_use,deidentified,markdown) "
-                "VALUES(?,?,'/synthetic/not-processed.pdf','synthetic.pdf','fixture-hash','converted',1,1,'## Página 1\nConteúdo sintético')",
-                (document_id, actor_id),
+                "INSERT INTO source_documents(id,owner_id,storage_path,original_name,sha256,status,authorized_use,deidentified,markdown,byte_size) "
+                "VALUES(?,?,?,'synthetic.pdf',?,'converted',1,1,'## Página 1\nConteúdo sintético',?)",
+                (document_id, actor_id, str(source), hashlib.sha256(self.pdf).hexdigest(), len(self.pdf)),
             )
         return actor_id, self.login(email), document_id
 

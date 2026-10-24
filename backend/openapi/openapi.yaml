@@ -993,6 +993,7 @@ paths:
           description: Limite de recursos por usuário atingido.
     post:
       summary: Recebe PDF autorizado e desidentificado
+      description: Mede bytes no servidor e aplica quotas de PDFs-fonte por titular/instituição, incluindo retirados. Padrões técnicos 200 MiB/1 GiB, reserva de 512 MiB no volume, configuráveis somente no processo. Admissão, contabilização de legados íntegros e INSERT usam BEGIN IMMEDIATE; NULL não significa zero. Não coordena escritores externos nem dois bancos independentes.
       responses:
         '201':
           description: Operação concluída.
@@ -1007,7 +1008,11 @@ paths:
         '409':
           description: Conflito de estado ou idempotência.
         '429':
-          description: Limite de recursos por usuário atingido.
+          description: Limite de documentos, bytes da conta (storage_user_limit) ou instituição (storage_institution_limit).
+        '503':
+          description: Configuração/armazenamento indisponível ou fonte legada exige reconciliação (storage_accounting_required); nenhum upload parcialmente admitido.
+        '507':
+          description: storage_disk_reserve — envio violaria a reserva mínima do volume.
       requestBody:
         required: true
         content:
@@ -1032,6 +1037,25 @@ paths:
       security:
       - sessionCookie: []
         requestGuard: []
+  /operations:
+    get:
+      summary: Alertas administrativos de fila, falhas e armazenamento
+      description: Somente administrador; agregados da própria instituição e disponibilidade do volume privado, sem nomes, conteúdo, IDs de terceiros ou caminhos. Leitura sem reparos, cancelamentos ou inferência. Janela padrão 3600s/3 falhas; fila acima de 120s sinaliza conferência, não prova de travamento. Falhas inference_disabled são esperadas no modo protegido e não contam como recorrentes. Métrica ausente é null. Configuração por variáveis operacionais fora da interface.
+      security:
+      - sessionCookie: []
+      responses:
+        '200':
+          description: Observação atual, com avisos e ações operacionais sugeridas; nunca executadas automaticamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationalStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          description: Limiares operacionais inválidos; diagnóstico indisponível.
   /runtime:
     get:
       summary: Política da API e heartbeat real do worker
@@ -1973,6 +1997,79 @@ components:
             type: string
         pedagogicalNotes:
           type: string
+    OperationalStatus:
+      type: object
+      required: [observedAt, scope, status, workerState, queue, failures, storage, alerts]
+      properties:
+        observedAt:
+          type: integer
+          description: Unix timestamp em segundos.
+        scope:
+          const: institution
+        status:
+          enum: [ok, warning]
+        workerState:
+          enum: [alive, stale, absent]
+        queueAlertSeconds:
+          type: integer
+        queue:
+          type: object
+          required: [queued, running, oldestQueuedAgeSeconds, expiredLeases]
+          properties:
+            queued:
+              type: integer
+            running:
+              type: integer
+            oldestQueuedAgeSeconds:
+              type: [integer, 'null']
+            expiredLeases:
+              type: integer
+        failures:
+          type: object
+          required: [count, windowSeconds, threshold]
+          properties:
+            count:
+              type: integer
+            windowSeconds:
+              type: integer
+            threshold:
+              type: integer
+        storage:
+          type: [object, 'null']
+          description: null se a medição segura não estiver disponível. Totais usados são null se houver tamanhos desconhecidos; knownInstitutionBytes é parcial. Quotas abrangem somente PDFs-fonte, não banco/Markdown/relatórios/backups/quarentena.
+          properties:
+            measurement:
+              const: filesystem_available_and_registered_pdf_bytes
+            availableBytes:
+              type: integer
+            minimumFreeBytes:
+              type: integer
+            userUsedBytes:
+              type: [integer, 'null']
+            institutionUsedBytes:
+              type: [integer, 'null']
+            knownInstitutionBytes:
+              type: integer
+            unknownSizes:
+              type: integer
+            userLimitBytes:
+              type: integer
+            institutionLimitBytes:
+              type: integer
+        alerts:
+          type: array
+          items:
+            type: object
+            required: [code, severity, message, action]
+            properties:
+              code:
+                type: string
+              severity:
+                const: warning
+              message:
+                type: string
+              action:
+                type: string
     PipelineJob:
       type: object
       required:

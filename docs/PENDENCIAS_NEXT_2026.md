@@ -441,3 +441,27 @@ Roteiro, configuração, recuperação e limites: [Modo de apresentação no Mac
 ### Organização dos trabalhos — 23/10/2026
 
 Implementados remoção reversível da lista e restauração, com filtro de visíveis/removidos/todos, autorização por titular e preservação de fontes, resultados, quotas e contribuições. Migration 016 incremental. Trabalho ativo deve terminar ou confirmar cancelamento antes da remoção. Nenhuma inferência real no Mac. Verificado: 7/7 testes novos, regressão de ferramentas com 70 aprovados/3 de IA não executados, CTest 2/2 e Chrome real. Migration 016 com backup e 50 tabelas anteriores preservadas; nenhuma remoção automática de trabalhos pessoais.
+
+## 24/10/2026 — Reconciliação, acessibilidade e capacidade operacional
+
+Base a5bab81, branch NEXT_2026. Responsáveis: agente reconciliação (CLI/diário/testes), agente armazenamento (helper C++/migration/testes), agente acessibilidade (PDF/Safari/roteiro) e coordenador (admissão HTTP, alertas/painel, integração, regressão e documentação). Sem commit/push nesta etapa.
+
+- [x] Reconciliação explícita com plano privado: PDFs órfãos para quarentena sem descarte; restauração de cópia autorizada por SHA/tamanho, manutenção/locks e retomada pelo diário. 24 testes sintéticos novos; nenhuma aplicação na base pessoal.
+- [x] Quotas de PDFs-fonte por conta/instituição, incluindo retirados, e reserva de disco na admissão: 200 MiB/1 GiB/512 MiB como padrões técnicos configuráveis. Bytes reais prevalecem sobre payload adulterado; legado desconhecido não é zero.
+- [x] Migration 017 com backup consistente, integridade e chaves estrangeiras válidas. Comparação das 49 tabelas de negócio além das sessões sem alteração nas colunas anteriores; as três sessões expiradas antes da atualização foram removidas pela limpeza normal preexistente da API. Nenhuma conta, atendimento ou fonte excluída.
+- [x] Auditoria pessoal somente leitura: seis fontes verificadas, nenhum achado. Relatório privado em .local/validation, ignorado pelo Git; tamanhos legados permanecem NULL até a conferência transacional da próxima admissão.
+- [x] Painel administrativo de operação: heartbeat/fila/lease, falhas recentes e disco com autorização institucional e métricas ausentes como null. Alertas não executam reparos ou inferência.
+- [x] Novo PDF oficial com pt-BR, título, fontes, marcadores e árvore lógica real/MCIDs/ParentTree. Quatro testes estruturais e inspeção visual de artefato sintético; marcador de importação preservado.
+- [x] Regressão: 121 testes de ferramentas, sendo 118 aprovados e 3 de IA real não executados; worker 85/85; CTest 2/2. Total 205 aprovados. Chrome passou painel operacional e jornadas completas/PDF/devolutiva. A primeira rodada detectou fixtures antigas de fonte inexistente; fixture corrigida sem enfraquecer o bloqueio de legados e rodada final integral aprovada.
+- [x] API 8080 atualizada e worker preservado, sem fila pendente; política de inferência desabilitada. Ollama consultado sem modelos carregados.
+- [x] Safari nativo: usuário informou funcionamento correto do VoiceOver na verificação manual. Automação remota do SafariDriver permanece desativada e foi tratada separadamente; preferência não alterada.
+- [x] VoiceOver funcional no Safari e Chrome: relatos manuais positivos do usuário em 24/10. Sem enumeração individual de cenários ou resultado separado de cada trecho do PDF; não confundir com testes estruturais ou certificação PDF/UA.
+- [ ] Windows: geração integral Qwen/Gemma e repetibilidade das alterações atuais. Pendências clínicas/institucionais, retenção e segurança independente preservadas.
+
+Guias: [Operação e recuperação](OPERACAO_E_RECUPERACAO.md), [Reconciliação](RECONCILIACAO_ARQUIVOS.md), [Limites](LIMITES_ARMAZENAMENTO.md) e [Safari/PDF](ACESSIBILIDADE_SAFARI_PDF.md). Quotas abrangem fontes PDF, não todo o banco/backups/relatórios. Uma aplicação de manutenção exige parada operacional real; não há descarte automático da quarentena.
+
+### Retorno humano de acessibilidade — 24/10/2026
+
+Usuário relatou funcionamento correto do VoiceOver pelo Safari após o roteiro. Registrar como verificação manual informada pelo titular, sem contar cenários individuais ou declarar certificação. Foi preparada repetição no Chrome 155.0.8059.86/macOS 26.6.2, incluindo o visualizador PDF próprio; retorno Chrome/VoiceOver confirmado pelo usuário em seguida, sem detalhamento por cenário. O bloqueio de automação do SafariDriver é separado desse relato manual positivo. Nenhuma inferência ou alteração de preferências.
+
+Confirmação adicional em 24/10: teste funcional do VoiceOver também informado como correto no Google Chrome. Os relatos positivos de Safari e Chrome foram registrados como evidência manual do usuário, mantendo separado o limite da automação nativa e sem atribuir certificações. Nenhuma inferência, commit ou push nesta atualização.

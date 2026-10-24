@@ -1061,3 +1061,20 @@ Na página **Contribuições → Trabalhos de processamento**, use **Remover da 
 Um trabalho na fila ou em execução deve ser cancelado antes: clique em **Cancelar**, atualize e aguarde o estado **Cancelado** (ou outro estado terminal). Solicitação de cancelamento não é confirmação de encerramento. Arquivar não interrompe o worker. Se não gostou do resultado, remova o trabalho encerrado e faça uma **nova solicitação no cartão do documento**; a conversão/geração continua sujeita a permissões, quotas e à política operacional. No Mac protegido, geração real continua bloqueada.
 
 O backend usa `POST /api/v1/jobs/{id}/archive` e `/restore`, exclusivamente para o titular, sem privilégio especial de administrador sobre trabalhos alheios. A migration `016_job_archive.sql` adiciona `archived_at`; não apaga registros ou arquivos. Transições são transacionais, auditadas e idempotentes. Retentativa de arquivado retorna `409 job_archived`; trabalho ativo retorna `409 job_active`. Arquivar não reinicia tentativas, renova prazos nem devolve quota. Exclusão física de documentos e retirada de contribuições são operações distintas.
+
+## Operação, armazenamento e acessibilidade — etapa de 23/10/2026
+
+O modo local protegido continua com `DEVSPHERE_INFERENCE_ENABLED=0`; nenhum modelo precisa ser carregado para estas funções.
+
+- **Administração → Operação e recuperação:** mostra fila, heartbeat, falhas recorrentes, espaço disponível e alertas com ações sugeridas. Atualização manual ou a cada 30 segundos enquanto a página estiver visível; não executa reparos automaticamente. Endpoint autenticado e restrito a administrador: `GET /api/v1/operations`, com escopo institucional.
+- **Limites de PDFs-fonte:** padrões configuráveis no processo da API: `DEVSPHERE_STORAGE_USER_BYTES=209715200`, `DEVSPHERE_STORAGE_INSTITUTION_BYTES=1073741824` e `DEVSPHERE_STORAGE_MIN_FREE_BYTES=536870912`. São 200 MiB/conta, 1 GiB/instituição e reserva de 512 MiB. PDFs retirados continuam contando. Não representa quota de todo o banco, relatórios, logs ou backups. Veja [limites, erros e legados](docs/LIMITES_ARMAZENAMENTO.md).
+- **Reconciliação após queda:** plano somente leitura, manutenção com API/worker parados e aplicação explícita para quarentena/restauração por hash. Não apagar órfãos automaticamente nem reconstruir um PDF a partir de Markdown. Veja [procedimento de reconciliação](docs/RECONCILIACAO_ARQUIVOS.md).
+- **PDF oficial:** novos relatórios possuem idioma, título, marcadores e estrutura lógica real para leitura assistiva. O Python da API precisa de **ReportLab e pypdf**; pypdf já consta em `worker/requirements.txt`. PDFs antigos não são reescritos. Veja [Safari, VoiceOver e PDF](docs/ACESSIBILIDADE_SAFARI_PDF.md).
+
+A migration incremental `017_storage_bytes.sql` preserva fontes antigas com tamanho desconhecido (`NULL`). A admissão seguinte confere caminho/hash/arquivo antes de preencher bytes; fonte ausente/divergente bloqueia novos envios da instituição em vez de ser ignorada. O diagnóstico de leitura não altera essa contabilidade. Migrations devem seguir o backup consistente já documentado.
+
+Safari nativo foi identificado, mas sua sessão de automação está bloqueada pela preferência de automação remota desativada, que não foi alterada. Jornadas Safari e leitura real com VoiceOver permanecem pendentes humanas; estrutura PDF/árvore automática não certifica PDF/UA.
+
+As variáveis acima valem apenas no terminal/processo que as recebeu. Preserve o modo protegido ao reiniciar a API e mantenha banco/raiz de fontes coerentes com o worker. Encerramento: Ctrl+C no terminal original; não mate processos por nome. Os guias vinculados explicam manutenção e recuperação, sem apagar dados locais.
+
+Roteiro do painel, alertas, inicialização e recuperação: [Operação e recuperação](docs/OPERACAO_E_RECUPERACAO.md).

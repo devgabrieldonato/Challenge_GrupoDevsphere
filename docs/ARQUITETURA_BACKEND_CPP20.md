@@ -144,3 +144,7 @@ Atualização após a rodada inicial: Ollama, Qwen3:8b e Gemma3:4b estão instal
 ## Complemento — apresentação protegida em 23/10/2026
 
 Inferência exige opt-in exato em API, worker e adaptador. Migration 015 adiciona heartbeat técnico, recibos mínimos de exclusão e revisão monotônica da extração. Prévia autorizada tem validade de 120s e usa a configuração do worker. Retirados ficam filtrados; purga é desabilitada por padrão e bloqueada por histórico/vínculos. Não houve homologação de retenção. Checkpoints e watchdog foram exercitados somente com processos leves. Consulte [modo protegido, contratos e limites](MODO_APRESENTACAO_MAC.md).
+
+## Operação e fontes — 24/10/2026
+
+A admissão de PDFs aplica quotas de bytes por titular/instituição e piso de disco sob a mesma transação de upload (migration 017). Tamanhos legados são NULL até conferência segura. O endpoint administrativo `/api/v1/operations` agrega estados autorizados sem realizar reparos. Reconciliação é um CLI de manutenção separado, com plano privado, quarentena/restauração por hash e diário, sem descarte automático. O PDF oficial usa ReportLab e pypdf para estruturar títulos, parágrafos e idioma, sem declarar PDF/UA. Veja [operação](OPERACAO_E_RECUPERACAO.md), [reconciliação](RECONCILIACAO_ARQUIVOS.md) e [acessibilidade](ACESSIBILIDADE_SAFARI_PDF.md).

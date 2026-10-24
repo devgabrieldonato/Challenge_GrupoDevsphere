@@ -2,6 +2,16 @@
 
 > **Modo local protegido:** inferência desabilitada por padrão. Para executar e apresentar no Mac, siga o [roteiro protegido](docs/MODO_APRESENTACAO_MAC.md). Conversão e orçamento não carregam Qwen/Gemma. Geração integral permanece pendente no Windows.
 
+## Estado atual — 24/10/2026
+
+- API C++20/SQLite em 8080 e frontend pelo Live Server em 5501; o Live Server continua dependendo da API.
+- Modo protegido no Mac: conversão/OCR limitado e orçamento disponíveis, inferência desabilitada. Geração integral Qwen3/Gemma3 fica para reteste no Windows/WSL2; exige habilitação operacional explícita nesse ambiente. Não habilitar no M1.
+- Reconciliação com plano/quarentena/restauração por hash, quotas de PDFs-fonte, reserva de disco e painel administrativo já implementados. Não há descarte automático.
+- Retornos manuais positivos do usuário sobre VoiceOver no Safari e Chrome. Novo PDF oficial tem estrutura lógica testada, sem declaração de conformidade PDF/UA.
+- Última regressão técnica: 118 ferramentas + 85 worker + 2 CTest aprovados; três testes de IA real não executados. Bancos, ambientes e relatórios privados permanecem fora do Git.
+
+Guias atuais: [execução protegida](docs/MODO_APRESENTACAO_MAC.md), [operação e recuperação](docs/OPERACAO_E_RECUPERACAO.md) e [acessibilidade](docs/ACESSIBILIDADE_SAFARI_PDF.md). Registros datados anteriores preservam evidências históricas; não atribuir os benchmarks Windows ao Mac.
+
 Plataforma educacional para estudantes e professores de Medicina. O aluno
 escolhe um caso clínico, conduz a investigação, formula hipóteses e recebe uma
 pontuação pedagógica. O professor revisa o percurso, as evidências disponíveis
@@ -48,19 +58,20 @@ para usar a plataforma.
 
 Auditorias reais: Lighthouse 100/100 em oito combinações de páginas/temas;
 axe em 17 páginas e estados adicionais; Web Developer e zoom real 200%/400%.
-Escopo, relatórios, comandos e validação humana ainda pendente com leitor de tela
-estão em [Acessibilidade NEXT_2026](docs/ACESSIBILIDADE_NEXT_2026.md).
+Escopo, relatórios e comandos históricos estão em [Acessibilidade NEXT_2026](docs/ACESSIBILIDADE_NEXT_2026.md).
+Os retornos manuais positivos de VoiceOver no Safari e Chrome, em 24/10, estão em
+[Safari, VoiceOver e PDF](docs/ACESSIBILIDADE_SAFARI_PDF.md).
 
 ## Executar localmente no macOS e Windows
 
-Este é o roteiro operacional principal, atualizado em 20/10/2026. Os exemplos
+Este é o roteiro operacional principal, conferido com o estado de 24/10/2026. Os exemplos
 Bash abaixo executam no macOS ou **dentro do Ubuntu/WSL2**, nunca diretamente no
 PowerShell. O backend continua C++20/POSIX. Windows nativo executa o benchmark
 Python/Ollama; a plataforma completa neste PC foi testada no WSL2.
 
 | Ambiente | Python/venv | Build da API | Evidência |
 | --- | --- | --- | --- |
-| macOS, Bash | `.venv-worker/bin/python` | `build/backend` | Comandos revisados no código; sem novo reteste no Mac nesta rodada |
+| macOS, Bash | `.venv-worker/bin/python` | `build/backend` | Fluxos leves/API/worker e testes sem modelos verificados em 23–24/10; VoiceOver manual informado pelo usuário |
 | Windows, PowerShell | `.venv-worker\Scripts\python.exe` | Não usado no benchmark | Python 3.12.1, benchmark completo v4 em 96,891 s |
 | Ubuntu 24.04 no WSL2, Bash | `$HOME/.venvs/pacientevirtual/bin/python` | `$HOME/build/pacientevirtual/backend` | Python 3.12.3, CTest/HTTP/interface/PDF/OCR/RAG reais |
 
@@ -453,12 +464,13 @@ A fonte obrigatória é `worker/fixtures/synthetic-benchmark.request.json`.
 Preserve relatórios usando nomes novos. PDFs textual/escaneado sintéticos são
 cobertos pelas suítes; extração/OCR não equivalem a interpretação clínica.
 
-Evidências de execução atual são Windows/WSL. No Mac estes comandos foram
-conferidos por leitura e revisão independente; não houve acesso nem reteste
-nesta rodada. Ainda faltam estabilidade ampla/carga/fontes maiores, acessibilidade
-abrangente, revisão clínica/pedagógica por versão, regras institucionais/licenças,
-quotas/reserva em bytes, remediação de órfãos, isolamento e segurança independente
-para produção. Nenhum caso deve ser aprovado/publicado automaticamente.
+Os benchmarks integrais de 19–20/10 foram executados no Windows/WSL. No Mac,
+as rodadas de 23–24/10 verificaram fluxos leves e testes sem modelos. Quotas de
+PDFs-fonte, piso de disco e reconciliação explícita já estão implementados. Ainda
+faltam reteste integral dos modelos no Windows com as alterações atuais, estabilidade
+ampla/carga/fontes maiores, cobertura assistiva ampliada, revisão clínica/pedagógica,
+regras institucionais/licenças, isolamento e segurança independente de produção.
+Nenhum caso deve ser aprovado/publicado automaticamente.
 
 ## Referência dos componentes e modos alternativos
 
@@ -955,13 +967,15 @@ componente retorna código não zero e orientações legíveis. Prefere `.venv-w
 ser iniciados separadamente, conforme os comandos acima.
 
 A fila aceita por padrão **12 solicitações por usuário por hora**, somando conversão,
-geração e retentativas manuais aceitas. Cancelar, concluir ou falhar não devolve
-quota. Repetir a mesma solicitação idempotente retorna o trabalho anterior sem
+geração e retentativas manuais aceitas. Prévias têm quota própria de 30/hora,
+incluindo retries da categoria; não consomem a quota de geração. Cancelar, concluir
+ou falhar não devolve quota. Repetir a mesma solicitação idempotente retorna o trabalho anterior sem
 consumir novamente. Tentativas automáticas continuam limitadas pelo próprio job;
 não se confundem com uma nova solicitação manual. A concorrência por usuário
 continua limitada a3 trabalhos pendentes. Configuração do backend:
 
-- `DEVSPHERE_JOB_REQUEST_LIMIT=12`: inteiro entre1 e120;
+- `DEVSPHERE_JOB_REQUEST_LIMIT=12`: conversão/geração, inteiro entre1 e120;
+- `DEVSPHERE_BUDGET_REQUEST_LIMIT=30`: prévias sem inferência, inteiro entre1 e120;
 - `DEVSPHERE_JOB_WINDOW_SECONDS=3600`: inteiro entre60 e86400.
 
 Configuração inválida bloqueia novas solicitações com erro503; quota atingida
@@ -1002,7 +1016,9 @@ encerramento. São defaults técnicos conservadores, não políticas homologadas
 Uploads são criados exclusivamente com permissão0600. Registro e auditoria são
 transacionais; falhas tratáveis removem o arquivo novo e desfazem alterações.
 Isso não torna SQLite e filesystem uma única transação contra desligamento abrupto:
-reconciliação de órfãos, quota em bytes e reserva de disco continuam pendentes.
+as correções posteriores acrescentaram reconciliação explícita, quotas de PDFs-fonte
+e reserva de disco. Não há descarte automático nem transação única FS+SQLite.
+Consulte o estado atual e os procedimentos vinculados acima.
 
 O teste com o **módulo real da extensão Live Server** passou em5501→8080 sem proxy:
 login, CORS, HttpOnly, catálogo, ação e persistência ao reabrir a página. As duas
@@ -1073,7 +1089,7 @@ O modo local protegido continua com `DEVSPHERE_INFERENCE_ENABLED=0`; nenhum mode
 
 A migration incremental `017_storage_bytes.sql` preserva fontes antigas com tamanho desconhecido (`NULL`). A admissão seguinte confere caminho/hash/arquivo antes de preencher bytes; fonte ausente/divergente bloqueia novos envios da instituição em vez de ser ignorada. O diagnóstico de leitura não altera essa contabilidade. Migrations devem seguir o backup consistente já documentado.
 
-Safari nativo foi identificado, mas sua sessão de automação está bloqueada pela preferência de automação remota desativada, que não foi alterada. Jornadas Safari e leitura real com VoiceOver permanecem pendentes humanas; estrutura PDF/árvore automática não certifica PDF/UA.
+O usuário confirmou funcionamento correto do VoiceOver no Safari e no Google Chrome do Mac em 24/10/2026. São relatos manuais positivos, sem enumeração de cenários ou certificação PDF/UA. A automação remota do SafariDriver continua desativada; essa limitação é separada da navegação manual e nenhuma preferência foi alterada pelo agente.
 
 As variáveis acima valem apenas no terminal/processo que as recebeu. Preserve o modo protegido ao reiniciar a API e mantenha banco/raiz de fontes coerentes com o worker. Encerramento: Ctrl+C no terminal original; não mate processos por nome. Os guias vinculados explicam manutenção e recuperação, sem apagar dados locais.
 

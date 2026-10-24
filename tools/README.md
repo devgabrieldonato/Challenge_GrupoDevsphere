@@ -2,6 +2,16 @@
 
 > **Modo local protegido:** inferência desabilitada por padrão. Para executar e apresentar no Mac, siga o [roteiro protegido](../docs/MODO_APRESENTACAO_MAC.md). Conversão e orçamento não carregam Qwen/Gemma. Geração integral permanece pendente no Windows.
 
+## Estado atual — 24/10/2026
+
+- API C++20/SQLite em 8080 e frontend pelo Live Server em 5501; o Live Server continua dependendo da API.
+- Modo protegido no Mac: conversão/OCR limitado e orçamento disponíveis, inferência desabilitada. Geração integral Qwen3/Gemma3 fica para reteste no Windows/WSL2; exige habilitação operacional explícita nesse ambiente. Não habilitar no M1.
+- Reconciliação com plano/quarentena/restauração por hash, quotas de PDFs-fonte, reserva de disco e painel administrativo já implementados. Não há descarte automático.
+- Retornos manuais positivos do usuário sobre VoiceOver no Safari e Chrome. Novo PDF oficial tem estrutura lógica testada, sem declaração de conformidade PDF/UA.
+- Última regressão técnica: 118 ferramentas + 85 worker + 2 CTest aprovados; três testes de IA real não executados. Bancos, ambientes e relatórios privados permanecem fora do Git.
+
+Guias atuais: [execução protegida](../docs/MODO_APRESENTACAO_MAC.md), [operação e recuperação](../docs/OPERACAO_E_RECUPERACAO.md) e [acessibilidade](../docs/ACESSIBILIDADE_SAFARI_PDF.md). Registros datados anteriores preservam evidências históricas; não atribuir os benchmarks Windows ao Mac.
+
 ## Execução macOS e Windows/WSL2
 
 Siga o [roteiro completo dos dois sistemas](../README.md#executar-localmente-no-macos-e-windows)
@@ -25,8 +35,9 @@ terminais encerra os processos. MFA é carregado apenas no terminal da API.
 Benchmark Windows nativo usa `repo/.venv-worker/Scripts/python.exe`, Ollama
 Windows e [comandos PowerShell completos](../docs/VALIDACAO_IA_OUTRA_MAQUINA.md#benchmark-real).
 Esse benchmark não executa o daemon POSIX nem demonstra backend C++ nativo Windows.
-macOS foi revisado por leitura; a rodada atual executou testes no Windows/WSL.
-O M1/8 GB teve OOM real; não atribuir a ele os êxitos da RTX 3060.
+A conferência de comandos de 20/10 foi por leitura no macOS e execução no Windows/WSL.
+Em 23–24/10, fluxos leves e regressões foram executados no Mac, sem inferência.
+Há OOM comprovado em uma tentativa histórica do M1 e um travamento posterior de causa não confirmada; não atribuir ao M1 os êxitos da RTX 3060.
 
 Os exemplos posteriores com `build/backend` e `.venv-worker/bin/python` são
 referência macOS/Ubuntu com build no clone; no WSL deste PC use os caminhos acima.
@@ -63,7 +74,7 @@ O modo local protegido continua com `DEVSPHERE_INFERENCE_ENABLED=0`; nenhum mode
 
 A migration incremental `017_storage_bytes.sql` preserva fontes antigas com tamanho desconhecido (`NULL`). A admissão seguinte confere caminho/hash/arquivo antes de preencher bytes; fonte ausente/divergente bloqueia novos envios da instituição em vez de ser ignorada. O diagnóstico de leitura não altera essa contabilidade. Migrations devem seguir o backup consistente já documentado.
 
-Safari nativo foi identificado, mas sua sessão de automação está bloqueada pela preferência de automação remota desativada, que não foi alterada. Jornadas Safari e leitura real com VoiceOver permanecem pendentes humanas; estrutura PDF/árvore automática não certifica PDF/UA.
+O usuário confirmou funcionamento correto do VoiceOver no Safari e no Google Chrome do Mac em 24/10/2026. São relatos manuais positivos, sem enumeração de cenários ou certificação PDF/UA. A automação remota do SafariDriver continua desativada; essa limitação é separada da navegação manual e nenhuma preferência foi alterada pelo agente.
 
 As variáveis acima valem apenas no terminal/processo que as recebeu. Preserve o modo protegido ao reiniciar a API e mantenha banco/raiz de fontes coerentes com o worker. Encerramento: Ctrl+C no terminal original; não mate processos por nome. Os guias vinculados explicam manutenção e recuperação, sem apagar dados locais.
 

@@ -433,6 +433,8 @@ void Database::purgeExpiredSessions() {
   execute("DELETE FROM sessions WHERE expires_at<=CURRENT_TIMESTAMP;");
 }
 
+// O catálogo alimenta o início do atendimento. Ilustrações públicas precisam
+// acompanhar seus metadados; ausência de arquivo para outros casos vira null.
 std::string Database::listCases(const std::string &) {
   return nextJson(
       "SELECT "
@@ -450,7 +452,9 @@ std::string Database::listCases(const std::string &) {
       "extract(v.content_json,'$.patient.age'),'initials',json_extract(v."
       "content_json,'$.patient.initials'),'complaint',json_extract(v.content_"
       "json,'$.patient.complaint'),'onset',json_extract(v.content_json,'$."
-      "patient.onset'),'tags',json_extract(v.metadata_json,'$.publicTags')))),'"
+      "patient.onset'),'tags',json_extract(v.metadata_json,'$.publicTags')),'"
+      "image',CASE c.stable_key WHEN 'joao' THEN '/assets/images/joao-atendimento.png' "
+      "WHEN 'marina' THEN '/assets/images/marina-atendimento.png' ELSE NULL END)), '"
       "[]') FROM clinical_cases c JOIN case_versions v ON "
       "v.id=c.current_version_id WHERE c.status='published' AND "
       "v.review_state='published'");

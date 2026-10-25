@@ -519,6 +519,22 @@ class NextHttpTests(unittest.TestCase):
             404,
         )
 
+    def test_catalog_includes_patient_images_and_serves_public_pngs(self):
+        """A tela inicia pelo catálogo; a imagem precisa existir nesse contrato."""
+        status, catalog, _ = self.request("GET", "/api/v1/cases", cookie=self.a)
+        self.assertEqual(status, 200, catalog)
+        cases = {item["key"]: item for item in catalog}
+        for key in ("joao", "marina"):
+            with self.subTest(case=key):
+                expected = f"/assets/images/{key}-atendimento.png"
+                self.assertEqual(cases[key].get("image"), expected)
+                detail = self.request("GET", f"/api/v1/cases/{key}/public", cookie=self.a)[1]
+                self.assertEqual(detail["image"], expected)
+                image_status, data, headers = self.request("GET", expected)
+                self.assertEqual(image_status, 200)
+                self.assertIn("image/png", headers.get("Content-Type", ""))
+                self.assertTrue(data.startswith(b"\x89PNG\r\n\x1a\n"))
+
     def test_cross_institution_public_metadata_and_existing_grants_are_blocked(self):
         doc = self.document()
         with closing(sqlite3.connect(self.db)) as db, db:

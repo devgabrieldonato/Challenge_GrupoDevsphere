@@ -1094,3 +1094,9 @@ O usuário confirmou funcionamento correto do VoiceOver no Safari e no Google Ch
 As variáveis acima valem apenas no terminal/processo que as recebeu. Preserve o modo protegido ao reiniciar a API e mantenha banco/raiz de fontes coerentes com o worker. Encerramento: Ctrl+C no terminal original; não mate processos por nome. Os guias vinculados explicam manutenção e recuperação, sem apagar dados locais.
 
 Roteiro do painel, alertas, inicialização e recuperação: [Operação e recuperação](docs/OPERACAO_E_RECUPERACAO.md).
+
+## Correção das ilustrações — 25/10/2026
+
+O catálogo `GET /api/v1/cases` agora inclui o campo público `image`, com os mesmos caminhos das ilustrações de João e Marina já informados pelo detalhe público. A tela inicia o atendimento pelos dados desse catálogo; sem o campo, ocultava a figura apesar de os PNGs estarem disponíveis. Casos sem ilustração continuam com `null`. A legenda acompanha o paciente selecionado. Não houve mudança nos PNGs ou no conteúdo clínico.
+
+Regressão: o teste HTTP novo reproduziu a ausência nas duas entradas antes da correção e passou depois. Chrome verificou imagem visível e decodificada de João na origem da API e Marina em origem 5501 com proxy isolado de teste, além das jornadas/PDF/devolutiva; CTest 2/2 passou. Os arquivos reais responderam HTTP 200 tanto em 8080 quanto no Live Server 5501. Nenhuma inferência ou alteração de dados pessoais.

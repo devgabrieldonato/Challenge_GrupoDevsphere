@@ -88,6 +88,10 @@ server.stderr.on('data', d => serverLog += d);
     await page.locator('#caseSession').waitFor({
       state: 'visible'
     });
+    await page.locator('.patient-scene').waitFor({state:'visible'});
+    await page.waitForFunction(()=>{const img=document.querySelector('.patient-scene img');return img.complete && img.naturalWidth>0;});
+    assert.match(await page.locator('.patient-scene img').getAttribute('src'),/joao-atendimento\.png$/);
+    assert.match(await page.locator('.patient-scene figcaption').textContent(),/João/);
     await page.locator('#blocks [data-id="pain"]').click();
     await page.waitForFunction(() => document.getElementById('count').textContent === '01');
     assert.match(await page.locator('#branches').textContent(), /aperto/);
@@ -216,6 +220,10 @@ server.stderr.on('data', d => serverLog += d);
     await live.locator('#caseSession').waitFor({
       state: 'visible'
     });
+    await live.locator('.patient-scene').waitFor({state:'visible'});
+    await live.waitForFunction(()=>{const img=document.querySelector('.patient-scene img');return img.complete && img.naturalWidth>0;});
+    assert.match(await live.locator('.patient-scene img').getAttribute('src'),/marina-atendimento\.png$/);
+    assert.match(await live.locator('.patient-scene figcaption').textContent(),/Marina/);
     await live.locator('#blocks [data-id="glucose"]').click();
     await live.waitForFunction(() => document.getElementById('count').textContent === '01');
     assert.match(await live.locator('.patient h3').textContent(), /Marina/);

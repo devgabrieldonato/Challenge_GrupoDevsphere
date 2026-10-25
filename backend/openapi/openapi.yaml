@@ -1836,6 +1836,10 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/ReviewState'
+        image:
+          type: [string, 'null']
+          description: Caminho público da ilustração, presente no catálogo e no detalhe público. João/Marina possuem imagens locais; casos sem ilustração retornam null.
+          pattern: '^/assets/images/[A-Za-z0-9_.-]+$'
     ClinicalCase:
       type: object
       required:

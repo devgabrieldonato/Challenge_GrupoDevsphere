@@ -465,3 +465,7 @@ Guias: [Operação e recuperação](OPERACAO_E_RECUPERACAO.md), [Reconciliação
 Usuário relatou funcionamento correto do VoiceOver pelo Safari após o roteiro. Registrar como verificação manual informada pelo titular, sem contar cenários individuais ou declarar certificação. Foi preparada repetição no Chrome 155.0.8059.86/macOS 26.6.2, incluindo o visualizador PDF próprio; retorno Chrome/VoiceOver confirmado pelo usuário em seguida, sem detalhamento por cenário. O bloqueio de automação do SafariDriver é separado desse relato manual positivo. Nenhuma inferência ou alteração de preferências.
 
 Confirmação adicional em 24/10: teste funcional do VoiceOver também informado como correto no Google Chrome. Os relatos positivos de Safari e Chrome foram registrados como evidência manual do usuário, mantendo separado o limite da automação nativa e sem atribuir certificações. Nenhuma inferência, commit ou push nesta atualização.
+
+### Ilustrações João/Marina — 25/10/2026
+
+Corrigido contrato do catálogo que omitia image e fazia a interface ocultar as figuras. Legenda atualizada por paciente. Regressão HTTP reproduzida antes e aprovada após correção; Chrome com imagem visível/naturalWidth positivo e CTest 2/2 passaram. PNGs servidos com HTTP 200 em API e Live Server reais. Sem alteração clínica, migration ou modelo; correção local na NEXT_2026, sem novo commit/push.

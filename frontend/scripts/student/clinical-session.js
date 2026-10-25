@@ -541,6 +541,9 @@ $('caseForm').onsubmit = async event => {
     if (imageSource && /^(?:\.\.\/|\/)assets\/images\/[\w.-]+$/.test(imageSource)) {
       image.src = `../assets/images/${imageSource.split('/').pop()}`;
       image.alt = `Ilustração educacional de ${patient.name||'paciente fictício'}`;
+      // O figure é compartilhado pelos casos; a legenda acompanha o paciente escolhido.
+      image.closest('figure').querySelector('figcaption').textContent =
+        `${patient.name||'Paciente fictício'} na chegada ao atendimento · imagem gerada por IA`;
     } else image.closest('figure').hidden = true;
     document.querySelector('.intro .eyebrow').textContent =
       `Caso ${activeCase} · versão ${session.versionId}`;

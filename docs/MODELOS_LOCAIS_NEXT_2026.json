@@ -1,0 +1,1229 @@
+{
+  "date": "2026-10-16",
+  "ollamaVersion": "0.40.5",
+  "hardware": "Apple M1 / 8 GiB",
+  "models": [
+    {
+      "name": "qwen3:8b",
+      "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+      "sizeBytes": 5225388164,
+      "installation": "verified",
+      "inference": "short4096 succeeded in isolated profile; full8192 failed GPU OutOfMemory; no full generation validated"
+    },
+    {
+      "name": "gemma3:4b",
+      "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+      "sizeBytes": 3350272403,
+      "installation": "verified",
+      "shortJsonTestSeconds": 16.96,
+      "shortJsonTestTokens": 17
+    }
+  ],
+  "generationStatus": "blocked_full_case_gpu_out_of_memory_in_isolated_profile",
+  "clinicalValidation": "pending_human_review",
+  "observations": [
+    "Initial16k context loaded approximately7.9GB with pressure observed",
+    "Qwen4k hybrid timed out after180s",
+    "Qwen CPU4k also timed out after180s; exact root cause not established",
+    "Gemma4k JSON technical test succeeded; not a clinical review"
+  ],
+  "latestProbes": [
+    {
+      "date": "2026-10-16",
+      "purpose": "Resposta técnica curta; não geração clínica",
+      "model": "qwen3:8b",
+      "timeoutSeconds": 45,
+      "options": {
+        "num_ctx": 512,
+        "num_predict": 16,
+        "num_batch": 16,
+        "temperature": 0
+      },
+      "status": "completed",
+      "doneReason": "stop",
+      "evaluationTokens": 9,
+      "promptTokens": 25,
+      "loadDurationNs": 21314879917,
+      "totalDurationNs": 27569732625,
+      "elapsedSeconds": 27.841,
+      "ollamaApproxPeakRssBytes": null,
+      "unloadAcknowledged": true,
+      "memoryNote": "A amostragem não obteve medida de RSS; não significa consumo zero."
+    },
+    {
+      "date": "2026-10-16",
+      "purpose": "Teste técnico curto no contexto mínimo do worker; sem geração clínica",
+      "model": "qwen3:8b",
+      "timeoutSeconds": 60,
+      "status": "failed",
+      "error": {
+        "code": "provider_timeout",
+        "retryable": true
+      },
+      "elapsedSeconds": 60.234,
+      "unloadAcknowledged": true
+    }
+  ],
+  "latestProfileProbes": [
+    {
+      "date": "2026-10-16",
+      "model": "qwen3:8b",
+      "profile": {
+        "parallel": 1,
+        "maxLoadedModels": 1,
+        "kvCache": "q8_0",
+        "flashAttention": true,
+        "fitTargetMiB": 128
+      },
+      "generationValidation": "not_performed",
+      "clinicalValidation": "pending_human_review",
+      "ollamaVersion": "0.40.5",
+      "options": {
+        "num_ctx": 4096,
+        "num_predict": 16,
+        "num_batch": 16,
+        "temperature": 0
+      },
+      "status": "completed",
+      "elapsedSeconds": 18.736,
+      "metrics": {
+        "load_duration": 16883045916,
+        "prompt_eval_count": 25,
+        "eval_count": 9,
+        "eval_duration": 948747000,
+        "total_duration": 18546375250
+      },
+      "unloadAcknowledged": true,
+      "serverStopped": true
+    },
+    {
+      "date": "2026-10-16",
+      "status": "failed",
+      "clinicalValidation": "pending_human_review",
+      "profile": {
+        "parallel": 1,
+        "maxLoadedModels": 1,
+        "kvCache": "q8_0",
+        "flashAttention": true,
+        "fitTargetMiB": 128
+      },
+      "calls": [
+        {
+          "model": "qwen3:8b",
+          "status": "failed",
+          "elapsedSeconds": 15.553,
+          "code": "provider_incomplete"
+        }
+      ],
+      "ollamaVersion": "0.40.5",
+      "error": {
+        "code": "provider_incomplete",
+        "message": "Ollama encerrou sem confirmar conclusão; nenhum resultado parcial será aceito.",
+        "retryable": true
+      },
+      "elapsedSeconds": 15.832,
+      "serverStopped": true,
+      "runtimeEvidence": {
+        "source": "isolated_Ollama_log",
+        "error": "kIOGPUCommandBufferCallbackErrorOutOfMemory",
+        "gpuLayers": "37/37",
+        "kvCacheMiB": 612,
+        "contextTokens": 8192,
+        "partialResultAccepted": false,
+        "sourceMaterial": "synthetic_fixture",
+        "criticExecuted": false
+      }
+    }
+  ],
+  "nextHardware": {
+    "availableAccordingToUser": true,
+    "specifications": "verified_on_windows_2026_10_19",
+    "remoteAccessConfigured": false,
+    "benchmarkPerformed": true,
+    "system": "Windows",
+    "systemVersion": "Windows 11 26H2 build 26300.9711",
+    "ramGiB": 16,
+    "gpu": "MSI NVIDIA GeForce RTX 3060",
+    "vramGiB": 12,
+    "processor": "AMD Ryzen 7 5700G",
+    "logicalCpuCount": 16,
+    "usablePhysicalRamBytes": 14916763648,
+    "initialAvailablePhysicalRamBytes": 2727272448,
+    "nvidiaDriver": "596.36",
+    "vramMiB": 12288
+  },
+  "windowsValidation": {
+    "date": "2026-10-19",
+    "repositoryBranch": "NEXT_2026",
+    "repositoryCommit": "ffb20eb9f4a580f0b8e16b9ff408541febd786a5",
+    "ollamaVersion": "0.40.6",
+    "pythonVersion": "3.12.1",
+    "gitVersion": "2.46.2.windows.1",
+    "models": [
+      {
+        "name": "gemma3:4b",
+        "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+        "size": 3350272403,
+        "details": {
+          "parent_model": "dhiltgen/gemma3:4b-it-q4_K_M-llamacpp",
+          "format": "gguf",
+          "family": "gemma3",
+          "families": [
+            "gemma3",
+            "clip"
+          ],
+          "parameter_size": "3.9B",
+          "quantization_level": "Q4_K_M",
+          "context_length": 131072,
+          "embedding_length": 2560,
+          "runner": "llamacpp"
+        }
+      },
+      {
+        "name": "qwen3:8b",
+        "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+        "size": 5225388164,
+        "details": {
+          "parent_model": "",
+          "format": "gguf",
+          "family": "qwen3",
+          "families": [
+            "qwen3"
+          ],
+          "parameter_size": "8.2B",
+          "quantization_level": "Q4_K_M",
+          "context_length": 40960,
+          "embedding_length": 4096,
+          "runner": "ggml"
+        }
+      }
+    ],
+    "benchmarkStatus": "completed_native_v4_prior_failures_preserved",
+    "clinicalValidation": "pending_human_review",
+    "databaseAccessed": false,
+    "sourceMaterial": "worker/fixtures/synthetic-benchmark.request.json",
+    "fixtureSha256": "b41dc08037f286fe6e8d283b0ce8bf7d011563a73a56c210aaf8ce8c085846da",
+    "sourceMarkdownSha256": "b46ec62c24af0a2e768f008ea060ce05dd42c3fa55002063d33c50f16e7c436a",
+    "pythonDependencies": {
+      "pypdf": "6.21.1",
+      "pdfplumber": "0.11.10",
+      "jsonschema": "4.26.0",
+      "reportlab": "5.0.1"
+    },
+    "runtime": {
+      "host": "127.0.0.1:11434",
+      "numParallel": 1,
+      "maxLoadedModels": 1,
+      "configurationScope": "Limites1/1 do servidor temporário inicial; não foram aplicados/verificados como configuração permanente do aplicativo Windows. Chamadas dos testes foram sequenciais."
+    },
+    "pdf": {
+      "textualTestsPassed": 4,
+      "ocrStatus": "completed_real_synthetic_scanned_pdf",
+      "popplerVersion": "26.07.0",
+      "popplerReused": true,
+      "tesseractVersion": "5.5.3.20260724",
+      "languages": [
+        "eng",
+        "osd",
+        "por"
+      ],
+      "tesseractInstallerSha256": "bee9e3434bd94fd65387d9be28cd467a41f61b1275383b55b0f59a1331270ae4",
+      "tesseractInstallerSource": "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.3/tesseract-ocr-w64-setup-5.5.3.20260724.exe",
+      "installerDigestMatchedOfficialGitHubAsset": true,
+      "installerAuthenticodeStatus": "UnknownError: signing certificate outside validity; verified official release asset SHA256 instead; no Windows protections disabled"
+    },
+    "configurations": {
+      "initial": {
+        "generatorContext": 8192,
+        "criticContext": 16384,
+        "generatorMaxTokens": 6000,
+        "criticMaxTokens": 768,
+        "batch": 64,
+        "timeoutSeconds": 900
+      },
+      "retry": {
+        "criticMaxTokens": 2048,
+        "otherSettings": "unchanged"
+      }
+    },
+    "runs": [
+      {
+        "reportPath": "validation-reports/benchmark-rtx3060.json",
+        "status": "failed",
+        "elapsedSeconds": 269.328,
+        "errorCode": "generation_truncated",
+        "failureStage": "critic",
+        "criticMaxTokens": 768,
+        "generatorOutputTokensFromServerLog": 3981,
+        "criticOutputTokensFromServerLog": 768,
+        "physicalMemory": {
+          "samples": 135,
+          "firstUtc": "2026-10-19T20:05:10.8870116Z",
+          "lastUtc": "2026-10-19T20:09:39.8903952Z",
+          "minGlobalRamAvailableBytes": 4930490368,
+          "maxGlobalRamUsedBytes": 9986273280,
+          "peakGpuTotalUsedMiB": 7222,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "endEvent": {
+            "event": "end",
+            "elapsed_seconds": 269.1217508,
+            "reason": "stop_file_detected",
+            "utc": "2026-10-19T20:09:39.9668918Z"
+          }
+        },
+        "promptVersion": "next2026-v1"
+      },
+      {
+        "reportPath": "validation-reports/benchmark-rtx3060-critic2048.json",
+        "status": "completed",
+        "elapsedSeconds": 140.422,
+        "schemaValid": true,
+        "questions": 18,
+        "exams": 22,
+        "provenance": {
+          "promptVersion": "next2026-v1",
+          "generator": {
+            "model": "qwen3:8b",
+            "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 8192,
+              "num_predict": 6000,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 110011906600,
+            "evaluationTokens": 4308,
+            "promptTokens": 762,
+            "loadDurationNs": 14809968800,
+            "promptDurationNs": 862118000,
+            "evaluationDurationNs": 94310653000
+          },
+          "critic": {
+            "model": "gemma3:4b",
+            "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 16384,
+              "num_predict": 2048,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 30010954500,
+            "evaluationTokens": 519,
+            "promptTokens": 3783,
+            "loadDurationNs": 13058319900,
+            "promptDurationNs": 8753479000,
+            "evaluationDurationNs": 8180551000
+          },
+          "elapsedSeconds": 140.422
+        },
+        "providerReportedPeakAllocationBytes": 6091995873,
+        "providerReportedPeakVramBytes": 6091995873,
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "physicalMemory": {
+          "samples": 71,
+          "firstUtc": "2026-10-19T20:10:15.4738909Z",
+          "lastUtc": "2026-10-19T20:12:35.9560334Z",
+          "minGlobalRamAvailableBytes": 4828442624,
+          "maxGlobalRamUsedBytes": 10088321024,
+          "peakGpuTotalUsedMiB": 7225,
+          "peakGpuUtilizationPercent": 97,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "maxIntervalSeconds": 2.016333799999998,
+          "endEvent": {
+            "utc": "2026-10-19T20:12:36.0299452Z",
+            "event": "end",
+            "reason": "stop_file_detected",
+            "elapsed_seconds": 140.5891679
+          },
+          "perModel": {
+            "gemma3:4b": {
+              "samples": 8,
+              "peakGpuTotalUsedMiB": 5164,
+              "minGlobalRamAvailableBytes": 4828442624
+            },
+            "qwen3:8b": {
+              "samples": 47,
+              "peakGpuTotalUsedMiB": 7225,
+              "minGlobalRamAvailableBytes": 5204430848
+            }
+          }
+        },
+        "promptVersion": "next2026-v1",
+        "criticMaxTokens": 2048
+      },
+      {
+        "reportPath": "validation-reports/benchmark-repeatability-20261019-1.json",
+        "promptVersion": "next2026-v1",
+        "criticMaxTokens": 2048,
+        "status": "failed",
+        "elapsedSeconds": 148.719,
+        "error": {
+          "code": "generation_truncated",
+          "message": "O modelo atingiu o limite de saída; nenhum caso parcial será aceito. Reveja os limites após benchmark.",
+          "retryable": true
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "failureStage": "critic"
+      },
+      {
+        "reportPath": "validation-reports/benchmark-repeatability-20261019-2.json",
+        "promptVersion": "next2026-v1",
+        "criticMaxTokens": 2048,
+        "status": "completed",
+        "elapsedSeconds": 124.734,
+        "schemaValid": true,
+        "questions": 18,
+        "exams": 22,
+        "provenance": {
+          "promptVersion": "next2026-v1",
+          "generator": {
+            "model": "qwen3:8b",
+            "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 8192,
+              "num_predict": 6000,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 102342130200,
+            "evaluationTokens": 3806,
+            "promptTokens": 762,
+            "loadDurationNs": 20639041300,
+            "promptDurationNs": 1164365000,
+            "evaluationDurationNs": 80491600000
+          },
+          "critic": {
+            "model": "gemma3:4b",
+            "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 16384,
+              "num_predict": 2048,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 21795569600,
+            "evaluationTokens": 425,
+            "promptTokens": 3393,
+            "loadDurationNs": 13223137300,
+            "promptDurationNs": 1727361000,
+            "evaluationDurationNs": 6820618000
+          },
+          "elapsedSeconds": 124.734
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null
+      },
+      {
+        "reportPath": "validation-reports/benchmark-critic4096-repeat-20261019-1.json",
+        "promptVersion": "next2026-v1",
+        "criticMaxTokens": 4096,
+        "status": "failed",
+        "elapsedSeconds": 155.265,
+        "error": {
+          "code": "generation_truncated",
+          "message": "O modelo atingiu o limite de saída; nenhum caso parcial será aceito. Reveja os limites após benchmark.",
+          "retryable": true
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "failureStage": "critic"
+      },
+      {
+        "reportPath": "validation-reports/benchmark-critic4096-repeat-20261019-2.json",
+        "promptVersion": "next2026-v1",
+        "criticMaxTokens": 4096,
+        "status": "completed",
+        "elapsedSeconds": 126.641,
+        "schemaValid": true,
+        "questions": 18,
+        "exams": 22,
+        "provenance": {
+          "promptVersion": "next2026-v1",
+          "generator": {
+            "model": "qwen3:8b",
+            "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 8192,
+              "num_predict": 6000,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 98154927300,
+            "evaluationTokens": 4231,
+            "promptTokens": 762,
+            "loadDurationNs": 14269713700,
+            "promptDurationNs": 917693000,
+            "evaluationDurationNs": 82944516000
+          },
+          "critic": {
+            "model": "gemma3:4b",
+            "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 16384,
+              "num_predict": 4096,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 28023994500,
+            "evaluationTokens": 580,
+            "promptTokens": 3721,
+            "loadDurationNs": 11829209100,
+            "promptDurationNs": 8006266000,
+            "evaluationDurationNs": 8171861000
+          },
+          "elapsedSeconds": 126.641
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null
+      },
+      {
+        "reportPath": "validation-reports/benchmark-bounded-v2-20261019-1.json",
+        "promptVersion": "next2026-v2",
+        "criticMaxTokens": 4096,
+        "status": "failed",
+        "elapsedSeconds": 111.422,
+        "error": {
+          "code": "invalid_critic",
+          "message": "Resumo crítico fora do contrato; tente novamente sem aceitar saída parcial.",
+          "retryable": true
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "failureStage": "critic",
+        "physicalMemory": {
+          "samples": 57,
+          "maxGlobalRamUsedBytes": 10933460992,
+          "minGlobalRamAvailableBytes": 3983302656,
+          "peakGpuTotalUsedMiB": 7364,
+          "peakGpuUtilizationPercent": 97,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "maxIntervalSeconds": 2.015271499999997,
+          "endEvent": {
+            "event": "end",
+            "elapsed_seconds": 112.5251779,
+            "utc": "2026-10-19T22:54:19.5376899Z",
+            "reason": "stop_file_detected"
+          }
+        },
+        "providerReportedPeakAllocationBytes": 6091995873
+      },
+      {
+        "reportPath": "validation-reports/benchmark-bounded-v2-20261019-2.json",
+        "promptVersion": "next2026-v2",
+        "criticMaxTokens": 4096,
+        "status": "failed",
+        "elapsedSeconds": 141.437,
+        "error": {
+          "code": "invalid_critic",
+          "message": "Resumo crítico fora do contrato; tente novamente sem aceitar saída parcial.",
+          "retryable": true
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "failureStage": "critic",
+        "physicalMemory": {
+          "samples": 72,
+          "maxGlobalRamUsedBytes": 11117412352,
+          "minGlobalRamAvailableBytes": 3799351296,
+          "peakGpuTotalUsedMiB": 7344,
+          "peakGpuUtilizationPercent": 97,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "maxIntervalSeconds": 2.015997100000007,
+          "endEvent": {
+            "event": "end",
+            "utc": "2026-10-19T22:56:43.0284420Z",
+            "reason": "stop_file_detected",
+            "elapsed_seconds": 142.6928364
+          }
+        },
+        "providerReportedPeakAllocationBytes": 6091995873
+      },
+      {
+        "reportPath": "validation-reports/benchmark-bounded-v2-diagnostic-20261019.json",
+        "promptVersion": "next2026-v2",
+        "criticMaxTokens": 4096,
+        "status": "failed",
+        "elapsedSeconds": 109.594,
+        "error": {
+          "code": "invalid_critic",
+          "message": "Resumo crítico fora do contrato; tente novamente sem aceitar saída parcial.",
+          "retryable": true
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "failureStage": "critic",
+        "physicalMemory": {
+          "samples": 56,
+          "maxGlobalRamUsedBytes": 11080077312,
+          "minGlobalRamAvailableBytes": 3836686336,
+          "peakGpuTotalUsedMiB": 7357,
+          "peakGpuUtilizationPercent": 100,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "maxIntervalSeconds": 2.0152549999999962,
+          "endEvent": {
+            "event": "end",
+            "elapsed_seconds": 110.5019412,
+            "reason": "stop_file_detected",
+            "utc": "2026-10-19T22:58:45.1357610Z"
+          }
+        },
+        "providerReportedPeakAllocationBytes": 6091995873
+      },
+      {
+        "reportPath": "validation-reports/benchmark-native-v4-20261020.json",
+        "status": "completed",
+        "elapsedSeconds": 96.891,
+        "questions": 18,
+        "exams": 22,
+        "schemaValid": true,
+        "provenance": {
+          "promptVersion": "next2026-v4",
+          "generator": {
+            "model": "qwen3:8b",
+            "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 8192,
+              "num_predict": 6000,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 81522692700,
+            "evaluationTokens": 3302,
+            "promptTokens": 762,
+            "loadDurationNs": 16650625100,
+            "promptDurationNs": 791822000,
+            "evaluationDurationNs": 64061620000
+          },
+          "critic": {
+            "model": "gemma3:4b",
+            "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 16384,
+              "num_predict": 4096,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 14787325200,
+            "evaluationTokens": 158,
+            "promptTokens": 3372,
+            "loadDurationNs": 11177261100,
+            "promptDurationNs": 1669064000,
+            "evaluationDurationNs": 1924994000
+          },
+          "elapsedSeconds": 96.875
+        },
+        "physicalMemory": {
+          "report": "native-benchmark-v4-20261020-windows-physical.jsonl",
+          "samples": 50,
+          "minGlobalRamAvailableBytes": 4163469312,
+          "maxGlobalRamUsedBytes": 10753294336,
+          "peakGpuTotalUsedMiB": 6742,
+          "peakGpuUtilizationPercent": 97,
+          "maxIntervalSeconds": 2.0154673999999915,
+          "endEvent": {
+            "event": "end",
+            "reason": "stop_file_detected",
+            "utc": "2026-10-20T13:56:32.3532631Z",
+            "elapsed_seconds": 98.4517263
+          }
+        },
+        "clientMaxRssBytes": null,
+        "ollamaApproxPeakRssBytes": null,
+        "ollamaReportedPeakSizeBytes": 6091995873,
+        "ollamaReportedPeakVramBytes": 6091995873,
+        "promptVersion": "next2026-v4",
+        "criticMaxTokens": 4096
+      }
+    ],
+    "memoryNote": "RAM física é global do sistema; NVIDIA-SMI mede ocupação total da GPU, incluindo outros processos. size/size_vram são alocações do provedor. RSS null significa não medido. Picos amostrados podem perder máximos entre coletas.",
+    "observations": [
+      "Histórico das duas primeiras execuções nativas v1: Ambos os modelos observados em sequência com 100% GPU por ollama ps; logs37/37 Qwen e35/35 Gemma em CUDA.",
+      "Histórico das duas primeiras execuções nativas v1: Sem OOM ou timeout observados nestas duas tentativas. Primeira falhou por truncamento da crítica.",
+      "Histórico das duas primeiras execuções nativas v1: Um fluxo completo bem-sucedido com a fixture sintética comprova esta configuração nesta execução; estabilidade ampla e documentos maiores não foram medidos.",
+      "Histórico das duas primeiras execuções nativas v1: Nenhum caso persistido no banco, aprovado ou publicado; benchmark não salva conteúdo gerado.",
+      "Repetições next2026-v1: crítica truncou também com2048 e4096; três fluxos completos e três falhas entre seis tentativas. Não é estabilidade comprovada."
+    ],
+    "tests": {
+      "selectedWorkerPdfOcrPassed": 53,
+      "selectedWorkerPdfOcrSeconds": 13.943,
+      "fullDaemonSuite": "attempted_native_windows_import_error_resource_48_passed_1_import_error",
+      "pipCheck": "passed",
+      "sourceStorageAudit": "attempted_native_windows_1_failure_5_errors_posix_and_symlink_permissions",
+      "clinicalCaseAndSecureBackupPassed": 7,
+      "publicFormsChromeScenariosPassed": 16,
+      "publicFormsScope": "native_validation_only_no_backend",
+      "realAiPipeline": "completed_real_v4_on_wsl_20261019"
+    },
+    "fullPlatform": {
+      "nativeWindows": "not_validated_posix_code_present",
+      "wslInstalled": true,
+      "wslInstallationAuthorized": true,
+      "wslVersion": "3.0.3.0",
+      "wslKernel": "6.18.54.1-1",
+      "virtualMachinePlatformEnabled": true,
+      "restartPending": false,
+      "hypervisorPresent": true,
+      "ubuntuInstalled": true,
+      "ubuntuInstallError": null,
+      "ubuntuImagePath": "G:\\WSL\\ubuntu-24.04.5-wsl-amd64.wsl",
+      "ubuntuImageSha256": "bb415d824822c4b878125729af451a5d18fb13d1cf5cbed9a7393ad64ac6039e",
+      "linuxPlatformTests": "passed_synthetic_cpp_worker_http_browsers_and_real_rag",
+      "networkConfigurationChanged": false,
+      "ubuntuVersion": "24.04.5 LTS",
+      "ubuntuDistribution": "PacienteVirtual-Ubuntu2404",
+      "wslPlatformStatus": "local_synthetic_validation_passed_not_production_homologation"
+    },
+    "doctorFinal": {
+      "status": "available",
+      "issues": [],
+      "runningModelCount": 0,
+      "windowsTesseractVersionPrefixFixed": true,
+      "physicalMemoryBytes": null
+    },
+    "finalService": {
+      "owner": "existing_Ollama_desktop_application",
+      "version": "0.40.6",
+      "bind": "127.0.0.1:11434",
+      "temporaryBenchmarkServerStopped": true,
+      "runningModelCount": 0
+    },
+    "boundedCriticValidation": {
+      "promptVersion": "next2026-v2",
+      "status": "experimental_not_stable",
+      "maxConcerns": 12,
+      "maxConcernCharacters": 240,
+      "maxSummaryCharacters": 400,
+      "unitTestsPassed": 51,
+      "realRunsCompleted": 0,
+      "realRunsAttempted": 3,
+      "sanitizedDiagnostic": {
+        "schemaVersion": "1.0",
+        "criticValidationCalls": [
+          {
+            "status": "invalid",
+            "shape": {
+              "type": "object",
+              "fieldCount": 3,
+              "unknownFieldCount": 0,
+              "missingFields": [],
+              "concerns": {
+                "type": "array",
+                "itemCount": 5,
+                "stringItemCount": 5,
+                "nonStringItemCount": 0,
+                "shortestStringCharacters": 198,
+                "longestStringCharacters": 265,
+                "blankStringCount": 0
+              },
+              "sourceFidelity": {
+                "type": "string",
+                "characterCount": 377,
+                "onlyWhitespace": false
+              },
+              "tagLeakage": {
+                "type": "string",
+                "characterCount": 320,
+                "onlyWhitespace": false
+              }
+            },
+            "schemaErrorCount": 1,
+            "schemaErrors": [
+              {
+                "validator": "maxLength",
+                "path": [
+                  "concerns",
+                  4
+                ],
+                "valueType": "string",
+                "characterCount": 265,
+                "schemaLimit": 240
+              }
+            ],
+            "schemaErrorsOmitted": 0
+          }
+        ],
+        "providerCalls": [
+          {
+            "role": "generator",
+            "status": "completed",
+            "evaluationTokens": 3803,
+            "promptTokens": 762,
+            "loadDurationNs": 14440022500,
+            "durationNs": 89294212100,
+            "promptDurationNs": 788481000,
+            "evaluationDurationNs": 74037447000,
+            "options": {
+              "num_ctx": 8192,
+              "num_predict": 6000,
+              "num_batch": 64
+            },
+            "elapsedSeconds": 89.359
+          },
+          {
+            "role": "critic",
+            "status": "completed",
+            "evaluationTokens": 452,
+            "promptTokens": 3466,
+            "loadDurationNs": 12660705000,
+            "durationNs": 19922920400,
+            "promptDurationNs": 1634377000,
+            "evaluationDurationNs": 5607622000,
+            "options": {
+              "num_ctx": 16384,
+              "num_predict": 4096,
+              "num_batch": 64
+            },
+            "elapsedSeconds": 20.0
+          }
+        ],
+        "clinicalValidation": "pending_human_review",
+        "retryPerformed": false,
+        "benchmarkExitCode": 1,
+        "elapsedSeconds": 109.641
+      },
+      "historical": true
+    },
+    "latestValidationDate": "2026-10-20"
+  },
+  "historicalRecordNote": "Campos date/hardware/models/generationStatus descrevem o M1 em 16/10/2026; windowsValidation registra a execução atual separadamente.",
+  "wslValidation": {
+    "date": "2026-10-20",
+    "distribution": "PacienteVirtual-Ubuntu2404",
+    "ubuntuVersion": "24.04.5 LTS",
+    "installLocation": "G:\\WSL\\PacienteVirtual-Ubuntu2404",
+    "user": "pacientevirtual",
+    "python": "3.12.3",
+    "venv": "/home/pacientevirtual/.venvs/pacientevirtual",
+    "cmake": "3.28.3",
+    "gcc": "13.3.0",
+    "sqlite": "3.45.1",
+    "openssl": "3.0.13",
+    "poppler": "24.02.0",
+    "tesseract": "5.3.4",
+    "ocrLanguages": [
+      "eng",
+      "por",
+      "osd"
+    ],
+    "node": "24.22.0",
+    "chromium": "151.0.7922.34",
+    "ollama": "0.40.6",
+    "ollamaArtifactSha256": "c164ab8b1b28e2a247c29719b8e404c423c5b83ae64c3ab4e59d50c7ff7fc5e0",
+    "ollamaBind": "127.0.0.1:11434",
+    "sharedWindowsModelWeights": true,
+    "ollamaNoPrune": true,
+    "cloudDisabled": true,
+    "numParallel": 1,
+    "maxLoadedModels": 1,
+    "buildPath": "/home/pacientevirtual/build/pacientevirtual/backend",
+    "cpp20Build": "passed",
+    "ctestPassed": 2,
+    "ctestSeconds": 5.27,
+    "fullWorkerPassed": 61,
+    "fullWorkerSeconds": 12.641,
+    "toolsDiscoveryExecuted": 42,
+    "toolsDiscoveryPassed": 41,
+    "toolsDiscoverySkipped": 1,
+    "toolsSkipReason": "real_inference_separate_opt_in_run",
+    "toolsSeconds": 26.08,
+    "clinicalStructureTestsPassed": 6,
+    "browserNext": "passed_final_after_all_feedback_fixes",
+    "browserLiveServerReal": "passed_final_20261020",
+    "liveServerGuard": "passed",
+    "legacyBrowserTestsPassed": 9,
+    "generationStatus": "completed_v4_real_rag_and_text_benchmark",
+    "clinicalValidation": "pending_human_review",
+    "networkConfigurationChanged": false,
+    "privateDatabasesUsed": false,
+    "casesPublishedOrApproved": false,
+    "setupDate": "2026-10-19",
+    "promptVersion": "next2026-v4",
+    "feedbackUsability": "passed_final_20261020",
+    "memoryNote": "RAM Windows e ocupação GPU são totais do sistema amostrados, não exclusivos do modelo. RAM Linux é da VM WSL; size/size_vram são alocações do provedor. RSS ausente é não medido; picos entre coletas podem ser perdidos. Monitor Windows consulta o Ollama Windows; modelos WSL são registrados pelo monitor Linux separado.",
+    "runs": [
+      {
+        "status": "failed",
+        "clinicalValidation": "pending_human_review",
+        "fixtureSha256": "b41dc08037f286fe6e8d283b0ce8bf7d011563a73a56c210aaf8ce8c085846da",
+        "casePublished": false,
+        "caseMaterialized": false,
+        "memoryNote": "RAM/VRAM físicas não medidas por este harness",
+        "configuration": {
+          "DEVSPHERE_OLLAMA_URL": "http://127.0.0.1:11434",
+          "DEVSPHERE_GENERATOR_MODEL": "qwen3:8b",
+          "DEVSPHERE_CRITIC_MODEL": "gemma3:4b",
+          "DEVSPHERE_OLLAMA_CONTEXT": "8192",
+          "DEVSPHERE_OLLAMA_MAX_TOKENS": "6000",
+          "DEVSPHERE_OLLAMA_CRITIC_CONTEXT": "16384",
+          "DEVSPHERE_OLLAMA_CRITIC_MAX_TOKENS": "4096",
+          "DEVSPHERE_OLLAMA_BATCH": "64",
+          "DEVSPHERE_OLLAMA_TIMEOUT": "900"
+        },
+        "jobFailure": {
+          "operation": "generate",
+          "status": "queued",
+          "code": "invalid_critic"
+        },
+        "elapsedSeconds": 299.179,
+        "reportPath": "validation-reports/real-ai-pipeline-20261019T231639Z-15b69dfa8d5f.json",
+        "promptVersion": "next2026-v3",
+        "physicalMemory": {
+          "report": "wsl-rag-v3-windows-physical-20261019.jsonl",
+          "samples": 150,
+          "minGlobalRamAvailableBytes": 1347002368,
+          "maxGlobalRamUsedBytes": 13569761280,
+          "peakGpuTotalUsedMiB": 6882,
+          "peakGpuUtilizationPercent": 100,
+          "maxIntervalSeconds": 2.016400500000003,
+          "endEvent": {
+            "reason": "stop_file_detected",
+            "elapsed_seconds": 299.320906,
+            "utc": "2026-10-19T23:21:39.4905807Z",
+            "event": "end"
+          }
+        },
+        "linuxMemory": {
+          "report": "wsl-rag-v3-linux-memory-20261019.jsonl",
+          "samples": 150,
+          "minVmMemAvailableBytes": 5005664256,
+          "peakVmSwapUsedBytes": 0,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "providerReportedPeakSizeBytes": 6091995873,
+          "providerReportedPeakVramBytes": 6091995873,
+          "endEvent": {
+            "event": "end",
+            "elapsedSeconds": 299.39669835800004
+          }
+        }
+      },
+      {
+        "status": "completed",
+        "clinicalValidation": "pending_human_review",
+        "fixtureSha256": "b41dc08037f286fe6e8d283b0ce8bf7d011563a73a56c210aaf8ce8c085846da",
+        "casePublished": false,
+        "caseMaterialized": false,
+        "memoryNote": "RAM/VRAM físicas não medidas por este harness",
+        "configuration": {
+          "DEVSPHERE_OLLAMA_URL": "http://127.0.0.1:11434",
+          "DEVSPHERE_GENERATOR_MODEL": "qwen3:8b",
+          "DEVSPHERE_CRITIC_MODEL": "gemma3:4b",
+          "DEVSPHERE_OLLAMA_CONTEXT": "8192",
+          "DEVSPHERE_OLLAMA_MAX_TOKENS": "6000",
+          "DEVSPHERE_OLLAMA_CRITIC_CONTEXT": "16384",
+          "DEVSPHERE_OLLAMA_CRITIC_MAX_TOKENS": "4096",
+          "DEVSPHERE_OLLAMA_BATCH": "64",
+          "DEVSPHERE_OLLAMA_TIMEOUT": "900"
+        },
+        "questions": 18,
+        "exams": 22,
+        "schemaValid": true,
+        "ragRetrievedSources": 1,
+        "sourceHashesVerified": true,
+        "revocationRestrictedResult": true,
+        "generator": {
+          "model": "qwen3:8b",
+          "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+          "options": {
+            "temperature": 0.2,
+            "num_ctx": 8192,
+            "num_predict": 6000,
+            "num_batch": 64
+          },
+          "think": false,
+          "durationNs": 162564625423,
+          "evaluationTokens": 5649,
+          "promptTokens": 1080,
+          "loadDurationNs": 45677547981,
+          "promptDurationNs": 965038000,
+          "evaluationDurationNs": 115913012000
+        },
+        "critic": {
+          "model": "gemma3:4b",
+          "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+          "options": {
+            "temperature": 0.2,
+            "num_ctx": 16384,
+            "num_predict": 4096,
+            "num_batch": 64
+          },
+          "think": false,
+          "durationNs": 52023963857,
+          "evaluationTokens": 302,
+          "promptTokens": 5689,
+          "loadDurationNs": 45328808692,
+          "promptDurationNs": 2785520000,
+          "evaluationDurationNs": 3873833000
+        },
+        "promptVersion": "next2026-v4",
+        "elapsedSeconds": 225.529,
+        "reportPath": "validation-reports/real-ai-pipeline-20261019T232444Z-ae2fcb41671f.json",
+        "physicalMemory": {
+          "report": "wsl-rag-v4-20261019-windows-physical.jsonl",
+          "samples": 114,
+          "minGlobalRamAvailableBytes": 2191720448,
+          "maxGlobalRamUsedBytes": 12725043200,
+          "peakGpuTotalUsedMiB": 6817,
+          "peakGpuUtilizationPercent": 100,
+          "maxIntervalSeconds": 2.015637499999997,
+          "endEvent": {
+            "reason": "stop_file_detected",
+            "elapsed_seconds": 226.9905703,
+            "event": "end",
+            "utc": "2026-10-19T23:28:31.2432790Z"
+          }
+        },
+        "linuxMemory": {
+          "report": "wsl-rag-v4-20261019-linux-memory.jsonl",
+          "samples": 113,
+          "minVmMemAvailableBytes": 5253644288,
+          "peakVmSwapUsedBytes": 0,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "providerReportedPeakSizeBytes": 6091995873,
+          "providerReportedPeakVramBytes": 6091995873,
+          "endEvent": {
+            "event": "end",
+            "elapsedSeconds": 225.714724198
+          }
+        }
+      },
+      {
+        "status": "completed",
+        "clinicalValidation": "pending_human_review",
+        "generator": "qwen3:8b",
+        "critic": "gemma3:4b",
+        "schemaValid": true,
+        "items": 40,
+        "questions": 18,
+        "exams": 22,
+        "provenance": {
+          "promptVersion": "next2026-v4",
+          "generator": {
+            "model": "qwen3:8b",
+            "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 8192,
+              "num_predict": 6000,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 141016683872,
+            "evaluationTokens": 4596,
+            "promptTokens": 762,
+            "loadDurationNs": 47377419739,
+            "promptDurationNs": 714990000,
+            "evaluationDurationNs": 92916314000
+          },
+          "critic": {
+            "model": "gemma3:4b",
+            "digest": "68ceab7e468a31c988b44d5a4984a0e21f58c4f7158c6ce29c1804babac38df7",
+            "options": {
+              "temperature": 0.2,
+              "num_ctx": 16384,
+              "num_predict": 4096,
+              "num_batch": 64
+            },
+            "think": false,
+            "durationNs": 53254793081,
+            "evaluationTokens": 276,
+            "promptTokens": 4360,
+            "loadDurationNs": 43076430321,
+            "promptDurationNs": 6513148000,
+            "evaluationDurationNs": 3618561000
+          },
+          "elapsedSeconds": 195.134
+        },
+        "elapsedSeconds": 195.138,
+        "clientMaxRssBytes": 30765056,
+        "ollamaApproxPeakRssBytes": 1460764672,
+        "ollamaReportedPeakSizeBytes": 6091995873,
+        "ollamaReportedPeakVramBytes": 6091995873,
+        "ollamaAllocationSamples": 204,
+        "memoryNote": "RSS do cliente/processos e alocação reportada por /api/ps são medidas distintas. A amostragem pode perder picos, incluir outras execuções e contar páginas compartilhadas. size_vram do executor não é medição física independente. null indica ausência de amostra válida.",
+        "reportPath": "validation-reports/benchmark-wsl-v4-20261019.json",
+        "platform": "wsl",
+        "physicalMemory": {
+          "report": "wsl-benchmark-v4-20261019-windows-physical.jsonl",
+          "samples": 99,
+          "minGlobalRamAvailableBytes": 2241339392,
+          "maxGlobalRamUsedBytes": 12675424256,
+          "peakGpuTotalUsedMiB": 6797,
+          "peakGpuUtilizationPercent": 95,
+          "maxIntervalSeconds": 2.0158513000000085,
+          "endEvent": {
+            "event": "end",
+            "utc": "2026-10-19T23:31:49.0057009Z",
+            "elapsed_seconds": 196.9464499,
+            "reason": "stop_file_detected"
+          }
+        },
+        "linuxMemory": {
+          "report": "wsl-benchmark-v4-20261019-linux-memory.jsonl",
+          "samples": 98,
+          "minVmMemAvailableBytes": 5167788032,
+          "peakVmSwapUsedBytes": 0,
+          "modelsObserved": [
+            "gemma3:4b",
+            "qwen3:8b"
+          ],
+          "providerReportedPeakSizeBytes": 6091995873,
+          "providerReportedPeakVramBytes": 6091995873,
+          "endEvent": {
+            "event": "end",
+            "elapsedSeconds": 195.37408133199983
+          }
+        }
+      }
+    ],
+    "finalChecks": {
+      "buildStatus": "passed",
+      "ctestPassed": 2,
+      "ctestTotal": 2,
+      "ctestSeconds": 5.27,
+      "ctestReportPath": "validation-reports/feedback-ctest-configured-20261020.txt",
+      "ctestInitialConfigurationFailure": "DEVSPHERE_PYTHON absent; core PDF renderer lacked reportlab; preserved in feedback-build-ctest-20261020.txt",
+      "toolsExecuted": 42,
+      "toolsPassed": 41,
+      "toolsSkipped": 1,
+      "toolsSeconds": 26.08,
+      "toolsReportPath": "validation-reports/final-tools-full-20261020.txt",
+      "toolsSkipReason": "opt-in real AI disabled; no inference in this suite",
+      "selectedRegressionPassed": true,
+      "selectedRegressionSeconds": 9.049,
+      "selectedRegressionReportPath": "validation-reports/feedback-post-corrected-20261020.txt",
+      "postAuthorshipGuard": "passed",
+      "baselineReportPath": "validation-reports/feedback-post-baseline-20261020.txt",
+      "baselineFailures": 3,
+      "openApiValidated": true,
+      "openApiValidationScope": "PyYAML parse, 173 local references resolved, own-draft summary and 409 checked; no full semantic validator installed",
+      "openApiReportPath": "validation-reports/final-openapi-check-20261020.json",
+      "workerPassed": 61,
+      "workerSeconds": 12.641,
+      "workerReportPath": "validation-reports/final-worker-full-20261020.txt",
+      "inferencePerformed": false,
+      "dataSource": "synthetic_only",
+      "branch": "NEXT_2026"
+    },
+    "databaseScope": "temporary_synthetic_databases_only_no_personal_database"
+  },
+  "testedWorkingTree": {
+    "baseCommit": "ffb20eb9f4a580f0b8e16b9ff408541febd786a5",
+    "branch": "NEXT_2026",
+    "dirty": true,
+    "sourceHashes": {
+      ".gitattributes": "7cc0e6e9379cb4bf79894055190f618148afd0975f04e343b7928a19a2ba7a01",
+      "backend/CMakeLists.txt": "9832a198c98828ce57acc86c7ed7c01196130cea5a6bfafa2a2d205984ac2d11",
+      "backend/openapi/openapi.yaml": "07072121dcc69f6a6166c7c44a1037dfc7b007d97cded4f0b8e9e6e21cc00404",
+      "backend/scripts/create-dev-users.sh": "2d0594e5e31b660119fb3b839ed8bd0649b0a01886e79e65ff28f1370966c19d",
+      "backend/src/database.cpp": "828c2dd660069668f389cf46518299ef395c530069f16ae20f16b2efe8f7c63e",
+      "backend/src/http_server.cpp": "012f551ebf1e9c907cf8b8551201e02ab690d1acf718777bcb6f800b2ecb565e",
+      "frontend/pages/teacher-feedback.html": "ad281c19da2b8981f6b320963826893343b282e731dba7fef05ba3e7029c52ed",
+      "frontend/scripts/auth/register-page.js": "b5b484b7f623c0fd31eb485aca9cb126679cd0e57fa9dbc23dcb368a78ac566f",
+      "frontend/scripts/services/feedback-service.js": "d35553122a4016ac22dde63be670a65e7e542073d4b7507948635c8c3d7ce332",
+      "frontend/scripts/student/clinical-session.js": "14691337638844bb414e1d4b102c16d02763150b1eb39051c6022e71eb53d55a",
+      "frontend/scripts/teacher/feedback.js": "00a6a557163edf826d0b46a15b2c36627c2c42131ed1737b03ad8d6d1b52bd13",
+      "tools/check-local-ai.sh": "13e7e707ef0e8ea231a595d9a282037ff98f98f0c1fab0a3ac29cb8edef8ecd7",
+      "tools/start-local-api.sh": "abb865b7edf54dbad0e29fc80819e260b77481a4e0a20651501f05377a0bbe2a",
+      "tools/start-local-ollama.sh": "ad7ba36bb96b916c2464d6ff4a32169856e8f0e95e0676860f4413592dd246c3",
+      "tools/start-worker.sh": "63903ab72749ce24920690721dc65d8288abdd7df880f8ba8c0b75049d4063c3",
+      "tools/tests/browser_pending_usability.cjs": "a72cd6bf3ec0df52b3430b29b02dc3875d2a8239a8fe161caa464ea0f06e11fd",
+      "tools/tests/browser_public_forms.cjs": "91123a82d85eb5f078cea83b604c51c8cea695fd3e1c57d09d9740515335e93d",
+      "tools/tests/test_next_http.py": "6991f1cc80fb798fb7d82f868b0e82dba6905fc47cb37a74b87f5d97a9212465",
+      "tools/tests/test_real_ai_pipeline.py": "b983fff46fe55d68bb23a7ef9d007a2c06c56c20c81fdef13ceb06634fa0f6f7",
+      "worker/core.py": "29f891e4c13ff2104f18c50b5d90d2ac8965cb977e6973a69f1e983b2016248c",
+      "worker/doctor.py": "ecc98edb4af9c0bbcb79c4c8cb40b5d3749c9775a38e6b0217fa2e3b06638c7a",
+      "worker/tests/test_doctor.py": "3afb56065e8a0a328ad09af7139d2eb94d566fba05204f30d3d8c7ebe85552b4",
+      "worker/tests/test_local_ocr.py": "1f18fc1f1e3692ba8e3fb84bd1bd4b280ae55c0afaa53e87bc63096250cbac2a",
+      "worker/tests/test_ollama_protocol.py": "53ce9f88dce9f24c344276177f114dd236ceef5fe39378e026c6bc72f8c70f71"
+    },
+    "note": "Hashes dos bytes do working tree final. Alterações finais de autoria POST verificadas depois dos ensaios IA; core v4 permaneceu igual. Sem arquivos privados.",
+    "scope": "Snapshot de código medido antes do commit em 20/10/2026; dirty descreve a medição histórica, não o estado Git após publicação. Publicação autorizada de NEXT_2026; SHA final no Git/Notion, sem commit circular."
+  },
+  "localStartupDocumentation": {
+    "updatedAt": "2026-10-20",
+    "guide": "README.md#executar-localmente-no-macos-e-windows",
+    "macOS": "Comandos revisados por leitura; sem reteste Mac nesta rodada; OOM histórico M1 preservado.",
+    "Windows": "Benchmark nativo Python 3.12.1; plataforma C++20/daemon POSIX via WSL2/Ubuntu 24.04.5.",
+    "secrets": "Contas por leitura silenciosa; MFA fora do clone e só no terminal API; sem copiar bancos/venvs/sessões.",
+    "verification": {
+      "bashBlocksSyntaxPassed": 52,
+      "readmeLocalLinksPassed": true,
+      "linuxPipCheckPassed": true,
+      "temporaryMigrationsWorkerHealthFrontendPassed": true,
+      "windowsToWslLoopbackPort": 18087,
+      "ownApiTerminated": true,
+      "inferencePerformed": false,
+      "reportPath": "validation-reports/documentation-smoke-20261020-130724.json"
+    }
+  },
+  "macCorrectionRetest20261022": {
+    "status": "pending_windows_retest",
+    "date": "2026-10-22",
+    "models": [
+      "qwen3:8b",
+      "gemma3:4b"
+    ],
+    "generatorContext": 8192,
+    "generatorOutput": 6000,
+    "target": "Windows 16 GB RAM / RTX 3060 12 GB; plataforma via WSL2 conforme roteiro",
+    "completedOnWindows": false,
+    "macOutcome": "User reported full freeze and reboot during real generation; exact cause unconfirmed; final measurements unavailable.",
+    "releaseDecision": "Do not demonstrate full local generation live on this M1; preserve feature for later validation.",
+    "clinicalValidation": "pending_human_review",
+    "evidence": "docs/VALIDACAO_MAC_M1.md"
+  },
+  "protectedPresentation20261023": {
+    "date": "2026-10-23",
+    "platform": "MacBook Air M1 8 GB",
+    "inferenceEnabled": false,
+    "sourcePurgeEnabled": false,
+    "runtimeContract": "worker-runtime-v1",
+    "previewTtlSeconds": 120,
+    "heartbeatFreshnessSeconds": 30,
+    "modelsLoadedOnFinalRead": 0,
+    "heavyInferencePerformed": false,
+    "automatedTestsPassed": 150,
+    "realAiTestsNotExecuted": 3,
+    "browserScenarios": [
+      "journeys_pdf_feedback",
+      "protected_ui",
+      "real_live_server_5501"
+    ],
+    "migration": "015_worker_runtime.sql",
+    "previousBusinessTablesPreserved": 44,
+    "windowsFullGenerationRetest": "pending",
+    "clinicalAndInstitutionalApproval": "pending",
+    "documentation": "docs/MODO_APRESENTACAO_MAC.md"
+  }
+}

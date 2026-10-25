@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revisão e curadoria de caso · Paciente Virtual</title>
+    <!-- Preferência visual aplicada antes dos estilos; controle operável por teclado. -->
+    <script src="../scripts/theme.js"></script>
+<link rel="stylesheet" href="../vendor/bootstrap-5.3.8/bootstrap-grid.min.css">
+    <link rel="stylesheet" href="../styles/teacher.css">
+<link rel="stylesheet" href="../styles/next-portals.css">
+    <link rel="stylesheet" href="../styles/institutional.css">
+</head>
+<body class="app-shell auth-pending" data-required-role="any">
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<!-- Navegação contextual: permissões reais são verificadas pelo backend. -->
+<header class="site-header">
+      <a class="brand-lockup" href="../index.html">
+        <span class="partner-marks">
+          <img class="brand-fiap" src="../assets/brand/fiap.png" alt="FIAP" width="500" height="500">
+          <span class="brand-plus" aria-hidden="true">+</span>
+          <img class="brand-moinhos" src="../assets/brand/moinhos_de_vento.png" alt="Faculdade Moinhos de Vento" width="500" height="233">
+        </span>
+        <span class="brand-product"><span class="brand-product-name">Paciente Virtual</span></span>
+      </a>
+<nav aria-label="Jornadas">
+<a href="student-cases.html">Praticar</a> · <a href="student-history.html">Meus atendimentos</a> · <a href="contributions.html">Contribuições</a> · <a data-teacher-only href="teacher-cases.html">Curadoria</a> · <button class="button" type="button" data-logout>Sair</button>
+</nav>
+
+      <button id="themeToggle" class="button theme-toggle" type="button" aria-pressed="false" hidden><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-moon" aria-hidden="true" focusable="false">
+  <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+  <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+</svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-sun" aria-hidden="true" focusable="false">
+  <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>
+</svg><span class="visually-hidden">Tema escuro</span></button>
+    </header>
+<main id="conteudo" class="page-main" tabindex="-1">
+<h1>Revisão e curadoria de caso</h1>
+<p>Cada decisão fica vinculada à versão e ao revisor. Alterar o conteúdo gera uma nova versão em rascunho. A IA não aprova casos.</p>
+<button id="refreshCuration" class="button" type="button">Atualizar versão</button>
+<p id="curationStatus" role="status" aria-live="polite">
+</p>
+<section id="curationDetails" class="card" hidden>
+<h2 id="curationTitle">
+</h2>
+<p id="curationState">
+</p>
+<form id="revisionForm" class="next-form">
+<label for="revisionTitle">Título público</label>
+<input id="revisionTitle" required>
+<label for="revisionArea">Área/especialidade interna</label>
+<input id="revisionArea" required>
+<label for="revisionDiscipline">Disciplina curricular (opcional)</label>
+<input id="revisionDiscipline">
+<label for="revisionAudience">Público-alvo</label>
+<input id="revisionAudience" required>
+<label for="revisionDifficulty">Dificuldade</label>
+<select id="revisionDifficulty">
+<option value="">Em revisão</option>
+<option value="introductory">Introdutório</option>
+<option value="intermediate">Intermediário</option>
+<option value="advanced">Avançado</option>
+</select>
+<!-- Avaliação opt-in: nenhum nível é aplicado automaticamente aos casos legados. -->
+<fieldset aria-describedby="difficultyRubricHelp"><legend>Rubrica guiada de dificuldade — proposta do MVP</legend>
+<p id="difficultyRubricHelp">Avalie em relação ao público-alvo informado. Esta proposta precisa de homologação docente e não mede a gravidade do paciente. Sugestão: 0–2 pontos, introdutório; 3–5, intermediário; 6–8, avançado.</p>
+<label><input id="useDifficultyRubric" type="checkbox"> Incluir avaliação guiada na nova versão. Desmarcar retira esta avaliação guiada da nova versão, preservando o histórico original.</label>
+<div id="difficultyDimensionFields" class="next-form"></div>
+<p><output id="difficultyRubricSuggestion" aria-live="polite">Avaliação guiada opcional. Nenhum nível foi aplicado.</output></p>
+<label for="difficultyOverrideReason">Motivo para escolher um nível diferente da sugestão</label><textarea id="difficultyOverrideReason" maxlength="2000" disabled></textarea>
+<p id="difficultyOverrideHelp">O docente escolhe o nível no campo Dificuldade; a sugestão não altera essa escolha.</p>
+</fieldset>
+<label for="revisionRationale">Justificativa da dificuldade</label>
+<textarea id="revisionRationale">
+</textarea>
+<label for="revisionSummary">Resumo público sem revelar o diagnóstico</label>
+<textarea id="revisionSummary">
+</textarea>
+<label for="revisionTags">Tags públicas separadas por vírgula</label>
+<input id="revisionTags">
+<label for="revisionRubric">Versão da rubrica</label>
+<input id="revisionRubric" value="1.0">
+<label>
+<input id="tagsReviewed" type="checkbox"> Revisei título, resumo, tags e demais metadados em conjunto para evitar pistas diagnósticas.</label>
+<!-- Edição clínica guiada: o revisor não precisa manipular JSON para conferir o caso. -->
+<fieldset><legend>Paciente fictício</legend>
+<label for="patientName">Nome</label><input id="patientName" required>
+<label for="patientAge">Idade em anos</label><input id="patientAge" type="number" min="0" max="130" required>
+<label for="patientInitials">Iniciais</label><input id="patientInitials">
+<label for="patientComplaint">Queixa inicial</label><textarea id="patientComplaint" required></textarea>
+<label for="patientOnset">Início e contexto da queixa</label><textarea id="patientOnset"></textarea>
+<label for="patientTags">Características clínicas internas (uma por linha)</label><textarea id="patientTags"></textarea>
+</fieldset>
+<fieldset><legend>Hipóteses e objetivos</legend>
+<label for="clinicalObjectives">Objetivos de aprendizagem (um por linha)</label><textarea id="clinicalObjectives"></textarea>
+<label for="clinicalHypotheses">Alternativas diagnósticas (uma por linha)</label><textarea id="clinicalHypotheses" required></textarea>
+<label for="clinicalCorrect">Hipótese esperada — informação restrita</label><select id="clinicalCorrect" required></select>
+<label for="clinicalOutcome">Desfecho e justificativa clínica</label><textarea id="clinicalOutcome"></textarea>
+<label for="clinicalFeedback">Orientação pedagógica do caso</label><textarea id="clinicalFeedback"></textarea>
+</fieldset>
+<section aria-labelledby="clinicalItemsTitle"><h3 id="clinicalItemsTitle">Perguntas e exames</h3><p id="clinicalItemsCount"></p><p>Abra cada item para conferir resposta, pertinência, dependência e regra de pontos. IDs e tipos são preservados para manter os vínculos.</p><div id="clinicalItemEditors" class="next-list"></div></section>
+<details><summary>Conteúdo estruturado avançado (opcional)</summary><p>Campos adicionais e proveniência são preservados. Para importar alterações técnicas deste campo ao formulário, use Aplicar JSON ao formulário antes de salvar.</p><label for="revisionContent">JSON restrito da versão</label><textarea id="revisionContent" class="next-json" spellcheck="false"></textarea><button id="applyAdvancedContent" class="button" type="button">Aplicar JSON ao formulário</button></details>
+<button class="button" type="submit">Salvar alterações como nova versão</button>
+</form>
+<h3>Fontes e rastreabilidade</h3>
+<pre id="curationSources" class="document-preview">
+</pre>
+<h3>Decisão sobre a versão carregada</h3>
+<label for="reviewNote">Parecer e motivo</label>
+<textarea id="reviewNote">
+</textarea>
+<div id="reviewActions" class="next-actions">
+</div>
+<p>Alterações no formulário só têm efeito após salvar uma nova versão. As decisões abaixo sempre usam a versão carregada e salva.</p>
+</section>
+</main>
+<script type="module" src="../scripts/auth/route-guard.js">
+</script>
+<script type="module" src="../scripts/cases/curation.js">
+</script>
+<footer class="site-footer"><p>&copy; 2026 Paciente Virtual · Todos os direitos reservados · Ambiente educacional · Casos fictícios sujeitos à validação docente</p></footer>
+  </body>
+</html>

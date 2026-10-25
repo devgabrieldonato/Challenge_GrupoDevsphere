@@ -43,24 +43,24 @@
   gap: .45rem;
   min-height: 42px;
   padding: .62rem .95rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-small);
-  background: white;
+  background: var(--color-surface);
   color: var(--color-ink);
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
 }
 .button:hover {
-  border-color: #aab8c7;
+  border-color: var(--color-control-border);
 }
 .button.primary {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 .button.primary:hover {
-  background: var(--color-primary-dark);
+  background: var(--color-primary-hover);
 }
 .button.danger {
   color: var(--color-danger);
@@ -79,9 +79,9 @@
 .field input, .field select, .field textarea {
   width: 100%;
   padding: .72rem .8rem;
-  border: 1px solid #b9c6d4;
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-small);
-  background: white;
+  background: var(--color-surface);
   color: var(--color-ink);
 }
 .field textarea {
@@ -123,23 +123,23 @@ fieldset {
   padding: .8rem 1rem;
   border-left: 4px solid var(--color-primary);
   border-radius: 6px;
-  background: #eef2ff;
+  background: var(--color-info-background);
 }
 .status.success {
   border-color: var(--color-success);
-  background: #eaf7f1;
+  background: var(--color-success-background);
 }
 .status.warning {
   border-color: var(--color-warning);
-  background: #fff5e5;
+  background: var(--color-warning-background);
 }
 .status.error {
   border-color: var(--color-danger);
-  background: #fff0ef;
+  background: var(--color-danger-background);
 }
 .empty-state {
   padding: 2rem;
-  border: 1px dashed #aebdca;
+  border: 1px dashed var(--color-control-border);
   border-radius: var(--radius-medium);
   text-align: center;
   color: var(--color-muted);
@@ -152,18 +152,18 @@ fieldset {
   display: inline-flex;
   padding: .2rem .55rem;
   border-radius: 999px;
-  background: #e8edff;
+  background: var(--color-selected-background);
   color: var(--color-primary-dark);
   font-size: .78rem;
   font-weight: 750;
 }
 .badge.draft {
-  background: #fff2d8;
-  color: #835000;
+  background: var(--color-warning-background);
+  color: var(--color-warning);
 }
 .badge.done {
-  background: #e6f7ef;
-  color: #126847;
+  background: var(--color-success-background);
+  color: var(--color-success);
 }
 .metric {
   min-height: 132px;
@@ -242,7 +242,7 @@ th {
   content: "";
   width: 1rem;
   height: 1rem;
-  border: 2px solid #bdc9d5;
+  border: 2px solid var(--color-border);
   border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin .8s linear infinite;
@@ -267,3 +267,7 @@ th {
     margin-bottom: .7rem;
   }
 }
+
+/* Conteúdo de grade nunca força largura mínima maior que o viewport. */
+.card, .field, .definition-list > *, .grid > *, .stack > * { min-width: 0; }
+.table-wrap { max-width: 100%; }

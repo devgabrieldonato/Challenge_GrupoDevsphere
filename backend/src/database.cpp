@@ -1,5 +1,6 @@
 #include "database.hpp"
 
+#include "official_pdf.hpp"
 #include "security.hpp"
 
 #include <sqlite3.h>
@@ -7,49 +8,50 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <set>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 
 namespace devsphere {
 namespace {
 class Statement {
- public:
-  Statement(sqlite3* database, const std::string& sql) {
+public:
+  Statement(sqlite3 *database, const std::string &sql) {
     if (sqlite3_prepare_v2(database, sql.c_str(), -1, &statement_, nullptr) !=
         SQLITE_OK) {
       throw std::runtime_error(sqlite3_errmsg(database));
     }
   }
   ~Statement() { sqlite3_finalize(statement_); }
-  sqlite3_stmt* get() { return statement_; }
+  sqlite3_stmt *get() { return statement_; }
 
- private:
-  sqlite3_stmt* statement_{};
+private:
+  sqlite3_stmt *statement_{};
 };
 
-void bindText(sqlite3_stmt* statement, int position, const std::string& value) {
+void bindText(sqlite3_stmt *statement, int position, const std::string &value) {
   if (sqlite3_bind_text(statement, position, value.c_str(), -1,
                         SQLITE_TRANSIENT) != SQLITE_OK) {
     throw std::runtime_error("falha ao vincular parâmetro SQL");
   }
 }
 
-std::string columnText(sqlite3_stmt* statement, int position) {
-  const auto* value = sqlite3_column_text(statement, position);
-  return value ? reinterpret_cast<const char*>(value) : "";
+std::string columnText(sqlite3_stmt *statement, int position) {
+  const auto *value = sqlite3_column_text(statement, position);
+  return value ? reinterpret_cast<const char *>(value) : "";
 }
 
-std::string readFile(const std::filesystem::path& path) {
+std::string readFile(const std::filesystem::path &path) {
   std::ifstream input(path);
-  if (!input) throw std::runtime_error("não foi possível ler " + path.string());
+  if (!input)
+    throw std::runtime_error("não foi possível ler " + path.string());
   return {std::istreambuf_iterator<char>(input),
           std::istreambuf_iterator<char>()};
 }
 
-std::string scalarJson(sqlite3* database, const std::string& sql,
-                       const std::vector<std::string>& values = {}) {
+std::string scalarJson(sqlite3 *database, const std::string &sql,
+                       const std::vector<std::string> &values = {}) {
   Statement statement(database, sql);
   for (std::size_t i = 0; i < values.size(); ++i) {
     bindText(statement.get(), static_cast<int>(i + 1), values[i]);
@@ -59,9 +61,9 @@ std::string scalarJson(sqlite3* database, const std::string& sql,
   }
   return columnText(statement.get(), 0);
 }
-}  // namespace
+} // namespace
 
-Database::Database(const std::string& path) {
+Database::Database(const std::string &path) {
   if (sqlite3_open(path.c_str(), &db_) != SQLITE_OK) {
     const std::string message = sqlite3_errmsg(db_);
     sqlite3_close(db_);
@@ -74,11 +76,12 @@ Database::Database(const std::string& path) {
 }
 
 Database::~Database() {
-  if (db_) sqlite3_close(db_);
+  if (db_)
+    sqlite3_close(db_);
 }
 
-void Database::execute(const std::string& sql) {
-  char* error = nullptr;
+void Database::execute(const std::string &sql) {
+  char *error = nullptr;
   if (sqlite3_exec(db_, sql.c_str(), nullptr, nullptr, &error) != SQLITE_OK) {
     const std::string message = error ? error : "erro SQLite";
     sqlite3_free(error);
@@ -86,26 +89,29 @@ void Database::execute(const std::string& sql) {
   }
 }
 
-void Database::migrate(const std::string& migrationsDirectory) {
+void Database::migrate(const std::string &migrationsDirectory) {
   execute("CREATE TABLE IF NOT EXISTS schema_migrations("
-          "version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);");
+          "version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT "
+          "CURRENT_TIMESTAMP);");
   std::vector<std::filesystem::path> files;
-  for (const auto& entry :
+  for (const auto &entry :
        std::filesystem::directory_iterator(migrationsDirectory)) {
-    if (entry.path().extension() == ".sql") files.push_back(entry.path());
+    if (entry.path().extension() == ".sql")
+      files.push_back(entry.path());
   }
   std::sort(files.begin(), files.end());
 
-  for (const auto& file : files) {
+  for (const auto &file : files) {
     Statement check(db_, "SELECT 1 FROM schema_migrations WHERE version = ?;");
     bindText(check.get(), 1, file.filename().string());
-    if (sqlite3_step(check.get()) == SQLITE_ROW) continue;
+    if (sqlite3_step(check.get()) == SQLITE_ROW)
+      continue;
 
     execute("BEGIN IMMEDIATE;");
     try {
       execute(readFile(file));
-      Statement insert(
-          db_, "INSERT INTO schema_migrations(version) VALUES (?);");
+      Statement insert(db_,
+                       "INSERT INTO schema_migrations(version) VALUES (?);");
       bindText(insert.get(), 1, file.filename().string());
       if (sqlite3_step(insert.get()) != SQLITE_DONE) {
         throw std::runtime_error(sqlite3_errmsg(db_));
@@ -118,28 +124,33 @@ void Database::migrate(const std::string& migrationsDirectory) {
   }
 }
 
-std::optional<User> Database::findUserByEmail(const std::string& email) {
+std::optional<User> Database::findUserByEmail(const std::string &email) {
   Statement statement(
-      db_, "SELECT u.id,u.full_name,u.email,u.password_hash,"
-           "CASE WHEN a.user_id IS NULL THEN u.role ELSE 'admin' END,u.is_active "
-           "FROM users u LEFT JOIN admin_accounts a ON a.user_id=u.id "
-           "WHERE u.email = ? COLLATE NOCASE;");
+      db_,
+      "SELECT u.id,u.full_name,u.email,u.password_hash,"
+      "CASE WHEN a.user_id IS NULL THEN u.role ELSE 'admin' END,u.is_active "
+      "FROM users u LEFT JOIN admin_accounts a ON a.user_id=u.id "
+      "WHERE u.email = ? COLLATE NOCASE;");
   bindText(statement.get(), 1, email);
-  if (sqlite3_step(statement.get()) != SQLITE_ROW) return std::nullopt;
+  if (sqlite3_step(statement.get()) != SQLITE_ROW)
+    return std::nullopt;
   return User{sqlite3_column_int64(statement.get(), 0),
-              columnText(statement.get(), 1), columnText(statement.get(), 2),
-              columnText(statement.get(), 3), columnText(statement.get(), 4),
+              columnText(statement.get(), 1),
+              columnText(statement.get(), 2),
+              columnText(statement.get(), 3),
+              columnText(statement.get(), 4),
               sqlite3_column_int(statement.get(), 5) == 1};
 }
 
-void Database::createUser(const std::string& fullName, const std::string& email,
-                          const std::string& passwordHash,
-                          const std::string& role) {
+void Database::createUser(const std::string &fullName, const std::string &email,
+                          const std::string &passwordHash,
+                          const std::string &role) {
   if (role != "student" && role != "teacher") {
     throw std::invalid_argument("papel deve ser student ou teacher");
   }
   Statement statement(
-      db_, "INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,?);");
+      db_,
+      "INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,?);");
   bindText(statement.get(), 1, fullName);
   bindText(statement.get(), 2, email);
   bindText(statement.get(), 3, passwordHash);
@@ -149,10 +160,10 @@ void Database::createUser(const std::string& fullName, const std::string& email,
   }
 }
 
-void Database::createAdmin(const std::string& fullName,
-                           const std::string& email,
-                           const std::string& passwordHash,
-                           const std::string& notificationEmail) {
+void Database::createAdmin(const std::string &fullName,
+                           const std::string &email,
+                           const std::string &passwordHash,
+                           const std::string &notificationEmail) {
   execute("BEGIN IMMEDIATE;");
   try {
     Statement user(
@@ -167,7 +178,8 @@ void Database::createAdmin(const std::string& fullName,
     }
     const auto userId = sqlite3_last_insert_rowid(db_);
     Statement admin(
-        db_, "INSERT INTO admin_accounts(user_id,notification_email) VALUES(?,?);");
+        db_,
+        "INSERT INTO admin_accounts(user_id,notification_email) VALUES(?,?);");
     sqlite3_bind_int64(admin.get(), 1, userId);
     bindText(admin.get(), 2, notificationEmail);
     if (sqlite3_step(admin.get()) != SQLITE_DONE) {
@@ -180,7 +192,7 @@ void Database::createAdmin(const std::string& fullName,
   }
 }
 
-void Database::addInstitutionalDomain(const std::string& domain) {
+void Database::addInstitutionalDomain(const std::string &domain) {
   Statement statement(
       db_, "INSERT INTO institutional_email_domains(domain) VALUES(?) "
            "ON CONFLICT(domain) DO UPDATE SET is_active=1;");
@@ -190,23 +202,21 @@ void Database::addInstitutionalDomain(const std::string& domain) {
   }
 }
 
-bool Database::isInstitutionalEmailAllowed(const std::string& email) {
+bool Database::isInstitutionalEmailAllowed(const std::string &email) {
   const auto separator = email.rfind('@');
   if (separator == std::string::npos || separator + 1 >= email.size()) {
     return false;
   }
-  Statement statement(
-      db_, "SELECT 1 FROM institutional_email_domains "
-           "WHERE domain=? COLLATE NOCASE AND is_active=1;");
+  Statement statement(db_, "SELECT 1 FROM institutional_email_domains "
+                           "WHERE domain=? COLLATE NOCASE AND is_active=1;");
   bindText(statement.get(), 1, email.substr(separator + 1));
   return sqlite3_step(statement.get()) == SQLITE_ROW;
 }
 
 std::int64_t Database::createRegistration(
-    const std::string& fullName, const std::string& email,
-    const std::string& passwordHash, const std::string& role,
-    const std::string& className,
-    const std::string& professionalRegistration) {
+    const std::string &fullName, const std::string &email,
+    const std::string &passwordHash, const std::string &role,
+    const std::string &className, const std::string &professionalRegistration) {
   if (role != "student" && role != "teacher") {
     throw std::invalid_argument("papel de cadastro inválido");
   }
@@ -220,17 +230,22 @@ std::int64_t Database::createRegistration(
     bindText(user.get(), 2, email);
     bindText(user.get(), 3, passwordHash);
     bindText(user.get(), 4, role);
-    if (className.empty()) sqlite3_bind_null(user.get(), 5);
-    else bindText(user.get(), 5, className);
-    if (professionalRegistration.empty()) sqlite3_bind_null(user.get(), 6);
-    else bindText(user.get(), 6, professionalRegistration);
+    if (className.empty())
+      sqlite3_bind_null(user.get(), 5);
+    else
+      bindText(user.get(), 5, className);
+    if (professionalRegistration.empty())
+      sqlite3_bind_null(user.get(), 6);
+    else
+      bindText(user.get(), 6, professionalRegistration);
     if (sqlite3_step(user.get()) != SQLITE_DONE) {
       throw std::runtime_error(sqlite3_errmsg(db_));
     }
     const auto userId = sqlite3_last_insert_rowid(db_);
 
     Statement request(
-        db_, "INSERT INTO registration_requests(user_id,requested_role) VALUES(?,?);");
+        db_, "INSERT INTO registration_requests(user_id,requested_role) "
+             "VALUES(?,?);");
     sqlite3_bind_int64(request.get(), 1, userId);
     bindText(request.get(), 2, role);
     if (sqlite3_step(request.get()) != SQLITE_DONE) {
@@ -278,14 +293,14 @@ std::string Database::adminConfiguration() {
            "notification_email) FROM admin_accounts),'[]')),"
            "'domains',json(COALESCE((SELECT json_group_array(domain) FROM "
            "institutional_email_domains WHERE is_active=1),'[]')),"
-           "'queuedEmails',(SELECT COUNT(*) FROM email_outbox WHERE status='queued'),"
+           "'queuedEmails',(SELECT COUNT(*) FROM email_outbox WHERE "
+           "status='queued'),"
            "'pendingRegistrations',(SELECT COUNT(*) FROM registration_requests "
            "WHERE status='pending'));");
 }
 
-bool Database::reviewRegistration(std::int64_t requestId,
-                                  std::int64_t adminId, bool approve,
-                                  const std::string& note) {
+bool Database::reviewRegistration(std::int64_t requestId, std::int64_t adminId,
+                                  bool approve, const std::string &note) {
   execute("BEGIN IMMEDIATE;");
   try {
     Statement lookup(
@@ -302,21 +317,25 @@ bool Database::reviewRegistration(std::int64_t requestId,
     const std::string name = columnText(lookup.get(), 2);
     const std::string role = columnText(lookup.get(), 3);
 
-    Statement request(
-        db_, "UPDATE registration_requests SET status=?,reviewed_by=?,"
-             "reviewed_at=CURRENT_TIMESTAMP,review_note=? WHERE id=? AND status='pending';");
+    Statement request(db_,
+                      "UPDATE registration_requests SET status=?,reviewed_by=?,"
+                      "reviewed_at=CURRENT_TIMESTAMP,review_note=? WHERE id=? "
+                      "AND status='pending';");
     bindText(request.get(), 1, approve ? "approved" : "rejected");
     sqlite3_bind_int64(request.get(), 2, adminId);
     bindText(request.get(), 3, note);
     sqlite3_bind_int64(request.get(), 4, requestId);
-    if (sqlite3_step(request.get()) != SQLITE_DONE || sqlite3_changes(db_) != 1) {
+    if (sqlite3_step(request.get()) != SQLITE_DONE ||
+        sqlite3_changes(db_) != 1) {
       throw std::runtime_error(sqlite3_errmsg(db_));
     }
 
     Statement user(
-        db_, approve
+        db_,
+        approve
             ? "UPDATE users SET is_active=1,registration_status='active',"
-              "approved_by=?,approved_at=CURRENT_TIMESTAMP,rejection_reason=NULL,"
+              "approved_by=?,approved_at=CURRENT_TIMESTAMP,rejection_reason="
+              "NULL,"
               "updated_at=CURRENT_TIMESTAMP WHERE id=?;"
             : "UPDATE users SET is_active=0,registration_status='rejected',"
               "approved_by=?,approved_at=CURRENT_TIMESTAMP,rejection_reason=?,"
@@ -333,8 +352,9 @@ bool Database::reviewRegistration(std::int64_t requestId,
     }
 
     Statement notify(
-        db_, "INSERT INTO email_outbox(recipient,template_key,payload_json) "
-             "VALUES(?,?,json_object('requestId',?,'name',?,'role',?,'note',?));");
+        db_,
+        "INSERT INTO email_outbox(recipient,template_key,payload_json) "
+        "VALUES(?,?,json_object('requestId',?,'name',?,'role',?,'note',?));");
     bindText(notify.get(), 1, email);
     bindText(notify.get(), 2,
              approve ? "registration_approved" : "registration_rejected");
@@ -368,19 +388,17 @@ bool Database::reviewRegistration(std::int64_t requestId,
 }
 
 void Database::recordLogin(std::int64_t userId) {
-  Statement statement(
-      db_, "UPDATE users SET last_login_at=CURRENT_TIMESTAMP, "
-           "updated_at=CURRENT_TIMESTAMP WHERE id=?;");
+  Statement statement(db_, "UPDATE users SET last_login_at=CURRENT_TIMESTAMP, "
+                           "updated_at=CURRENT_TIMESTAMP WHERE id=?;");
   sqlite3_bind_int64(statement.get(), 1, userId);
   sqlite3_step(statement.get());
 }
 
-void Database::createSession(std::int64_t userId,
-                             const std::string& tokenHash,
-                             const std::string& expiresAt) {
-  Statement statement(
-      db_, "INSERT INTO sessions(user_id,token_hash,expires_at) "
-      "VALUES(?,?,datetime('now',?));");
+void Database::createSession(std::int64_t userId, const std::string &tokenHash,
+                             const std::string &expiresAt) {
+  Statement statement(db_,
+                      "INSERT INTO sessions(user_id,token_hash,expires_at) "
+                      "VALUES(?,?,datetime('now',?));");
   sqlite3_bind_int64(statement.get(), 1, userId);
   bindText(statement.get(), 2, tokenHash);
   bindText(statement.get(), 3, expiresAt);
@@ -389,8 +407,7 @@ void Database::createSession(std::int64_t userId,
   }
 }
 
-std::optional<SessionUser> Database::findSession(
-    const std::string& tokenHash) {
+std::optional<SessionUser> Database::findSession(const std::string &tokenHash) {
   Statement statement(
       db_, "SELECT u.id,u.full_name,u.email,"
            "CASE WHEN a.user_id IS NULL THEN u.role ELSE 'admin' END "
@@ -399,14 +416,14 @@ std::optional<SessionUser> Database::findSession(
            "WHERE s.token_hash=? AND s.expires_at>CURRENT_TIMESTAMP "
            "AND u.is_active=1;");
   bindText(statement.get(), 1, tokenHash);
-  if (sqlite3_step(statement.get()) != SQLITE_ROW) return std::nullopt;
-  return SessionUser{sqlite3_column_int64(statement.get(), 0),
-                     columnText(statement.get(), 1),
-                     columnText(statement.get(), 2),
-                     columnText(statement.get(), 3)};
+  if (sqlite3_step(statement.get()) != SQLITE_ROW)
+    return std::nullopt;
+  return SessionUser{
+      sqlite3_column_int64(statement.get(), 0), columnText(statement.get(), 1),
+      columnText(statement.get(), 2), columnText(statement.get(), 3)};
 }
 
-void Database::deleteSession(const std::string& tokenHash) {
+void Database::deleteSession(const std::string &tokenHash) {
   Statement statement(db_, "DELETE FROM sessions WHERE token_hash=?;");
   bindText(statement.get(), 1, tokenHash);
   sqlite3_step(statement.get());
@@ -416,26 +433,50 @@ void Database::purgeExpiredSessions() {
   execute("DELETE FROM sessions WHERE expires_at<=CURRENT_TIMESTAMP;");
 }
 
-std::string Database::listCases(const std::string& role) {
-  const std::string filter = (role == "teacher" || role == "admin") ? "" : " WHERE c.status='published'";
-  return scalarJson(
-      db_, "SELECT COALESCE(json_group_array(json_object("
-           "'id',id,'key',stable_key,'title',title,'status',status,"
-           "'createdAt',created_at)),'[]') FROM "
-           "(SELECT c.* FROM clinical_cases c" + filter +
-           " ORDER BY c.updated_at DESC);");
+// O catálogo alimenta o início do atendimento. Ilustrações públicas precisam
+// acompanhar seus metadados; ausência de arquivo para outros casos vira null.
+std::string Database::listCases(const std::string &) {
+  return nextJson(
+      "SELECT "
+      "COALESCE(json_group_array(json_object('id',c.id,'key',c.stable_key,'"
+      "title',COALESCE(json_extract(v.metadata_json,'$.publicTitle'),c.title),'"
+      "status',c.status,'versionId',v.id,'metadata',json_"
+      "object('difficulty',json_extract(v.metadata_json,'$.difficulty'),'"
+      "classificationStatus',json_extract(v.metadata_json,'$."
+      "classificationStatus'),'audience',json_extract(v.metadata_json,'$."
+      "audience'),'publicSummary',json_extract(v.metadata_json,'$."
+      "publicSummary'),'publicTags',json_extract(v.metadata_json,'$.publicTags'"
+      "),'skills',json_extract(v.metadata_json,'$.skills'),'durationMinutes',"
+      "json_extract(v.metadata_json,'$.durationMinutes')),'patient',json_"
+      "object('name',json_extract(v.content_json,'$.patient.name'),'age',json_"
+      "extract(v.content_json,'$.patient.age'),'initials',json_extract(v."
+      "content_json,'$.patient.initials'),'complaint',json_extract(v.content_"
+      "json,'$.patient.complaint'),'onset',json_extract(v.content_json,'$."
+      "patient.onset'),'tags',json_extract(v.metadata_json,'$.publicTags')),'"
+      "image',CASE c.stable_key WHEN 'joao' THEN '/assets/images/joao-atendimento.png' "
+      "WHEN 'marina' THEN '/assets/images/marina-atendimento.png' ELSE NULL END)), '"
+      "[]') FROM clinical_cases c JOIN case_versions v ON "
+      "v.id=c.current_version_id WHERE c.status='published' AND "
+      "v.review_state='published'");
 }
 
 std::int64_t Database::importSubmissionPdf(
     std::int64_t teacherId, std::int64_t studentId,
-    const std::string& originalName, const std::string& storedPath,
-    const std::string& sha256, std::int64_t byteSize,
-    const std::string& reportJson, const std::string& schemaVersion) {
+    const std::string &originalName, const std::string &storedPath,
+    const std::string &sha256, std::int64_t byteSize,
+    const std::string &reportJson, const std::string &schemaVersion) {
+  // Importação é uma cópia não autenticada do percurso, nunca uma nota oficial.
+  if (!canTeacherReviewStudent(studentId, teacherId))
+    throw std::invalid_argument(
+        "aluno sem vínculo com o docente ou instituição");
   // A validação é repetida no banco para não confiar apenas no navegador.
   {
     Statement student(
-        db_, "SELECT 1 FROM users WHERE id=? AND role='student' AND is_active=1;");
+        db_, "SELECT 1 FROM users WHERE id=? AND role='student' AND "
+             "is_active=1 AND institution_id=(SELECT institution_id FROM users "
+             "WHERE id=? AND is_active=1 AND role='teacher');");
     sqlite3_bind_int64(student.get(), 1, studentId);
+    sqlite3_bind_int64(student.get(), 2, teacherId);
     if (sqlite3_step(student.get()) != SQLITE_ROW) {
       throw std::invalid_argument("aluno do relatório não encontrado");
     }
@@ -459,9 +500,10 @@ std::int64_t Database::importSubmissionPdf(
   execute("BEGIN IMMEDIATE;");
   try {
     Statement document(
-        db_, "INSERT INTO uploaded_documents("
-             "uploaded_by,original_name,stored_path,sha256,mime_type,byte_size) "
-             "VALUES(?,?,?,?, 'application/pdf', ?);");
+        db_,
+        "INSERT INTO uploaded_documents("
+        "uploaded_by,original_name,stored_path,sha256,mime_type,byte_size) "
+        "VALUES(?,?,?,?, 'application/pdf', ?);");
     sqlite3_bind_int64(document.get(), 1, teacherId);
     bindText(document.get(), 2, originalName);
     bindText(document.get(), 3, storedPath);
@@ -482,7 +524,15 @@ std::int64_t Database::importSubmissionPdf(
     bindText(submission.get(), 3, schemaVersion);
     sqlite3_bind_int64(submission.get(), 4, teacherId);
     sqlite3_bind_int64(submission.get(), 5, documentId);
-    bindText(submission.get(), 6, reportJson);
+    bindText(
+        submission.get(), 6,
+        nextJson(
+            "SELECT "
+            "json_set(json_remove(?,'$.scoring','$.score','$.scoreEvents'),'$."
+            "source','pdf_import','$.officialAttempt',json('false'),'$."
+            "verificationNotice','Documento importado: percurso não "
+            "autenticado pelo servidor; não constitui pontuação oficial.')",
+            {reportJson}));
     if (sqlite3_step(submission.get()) != SQLITE_DONE) {
       throw std::runtime_error(sqlite3_errmsg(db_));
     }
@@ -508,12 +558,15 @@ std::int64_t Database::importSubmissionPdf(
   }
 }
 
-PlatformSubmissionResult Database::submitPlatform(
-    const SessionUser& actor, const PlatformSubmissionInput& input) {
+PlatformSubmissionResult
+Database::submitPlatform(const SessionUser &actor,
+                         const PlatformSubmissionInput &input) {
   if (actor.role != "student" && actor.role != "admin") {
-    throw std::invalid_argument("somente aluno ou administrador pode concluir um caso");
+    throw std::invalid_argument(
+        "somente aluno ou administrador pode concluir um caso");
   }
-  if (input.clientSubmissionId.empty() || input.clientSubmissionId.size() > 64) {
+  if (input.clientSubmissionId.empty() ||
+      input.clientSubmissionId.size() > 64) {
     throw std::invalid_argument("identificador idempotente inválido");
   }
   if (input.pdfData.size() < 5 || input.pdfData.rfind("%PDF-", 0) != 0 ||
@@ -524,6 +577,12 @@ PlatformSubmissionResult Database::submitPlatform(
     throw std::invalid_argument("hash do PDF não confere");
   }
 
+  verifyClinicalReport(actor, input.reportJson);
+  if (nextJson("SELECT COALESCE(activity_id,'') FROM clinical_sessions WHERE "
+               "id=json_extract(?,'$.clinicalSessionId') AND user_id=?",
+               {input.reportJson, std::to_string(actor.id)}) !=
+      (input.activityId ? std::to_string(*input.activityId) : ""))
+    throw std::invalid_argument("atividade diverge da sessão iniciada");
   const std::string reportHash = sha256Hex(input.reportJson);
   std::string caseKey;
   std::string schemaVersion;
@@ -533,21 +592,21 @@ PlatformSubmissionResult Database::submitPlatform(
              "json_extract(?,'$.caseId'),json_extract(?,'$.schemaVersion'),"
              "json_type(?,'$.path'),json_type(?,'$.attempts'),"
              "json_array_length(json_extract(?,'$.attempts')),"
-             "json_extract(?,'$.ruleSetVersion');" );
+             "json_extract(?,'$.ruleSetVersion');");
     for (int index = 1; index <= 8; ++index) {
       bindText(report.get(), index, input.reportJson);
     }
     if (sqlite3_step(report.get()) != SQLITE_ROW ||
         sqlite3_column_int(report.get(), 0) != 1 ||
         columnText(report.get(), 1) != "patient-virtual-submission" ||
-        (columnText(report.get(), 2) != "joao" &&
-         columnText(report.get(), 2) != "marina") ||
+        columnText(report.get(), 2).empty() ||
         columnText(report.get(), 3) != "2" ||
         columnText(report.get(), 4) != "array" ||
         columnText(report.get(), 5) != "array" ||
         sqlite3_column_int(report.get(), 6) < 1 ||
         columnText(report.get(), 7) != "1.0.0") {
-      throw std::invalid_argument("relatório estruturado inválido ou sem hipótese");
+      throw std::invalid_argument(
+          "relatório estruturado inválido ou sem hipótese");
     }
     caseKey = columnText(report.get(), 2);
     schemaVersion = columnText(report.get(), 3);
@@ -556,11 +615,12 @@ PlatformSubmissionResult Database::submitPlatform(
     Statement justification(
         db_, "SELECT EXISTS(SELECT 1 FROM json_each(?,'$.attempts') "
              "WHERE length(trim(COALESCE(json_extract(value,'$.reason'),"
-             "json_extract(value,'$.justification'),'')))>0);" );
+             "json_extract(value,'$.justification'),'')))>0);");
     bindText(justification.get(), 1, input.reportJson);
     if (sqlite3_step(justification.get()) != SQLITE_ROW ||
         sqlite3_column_int(justification.get(), 0) != 1) {
-      throw std::invalid_argument("ao menos uma hipótese precisa de justificativa");
+      throw std::invalid_argument(
+          "ao menos uma hipótese precisa de justificativa");
     }
   }
 
@@ -569,22 +629,24 @@ PlatformSubmissionResult Database::submitPlatform(
     // A mesma chave e o mesmo conteúdo retornam a submissão já confirmada.
     {
       Statement existing(
-          db_, "SELECT id,report_sha256,(SELECT sha256 FROM submission_documents "
-               "WHERE submission_id=submissions.id),initial_score,raw_score,"
-               "displayed_score,review_status FROM submissions "
-               "WHERE client_submission_id=?;" );
+          db_,
+          "SELECT id,report_sha256,client_pdf_sha256,initial_score,raw_score,"
+          "displayed_score,review_status,submitted_by FROM submissions "
+          "WHERE client_submission_id=?;");
       bindText(existing.get(), 1, input.clientSubmissionId);
       if (sqlite3_step(existing.get()) == SQLITE_ROW) {
-        if (columnText(existing.get(), 1) != reportHash ||
+        if (sqlite3_column_int64(existing.get(), 7) != actor.id ||
+            columnText(existing.get(), 1) != reportHash ||
             columnText(existing.get(), 2) != input.pdfSha256) {
           execute("ROLLBACK;");
           throw std::domain_error("idempotency_conflict");
         }
-        PlatformSubmissionResult result{
-            sqlite3_column_int64(existing.get(), 0), false,
-            sqlite3_column_int(existing.get(), 3),
-            sqlite3_column_int(existing.get(), 4),
-            sqlite3_column_int(existing.get(), 5), columnText(existing.get(), 6)};
+        PlatformSubmissionResult result{sqlite3_column_int64(existing.get(), 0),
+                                        false,
+                                        sqlite3_column_int(existing.get(), 3),
+                                        sqlite3_column_int(existing.get(), 4),
+                                        sqlite3_column_int(existing.get(), 5),
+                                        columnText(existing.get(), 6)};
         execute("COMMIT;");
         return result;
       }
@@ -597,10 +659,15 @@ PlatformSubmissionResult Database::submitPlatform(
       Statement demo(
           db_, "INSERT OR IGNORE INTO users(full_name,email,password_hash,role,"
                "is_active,registration_status) VALUES('Aluno de demonstração',"
-               "'demo.student@local.invalid','!simulation-account!','student',1,'active');" );
-      if (sqlite3_step(demo.get()) != SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
-      Statement findDemo(db_, "SELECT id FROM users WHERE email='demo.student@local.invalid';");
-      if (sqlite3_step(findDemo.get()) != SQLITE_ROW) throw std::runtime_error("aluno de demonstração indisponível");
+               "'demo.student@local.invalid','!simulation-account!','student',"
+               "1,'active');");
+      if (sqlite3_step(demo.get()) != SQLITE_DONE)
+        throw std::runtime_error(sqlite3_errmsg(db_));
+      Statement findDemo(
+          db_,
+          "SELECT id FROM users WHERE email='demo.student@local.invalid';");
+      if (sqlite3_step(findDemo.get()) != SQLITE_ROW)
+        throw std::runtime_error("aluno de demonstração indisponível");
       studentId = sqlite3_column_int64(findDemo.get(), 0);
     }
 
@@ -609,54 +676,103 @@ PlatformSubmissionResult Database::submitPlatform(
     if (input.activityId) {
       Statement activity(
           db_, "SELECT a.case_version_id,a.teacher_id,c.stable_key,"
-               "EXISTS(SELECT 1 FROM activity_assignments aa WHERE aa.activity_id=a.id "
+               "EXISTS(SELECT 1 FROM activity_assignments aa WHERE "
+               "aa.activity_id=a.id "
                "AND aa.student_id=?) FROM activities a JOIN case_versions cv "
-               "ON cv.id=a.case_version_id JOIN clinical_cases c ON c.id=cv.clinical_case_id "
-               "WHERE a.id=?;" );
+               "ON cv.id=a.case_version_id JOIN clinical_cases c ON "
+               "c.id=cv.clinical_case_id "
+               "WHERE a.id=? AND (a.opens_at IS NULL OR "
+               "a.opens_at<=CURRENT_TIMESTAMP) AND (a.closes_at IS NULL OR "
+               "a.closes_at>=CURRENT_TIMESTAMP) AND a.case_version_id=(SELECT "
+               "case_version_id FROM clinical_sessions WHERE "
+               "id=json_extract(?,'$.clinicalSessionId')) AND NOT "
+               "EXISTS(SELECT 1 FROM case_exposures e WHERE e.user_id=? AND "
+               "e.case_version_id=a.case_version_id) AND NOT EXISTS(SELECT 1 "
+               "FROM case_versions exposed WHERE exposed.id=a.case_version_id "
+               "AND exposed.created_by=?);");
       sqlite3_bind_int64(activity.get(), 1, studentId);
       sqlite3_bind_int64(activity.get(), 2, *input.activityId);
-      if (sqlite3_step(activity.get()) != SQLITE_ROW || columnText(activity.get(), 2) != caseKey ||
+      bindText(activity.get(), 3, input.reportJson);
+      sqlite3_bind_int64(activity.get(), 4, actor.id);
+      sqlite3_bind_int64(activity.get(), 5, actor.id);
+      if (sqlite3_step(activity.get()) != SQLITE_ROW ||
+          columnText(activity.get(), 2) != caseKey ||
           (!isTest && sqlite3_column_int(activity.get(), 3) != 1)) {
-        throw std::invalid_argument("atividade não pertence ao aluno ou ao caso informado");
+        throw std::invalid_argument(
+            "atividade não pertence ao aluno ou ao caso informado");
       }
       caseVersionId = sqlite3_column_int64(activity.get(), 0);
       reviewerId = sqlite3_column_int64(activity.get(), 1);
     } else {
       Statement version(
-          db_, "SELECT current_version_id FROM clinical_cases WHERE stable_key=?;" );
+          db_, "SELECT s.case_version_id FROM clinical_sessions s JOIN "
+               "case_versions v ON v.id=s.case_version_id JOIN clinical_cases "
+               "c ON c.id=v.clinical_case_id WHERE c.stable_key=? AND "
+               "s.id=json_extract(?,'$.clinicalSessionId') AND s.user_id=?;");
       bindText(version.get(), 1, caseKey);
-      if (sqlite3_step(version.get()) == SQLITE_ROW && sqlite3_column_type(version.get(), 0) != SQLITE_NULL) {
+      bindText(version.get(), 2, input.reportJson);
+      sqlite3_bind_int64(version.get(), 3, actor.id);
+      if (sqlite3_step(version.get()) == SQLITE_ROW &&
+          sqlite3_column_type(version.get(), 0) != SQLITE_NULL) {
         caseVersionId = sqlite3_column_int64(version.get(), 0);
       }
       Statement reviewer(
-          db_, "SELECT COALESCE((SELECT default_reviewer_id FROM submission_settings "
-               "WHERE singleton_id=1 AND default_reviewer_id IS NOT NULL),"
-               "(SELECT u.id FROM users u LEFT JOIN admin_accounts ad ON ad.user_id=u.id "
-               "WHERE u.role='teacher' AND u.is_active=1 AND ad.user_id IS NULL "
-               "ORDER BY u.id LIMIT 1));" );
+          db_,
+          "SELECT COALESCE((SELECT default_reviewer_id FROM "
+          "submission_settings "
+          "WHERE singleton_id=1 AND default_reviewer_id IS NOT NULL AND "
+          "default_reviewer_id IN (SELECT id FROM users WHERE "
+          "institution_id=(SELECT institution_id FROM users WHERE id=?))),"
+          "(SELECT u.id FROM users u LEFT JOIN admin_accounts ad ON "
+          "ad.user_id=u.id "
+          "WHERE u.role='teacher' AND u.is_active=1 AND ad.user_id IS NULL AND "
+          "u.institution_id=(SELECT institution_id FROM users WHERE id=?) "
+          "ORDER BY u.id LIMIT 1));");
+      sqlite3_bind_int64(reviewer.get(), 1, actor.id);
+      sqlite3_bind_int64(reviewer.get(), 2, actor.id);
       if (sqlite3_step(reviewer.get()) == SQLITE_ROW &&
           sqlite3_column_type(reviewer.get(), 0) != SQLITE_NULL) {
         reviewerId = sqlite3_column_int64(reviewer.get(), 0);
       }
     }
 
+    const auto scoringVersion =
+        nextJson("SELECT "
+                 "COALESCE(json_extract(content_json,'$.scoring.ruleSetVersion'"
+                 "),'1.0.0') FROM case_versions WHERE id=?",
+                 {std::to_string(caseVersionId.value_or(0))});
     constexpr int initialScore = 50;
     int rawScore = initialScore;
     std::set<std::string> selected;
     struct ScoreEvent {
-      int sequence{}; std::string key; std::string type; std::string title;
-      std::string answer; std::string classification; std::string reason;
-      std::string dependencies; std::string recordedAt; int base{}; int bonus{};
-      int penalty{}; int delta{}; int rawAfter{}; int displayedAfter{};
+      int sequence{};
+      std::string key;
+      std::string type;
+      std::string title;
+      std::string answer;
+      std::string classification;
+      std::string reason;
+      std::string dependencies;
+      std::string recordedAt;
+      int base{};
+      int bonus{};
+      int penalty{};
+      int delta{};
+      int rawAfter{};
+      int displayedAfter{};
     };
     std::vector<ScoreEvent> events;
     bool priorityBonusAwarded = false;
     Statement steps(
-        db_, "SELECT key,json_extract(value,'$.step'),json_extract(value,'$.id'),json_extract(value,'$.type'),"
+        db_, "SELECT "
+             "key,json_extract(value,'$.step'),json_extract(value,'$.id'),json_"
+             "extract(value,'$.type'),"
              "COALESCE(json_extract(value,'$.title'),''),"
-             "COALESCE(json_extract(value,'$.answer'),json_extract(value,'$.response'),''),"
-             "COALESCE(json_extract(value,'$.time'),json_extract(value,'$.recordedAt')) "
-             "FROM json_each(?,'$.path') ORDER BY CAST(key AS INTEGER);" );
+             "COALESCE(json_extract(value,'$.answer'),json_extract(value,'$."
+             "response'),''),"
+             "COALESCE(json_extract(value,'$.time'),json_extract(value,'$."
+             "recordedAt')) "
+             "FROM json_each(?,'$.path') ORDER BY CAST(key AS INTEGER);");
     bindText(steps.get(), 1, input.reportJson);
     while (sqlite3_step(steps.get()) == SQLITE_ROW) {
       ScoreEvent event;
@@ -673,13 +789,27 @@ PlatformSubmissionResult Database::submitPlatform(
       if (event.key.empty() || !selected.insert(event.key).second) {
         throw std::invalid_argument("item inexistente ou repetido no percurso");
       }
-      Statement rule(
-          db_, "SELECT item_type,classification,base_points,central_evidence,"
-               "dependencies_json,pedagogical_reason FROM submission_scoring_rules "
-               "WHERE case_key=? AND rule_set_version='1.0.0' AND item_key=?;" );
-      bindText(rule.get(), 1, caseKey); bindText(rule.get(), 2, event.key);
-      if (sqlite3_step(rule.get()) != SQLITE_ROW || columnText(rule.get(), 0) != event.type) {
-        throw std::invalid_argument("item incompatível com o caso ou tipo informado");
+      Statement rule(db_,
+                     "SELECT "
+                     "json_extract(i.value,'$.type'),json_extract(r.value,'$."
+                     "classification'),json_extract(r.value,'$.basePoints'),"
+                     "json_extract(r.value,'$.isCentralEvidence'),CASE WHEN "
+                     "json_extract(i.value,'$.parent') IS NULL THEN '[]' ELSE "
+                     "json_array(json_extract(i.value,'$.parent')) "
+                     "END,json_extract(i.value,'$.why') FROM case_versions "
+                     "v,json_each(v.content_json,'$.items') "
+                     "i,json_each(v.content_json,'$.scoring.items') r WHERE "
+                     "v.id=? AND json_extract(i.value,'$.id')=? AND "
+                     "r.key=json_extract(i.value,'$.id');");
+      if (caseVersionId)
+        sqlite3_bind_int64(rule.get(), 1, *caseVersionId);
+      else
+        sqlite3_bind_null(rule.get(), 1);
+      bindText(rule.get(), 2, event.key);
+      if (sqlite3_step(rule.get()) != SQLITE_ROW ||
+          columnText(rule.get(), 0) != event.type) {
+        throw std::invalid_argument(
+            "item incompatível com o caso ou tipo informado");
       }
       event.classification = columnText(rule.get(), 1);
       event.base = sqlite3_column_int(rule.get(), 2);
@@ -689,18 +819,23 @@ PlatformSubmissionResult Database::submitPlatform(
       Statement missing(
           db_, "SELECT value FROM json_each(?) WHERE value NOT IN "
                "(SELECT json_extract(value,'$.id') FROM json_each(?,'$.path') "
-               "WHERE CAST(key AS INTEGER) < ? ) LIMIT 1;" );
+               "WHERE CAST(key AS INTEGER) < ? ) LIMIT 1;");
       bindText(missing.get(), 1, event.dependencies);
       bindText(missing.get(), 2, input.reportJson);
       sqlite3_bind_int(missing.get(), 3, event.sequence - 1);
       if (sqlite3_step(missing.get()) == SQLITE_ROW) {
         throw std::invalid_argument("dependência não atendida no percurso");
       }
-      event.bonus = central && event.sequence <= 3 && !priorityBonusAwarded ? 2 : 0;
-      if (event.bonus > 0) priorityBonusAwarded = true;
-      if (event.sequence >= 13 && event.sequence <= 16) event.penalty = -4;
-      else if (event.sequence >= 17 && event.sequence <= 20) event.penalty = -8;
-      else if (event.sequence >= 21) event.penalty = -12;
+      event.bonus =
+          central && event.sequence <= 3 && !priorityBonusAwarded ? 2 : 0;
+      if (event.bonus > 0)
+        priorityBonusAwarded = true;
+      if (event.sequence >= 13 && event.sequence <= 16)
+        event.penalty = -4;
+      else if (event.sequence >= 17 && event.sequence <= 20)
+        event.penalty = -8;
+      else if (event.sequence >= 21)
+        event.penalty = -12;
       event.delta = event.base + event.bonus + event.penalty;
       rawScore += event.delta;
       event.rawAfter = rawScore;
@@ -708,103 +843,263 @@ PlatformSubmissionResult Database::submitPlatform(
       events.push_back(std::move(event));
     }
 
-    const std::string reviewStatus = reviewerId ? "submitted" : "awaiting_assignment";
+    // Reconstrói o documento inteiro a partir da sessão, não apenas os totais.
+    // Campos extras do cliente não podem forjar resumo, origem ou simulação.
+    const auto canonicalSnapshot = clinicalSession(
+        std::stoll(nextJson("SELECT json_extract(?,'$.clinicalSessionId')",
+                            {input.reportJson})),
+        actor);
+    std::string officialReport = nextJson(
+        "SELECT json_set(?,'$.studentId',CAST(? AS "
+        "INTEGER),'$.studentName',(SELECT full_name FROM users WHERE "
+        "id=?),'$.case',(SELECT "
+        "COALESCE(json_extract(v.metadata_json,'$.publicTitle'),c.title) FROM "
+        "case_versions v JOIN "
+        "clinical_cases c ON c.id=v.clinical_case_id WHERE "
+        "v.id=?),'$.caseVersion',CAST(? AS "
+        "INTEGER),'$.score',json_object('initial',50,'raw',CAST(? AS "
+        "INTEGER),'displayed',CAST(? AS INTEGER),'ruleSetVersion','1.0.0'))",
+        {canonicalSnapshot, std::to_string(studentId),
+         std::to_string(studentId), std::to_string(caseVersionId.value_or(0)),
+         std::to_string(caseVersionId.value_or(0)), std::to_string(rawScore),
+         std::to_string(std::clamp(rawScore, 0, 100))});
+    officialReport =
+        nextJson("SELECT "
+                 "json_set(?,'$.officialAttempt',json('true'),'$.scoring."
+                 "initialScore',50,'$.scoring.rawTotal',CAST(? AS "
+                 "INTEGER),'$.scoring.displayedTotal',CAST(? AS "
+                 "INTEGER),'$.scoring.actionCount',CAST(? AS "
+                 "INTEGER),'$.scoring.ruleSetVersion','1.0.0')",
+                 {officialReport, std::to_string(rawScore),
+                  std::to_string(std::clamp(rawScore, 0, 100)),
+                  std::to_string(events.size())});
+    officialReport = nextJson(
+        "SELECT "
+        "json_set(?,'$.ruleSetVersion',?,'$.score.ruleSetVersion',?,'$.scoring."
+        "ruleSetVersion',?)",
+        {officialReport, scoringVersion, scoringVersion, scoringVersion});
+    officialReport =
+        nextJson("SELECT "
+                 "json_set(?,'$.schemaVersion',2,'$.reportType','patient-"
+                 "virtual-submission','$.clientSubmissionId',?,'$."
+                 "submissionProtocol',?,'$.exportedAt',strftime('%Y-%m-%dT%H:%"
+                 "M:%SZ','now'),'$.source','platform','$.isTest',json(?))",
+                 {officialReport, input.clientSubmissionId,
+                  input.clientSubmissionId, isTest ? "true" : "false"});
+    officialReport = nextJson(R"SQL(WITH r(doc) AS (SELECT ?), totals AS (
+      SELECT COALESCE(SUM(max(0,json_extract(value,'$.scoreEvent.basePoints'))),0) gains,
+             COALESCE(SUM(min(0,json_extract(value,'$.scoreEvent.basePoints'))),0) losses,
+             COALESCE(SUM(json_extract(value,'$.scoreEvent.priorityBonus')),0) bonus,
+             COALESCE(SUM(json_extract(value,'$.scoreEvent.efficiencyPenalty')),0) penalty
+      FROM r,json_each(doc,'$.path'))
+      SELECT json_set(doc,'$.scoreEvents',json(COALESCE((SELECT json_group_array(json_extract(value,'$.scoreEvent')) FROM json_each(doc,'$.path')),'[]')),
+       '$.scoring.gains',gains,'$.scoring.losses',losses,'$.scoring.priorityBonus',bonus,'$.scoring.efficiencyPenalties',penalty,
+       '$.score.summary',json_object('gains',gains,'losses',losses,'priorityBonus',bonus,'efficiencyPenalties',penalty)) FROM r,totals)SQL",
+                              {officialReport});
+    const std::string officialPdf = renderOfficialPdf(officialReport);
+    const std::string officialHash = sha256Hex(officialPdf);
+    const std::string reviewStatus =
+        reviewerId ? "submitted" : "awaiting_assignment";
     Statement submission(
-        db_, "INSERT INTO submissions(activity_id,student_id,case_version_id,source,"
-             "report_schema_version,raw_report_json,client_submission_id,submitted_by,"
-             "reviewer_id,is_test,review_status,report_sha256,scoring_rule_set_version,"
-             "initial_score,raw_score,displayed_score) VALUES(?,?,?,'platform',?,?,?,?,?,?,?,?,?,?,?,?);" );
-    if (input.activityId) sqlite3_bind_int64(submission.get(), 1, *input.activityId); else sqlite3_bind_null(submission.get(), 1);
+        db_,
+        "INSERT INTO submissions(activity_id,student_id,case_version_id,source,"
+        "report_schema_version,raw_report_json,client_submission_id,submitted_"
+        "by,"
+        "reviewer_id,is_test,review_status,report_sha256,scoring_rule_set_"
+        "version,"
+        "initial_score,raw_score,displayed_score,client_pdf_sha256) "
+        "VALUES(?,?,?,'platform',?,?,?,?,?,?,?,?,?,?,?,?,?);");
+    if (input.activityId)
+      sqlite3_bind_int64(submission.get(), 1, *input.activityId);
+    else
+      sqlite3_bind_null(submission.get(), 1);
     sqlite3_bind_int64(submission.get(), 2, studentId);
-    if (caseVersionId) sqlite3_bind_int64(submission.get(), 3, *caseVersionId); else sqlite3_bind_null(submission.get(), 3);
+    if (caseVersionId)
+      sqlite3_bind_int64(submission.get(), 3, *caseVersionId);
+    else
+      sqlite3_bind_null(submission.get(), 3);
     bindText(submission.get(), 4, schemaVersion);
-    bindText(submission.get(), 5, input.reportJson);
+    bindText(submission.get(), 5, officialReport);
     bindText(submission.get(), 6, input.clientSubmissionId);
     sqlite3_bind_int64(submission.get(), 7, actor.id);
-    if (reviewerId) sqlite3_bind_int64(submission.get(), 8, *reviewerId); else sqlite3_bind_null(submission.get(), 8);
+    if (reviewerId)
+      sqlite3_bind_int64(submission.get(), 8, *reviewerId);
+    else
+      sqlite3_bind_null(submission.get(), 8);
     sqlite3_bind_int(submission.get(), 9, isTest ? 1 : 0);
     bindText(submission.get(), 10, reviewStatus);
     bindText(submission.get(), 11, reportHash);
-    bindText(submission.get(), 12, "1.0.0");
+    bindText(submission.get(), 12, scoringVersion);
     sqlite3_bind_int(submission.get(), 13, initialScore);
     sqlite3_bind_int(submission.get(), 14, rawScore);
     sqlite3_bind_int(submission.get(), 15, std::clamp(rawScore, 0, 100));
-    if (sqlite3_step(submission.get()) != SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
+    bindText(submission.get(), 16, input.pdfSha256);
+    if (sqlite3_step(submission.get()) != SQLITE_DONE)
+      throw std::runtime_error(sqlite3_errmsg(db_));
     const auto submissionId = sqlite3_last_insert_rowid(db_);
 
-    for (const auto& event : events) {
-      Statement step(db_, "INSERT INTO submission_steps(submission_id,sequence_number,item_key,"
-          "item_type,title,response,pedagogical_classification,pedagogical_comment,dependencies_json,recorded_at) "
-          "VALUES(?,?,?,?,?,?,?,?,?,?);" );
-      sqlite3_bind_int64(step.get(),1,submissionId); sqlite3_bind_int(step.get(),2,event.sequence);
-      bindText(step.get(),3,event.key); bindText(step.get(),4,event.type); bindText(step.get(),5,event.title);
-      bindText(step.get(),6,event.answer); bindText(step.get(),7,event.classification); bindText(step.get(),8,event.reason);
-      bindText(step.get(),9,event.dependencies); if(event.recordedAt.empty()) sqlite3_bind_null(step.get(),10); else bindText(step.get(),10,event.recordedAt);
-      if(sqlite3_step(step.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
-      Statement score(db_, "INSERT INTO submission_score_events(submission_id,sequence_number,item_key,item_type,"
-          "classification,rule_set_version,base_points,priority_bonus,efficiency_penalty,delta,raw_total_after,displayed_total_after,recorded_at) "
-          "VALUES(?,?,?,?,?,'1.0.0',?,?,?,?,?,?,?);" );
-      sqlite3_bind_int64(score.get(),1,submissionId); sqlite3_bind_int(score.get(),2,event.sequence);
-      bindText(score.get(),3,event.key); bindText(score.get(),4,event.type); bindText(score.get(),5,event.classification);
-      sqlite3_bind_int(score.get(),6,event.base); sqlite3_bind_int(score.get(),7,event.bonus); sqlite3_bind_int(score.get(),8,event.penalty);
-      sqlite3_bind_int(score.get(),9,event.delta); sqlite3_bind_int(score.get(),10,event.rawAfter); sqlite3_bind_int(score.get(),11,event.displayedAfter);
-      if(event.recordedAt.empty()) sqlite3_bind_null(score.get(),12); else bindText(score.get(),12,event.recordedAt);
-      if(sqlite3_step(score.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
+    for (const auto &event : events) {
+      Statement step(
+          db_,
+          "INSERT INTO submission_steps(submission_id,sequence_number,item_key,"
+          "item_type,title,response,pedagogical_classification,pedagogical_"
+          "comment,dependencies_json,recorded_at) "
+          "VALUES(?,?,?,?,?,?,?,?,?,?);");
+      sqlite3_bind_int64(step.get(), 1, submissionId);
+      sqlite3_bind_int(step.get(), 2, event.sequence);
+      bindText(step.get(), 3, event.key);
+      bindText(step.get(), 4, event.type);
+      bindText(step.get(), 5, event.title);
+      bindText(step.get(), 6, event.answer);
+      bindText(step.get(), 7, event.classification);
+      bindText(step.get(), 8, event.reason);
+      bindText(step.get(), 9, event.dependencies);
+      if (event.recordedAt.empty())
+        sqlite3_bind_null(step.get(), 10);
+      else
+        bindText(step.get(), 10, event.recordedAt);
+      if (sqlite3_step(step.get()) != SQLITE_DONE)
+        throw std::runtime_error(sqlite3_errmsg(db_));
+      Statement score(db_, "INSERT INTO "
+                           "submission_score_events(submission_id,sequence_"
+                           "number,item_key,item_type,"
+                           "classification,rule_set_version,base_points,"
+                           "priority_bonus,efficiency_penalty,delta,raw_total_"
+                           "after,displayed_total_after,recorded_at) "
+                           "VALUES(?,?,?,?,?,?, ?,?,?,?,?,?,?);");
+      sqlite3_bind_int64(score.get(), 1, submissionId);
+      sqlite3_bind_int(score.get(), 2, event.sequence);
+      bindText(score.get(), 3, event.key);
+      bindText(score.get(), 4, event.type);
+      bindText(score.get(), 5, event.classification);
+      bindText(score.get(), 6, scoringVersion);
+      sqlite3_bind_int(score.get(), 7, event.base);
+      sqlite3_bind_int(score.get(), 8, event.bonus);
+      sqlite3_bind_int(score.get(), 9, event.penalty);
+      sqlite3_bind_int(score.get(), 10, event.delta);
+      sqlite3_bind_int(score.get(), 11, event.rawAfter);
+      sqlite3_bind_int(score.get(), 12, event.displayedAfter);
+      if (event.recordedAt.empty())
+        sqlite3_bind_null(score.get(), 13);
+      else
+        bindText(score.get(), 13, event.recordedAt);
+      if (sqlite3_step(score.get()) != SQLITE_DONE)
+        throw std::runtime_error(sqlite3_errmsg(db_));
     }
 
-    Statement attempts(db_, "SELECT key,COALESCE(json_extract(value,'$.hypothesis'),''),"
-        "COALESCE(json_extract(value,'$.reason'),json_extract(value,'$.justification'),''),"
-        "COALESCE(json_extract(value,'$.correct'),''),COALESCE(json_extract(value,'$.actions'),'[]'),"
-        "COALESCE(json_extract(value,'$.time'),json_extract(value,'$.attemptedAt')) FROM json_each(?,'$.attempts');" );
-    bindText(attempts.get(),1,input.reportJson);
-    while(sqlite3_step(attempts.get())==SQLITE_ROW){
-      Statement insertAttempt(db_, "INSERT INTO diagnostic_attempts(submission_id,attempt_number,hypothesis_key,hypothesis_label,"
-          "justification,comparison_result,evidence_snapshot_json,attempted_at) VALUES(?,?,?,?,?,?,?,COALESCE(?,CURRENT_TIMESTAMP));" );
-      sqlite3_bind_int64(insertAttempt.get(),1,submissionId); sqlite3_bind_int(insertAttempt.get(),2,sqlite3_column_int(attempts.get(),0)+1);
-      bindText(insertAttempt.get(),3,columnText(attempts.get(),1)); bindText(insertAttempt.get(),4,columnText(attempts.get(),1));
-      bindText(insertAttempt.get(),5,columnText(attempts.get(),2)); bindText(insertAttempt.get(),6,columnText(attempts.get(),3));
-      bindText(insertAttempt.get(),7,columnText(attempts.get(),4));
-      if(columnText(attempts.get(),5).empty()) sqlite3_bind_null(insertAttempt.get(),8); else bindText(insertAttempt.get(),8,columnText(attempts.get(),5));
-      if(sqlite3_step(insertAttempt.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
+    Statement attempts(
+        db_, "SELECT key,COALESCE(json_extract(value,'$.hypothesis'),''),"
+             "COALESCE(json_extract(value,'$.reason'),json_extract(value,'$."
+             "justification'),''),"
+             "COALESCE(json_extract(value,'$.correct'),''),COALESCE(json_"
+             "extract(value,'$.actions'),'[]'),"
+             "COALESCE(json_extract(value,'$.time'),json_extract(value,'$."
+             "attemptedAt')) FROM json_each(?,'$.attempts');");
+    bindText(attempts.get(), 1, input.reportJson);
+    while (sqlite3_step(attempts.get()) == SQLITE_ROW) {
+      Statement insertAttempt(
+          db_,
+          "INSERT INTO "
+          "diagnostic_attempts(submission_id,attempt_number,hypothesis_key,"
+          "hypothesis_label,"
+          "justification,comparison_result,evidence_snapshot_json,attempted_at)"
+          " VALUES(?,?,?,?,?,?,?,COALESCE(?,CURRENT_TIMESTAMP));");
+      sqlite3_bind_int64(insertAttempt.get(), 1, submissionId);
+      sqlite3_bind_int(insertAttempt.get(), 2,
+                       sqlite3_column_int(attempts.get(), 0) + 1);
+      bindText(insertAttempt.get(), 3, columnText(attempts.get(), 1));
+      bindText(insertAttempt.get(), 4, columnText(attempts.get(), 1));
+      bindText(insertAttempt.get(), 5, columnText(attempts.get(), 2));
+      bindText(insertAttempt.get(), 6, columnText(attempts.get(), 3));
+      bindText(insertAttempt.get(), 7, columnText(attempts.get(), 4));
+      if (columnText(attempts.get(), 5).empty())
+        sqlite3_bind_null(insertAttempt.get(), 8);
+      else
+        bindText(insertAttempt.get(), 8, columnText(attempts.get(), 5));
+      if (sqlite3_step(insertAttempt.get()) != SQLITE_DONE)
+        throw std::runtime_error(sqlite3_errmsg(db_));
     }
 
-    Statement document(db_, "INSERT INTO submission_documents(submission_id,original_name,mime_type,sha256,byte_size,pdf_blob) "
-        "VALUES(?,?,'application/pdf',?,?,?);" );
-    sqlite3_bind_int64(document.get(),1,submissionId); bindText(document.get(),2,input.originalPdfName);
-    bindText(document.get(),3,input.pdfSha256); sqlite3_bind_int64(document.get(),4,static_cast<sqlite3_int64>(input.pdfData.size()));
-    sqlite3_bind_blob(document.get(),5,input.pdfData.data(),static_cast<int>(input.pdfData.size()),SQLITE_TRANSIENT);
-    if(sqlite3_step(document.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
+    Statement document(db_, "INSERT INTO "
+                            "submission_documents(submission_id,original_name,"
+                            "mime_type,sha256,byte_size,pdf_blob) "
+                            "VALUES(?,?,'application/pdf',?,?,?);");
+    sqlite3_bind_int64(document.get(), 1, submissionId);
+    bindText(document.get(), 2, input.originalPdfName);
+    bindText(document.get(), 3, officialHash);
+    sqlite3_bind_int64(document.get(), 4,
+                       static_cast<sqlite3_int64>(officialPdf.size()));
+    sqlite3_bind_blob(document.get(), 5, officialPdf.data(),
+                      static_cast<int>(officialPdf.size()), SQLITE_TRANSIENT);
+    if (sqlite3_step(document.get()) != SQLITE_DONE)
+      throw std::runtime_error(sqlite3_errmsg(db_));
 
-    Statement audit(db_, "INSERT INTO audit_logs(user_id,action,entity_type,entity_id,metadata_json) "
-        "VALUES(?,'submission.finalized','submission',?,json_object('clientSubmissionId',?,'isTest',?,'reviewStatus',?));" );
-    sqlite3_bind_int64(audit.get(),1,actor.id); sqlite3_bind_int64(audit.get(),2,submissionId);
-    bindText(audit.get(),3,input.clientSubmissionId); sqlite3_bind_int(audit.get(),4,isTest?1:0); bindText(audit.get(),5,reviewStatus);
-    if(sqlite3_step(audit.get())!=SQLITE_DONE) throw std::runtime_error(sqlite3_errmsg(db_));
+    Statement audit(
+        db_, "INSERT INTO "
+             "audit_logs(user_id,action,entity_type,entity_id,metadata_json) "
+             "VALUES(?,'submission.finalized','submission',?,json_object('"
+             "clientSubmissionId',?,'isTest',?,'reviewStatus',?));");
+    sqlite3_bind_int64(audit.get(), 1, actor.id);
+    sqlite3_bind_int64(audit.get(), 2, submissionId);
+    bindText(audit.get(), 3, input.clientSubmissionId);
+    sqlite3_bind_int(audit.get(), 4, isTest ? 1 : 0);
+    bindText(audit.get(), 5, reviewStatus);
+    if (sqlite3_step(audit.get()) != SQLITE_DONE)
+      throw std::runtime_error(sqlite3_errmsg(db_));
 
+    nextExec("UPDATE clinical_sessions SET "
+             "status='completed',completed_at=CURRENT_TIMESTAMP,submission_id=?"
+             " WHERE id=json_extract(?,'$.clinicalSessionId') AND user_id=? "
+             "AND submission_id IS NULL",
+             {std::to_string(submissionId), input.reportJson,
+              std::to_string(actor.id)});
+    if (sqlite3_changes(db_) != 1)
+      throw std::invalid_argument(
+          "atendimento já concluído com outra submissão");
     execute("COMMIT;");
-    return {submissionId,true,initialScore,rawScore,std::clamp(rawScore,0,100),reviewStatus};
+    return {submissionId,
+            true,
+            initialScore,
+            rawScore,
+            std::clamp(rawScore, 0, 100),
+            reviewStatus};
   } catch (...) {
-    try { execute("ROLLBACK;"); } catch (...) {}
+    try {
+      execute("ROLLBACK;");
+    } catch (...) {
+    }
     throw;
   }
 }
 
-std::optional<SubmissionPdf> Database::getSubmissionPdf(
-    std::int64_t id, const SessionUser& user) {
+std::optional<SubmissionPdf>
+Database::getSubmissionPdf(std::int64_t id, const SessionUser &user) {
+  if (nextJson("SELECT EXISTS(SELECT 1 FROM submissions s JOIN users owner ON "
+               "owner.id=s.student_id JOIN users actor ON actor.id=? AND "
+               "actor.institution_id=owner.institution_id WHERE s.id=?)",
+               {std::to_string(user.id), std::to_string(id)}) != "1")
+    return std::nullopt;
   Statement statement(
-      db_, "SELECT d.original_name,d.sha256,d.pdf_blob FROM submissions s "
-           "JOIN submission_documents d ON d.submission_id=s.id "
-           "WHERE s.id=? AND (?='admin' OR s.student_id=? OR s.reviewer_id=?);" );
-  sqlite3_bind_int64(statement.get(),1,id); bindText(statement.get(),2,user.role);
-  sqlite3_bind_int64(statement.get(),3,user.id); sqlite3_bind_int64(statement.get(),4,user.id);
-  if(sqlite3_step(statement.get())!=SQLITE_ROW) return std::nullopt;
-  const auto* blob=static_cast<const char*>(sqlite3_column_blob(statement.get(),2));
-  const int bytes=sqlite3_column_bytes(statement.get(),2);
-  return SubmissionPdf{columnText(statement.get(),0),columnText(statement.get(),1),
-                       blob && bytes>0 ? std::string(blob,static_cast<std::size_t>(bytes)) : std::string{}};
+      db_,
+      "SELECT d.original_name,d.sha256,d.pdf_blob FROM submissions s "
+      "JOIN submission_documents d ON d.submission_id=s.id "
+      "WHERE s.id=? AND (?='admin' OR s.student_id=? OR s.reviewer_id=?);");
+  sqlite3_bind_int64(statement.get(), 1, id);
+  bindText(statement.get(), 2, user.role);
+  sqlite3_bind_int64(statement.get(), 3, user.id);
+  sqlite3_bind_int64(statement.get(), 4, user.id);
+  if (sqlite3_step(statement.get()) != SQLITE_ROW)
+    return std::nullopt;
+  const auto *blob =
+      static_cast<const char *>(sqlite3_column_blob(statement.get(), 2));
+  const int bytes = sqlite3_column_bytes(statement.get(), 2);
+  return SubmissionPdf{
+      columnText(statement.get(), 0), columnText(statement.get(), 1),
+      blob && bytes > 0 ? std::string(blob, static_cast<std::size_t>(bytes))
+                        : std::string{}};
 }
 
-std::string Database::listSubmissions(const SessionUser& user) {
+std::string Database::listSubmissions(const SessionUser &user) {
   const bool admin = user.role == "admin";
   const bool teacher = user.role == "teacher";
   // Administradores enxergam o conjunto para testar a plataforma. Professores
@@ -812,65 +1107,83 @@ std::string Database::listSubmissions(const SessionUser& user) {
   std::string filter;
   std::vector<std::string> values;
   if (admin) {
-    filter = "";
+    filter =
+        "WHERE u.institution_id=(SELECT institution_id FROM users WHERE id=?) ";
+    values = {std::to_string(user.id)};
   } else if (teacher) {
-    filter = "WHERE (s.reviewer_id=? OR s.imported_by=? OR EXISTS (SELECT 1 FROM activities a "
+    filter = "WHERE (s.reviewer_id=? OR s.imported_by=? OR EXISTS (SELECT 1 "
+             "FROM activities a "
              "WHERE a.id=s.activity_id AND a.teacher_id=?)) ";
-    values = {std::to_string(user.id), std::to_string(user.id), std::to_string(user.id)};
+    values = {std::to_string(user.id), std::to_string(user.id),
+              std::to_string(user.id)};
   } else {
     filter = "WHERE s.student_id=? ";
     values = {std::to_string(user.id)};
   }
   return scalarJson(
-      db_, "SELECT COALESCE(json_group_array(json_object("
-           "'id',id,'studentId',student_id,'studentName',student_name,"
-           "'caseTitle',case_title,'submittedAt',submitted_at,"
-           "'feedbackStatus',feedback_status,'reviewStatus',review_status,"
-           "'isTest',json(is_test),'score',displayed_score)),'[]') FROM ("
-           "SELECT s.id,s.student_id,u.full_name student_name,"
-           "COALESCE(json_extract(s.raw_report_json,'$.case'),c.title,'Caso importado') "
-           "case_title,s.submitted_at,s.review_status,s.is_test,s.displayed_score,"
-           "COALESCE(f.status,'pending') feedback_status FROM submissions s "
-           "JOIN users u ON u.id=s.student_id "
-           "LEFT JOIN case_versions cv ON cv.id=s.case_version_id "
-           "LEFT JOIN clinical_cases c ON c.id=cv.clinical_case_id "
-           "LEFT JOIN teacher_feedback f ON f.submission_id=s.id " +
-           filter + "ORDER BY s.submitted_at DESC);",
+      db_,
+      "SELECT COALESCE(json_group_array(json_object("
+      "'id',id,'studentId',student_id,'studentName',student_name,"
+      "'caseTitle',case_title,'submittedAt',submitted_at,"
+      "'feedbackStatus',feedback_status,'reviewStatus',review_status,"
+      "'isTest',json(is_test),'score',displayed_score)),'[]') FROM ("
+      "SELECT s.id,s.student_id,u.full_name student_name,"
+      "COALESCE(json_extract(s.raw_report_json,'$.case'),c.title,'Caso "
+      "importado') "
+      "case_title,s.submitted_at,s.review_status,s.is_test,s.displayed_score,"
+      "COALESCE(f.status,'pending') feedback_status FROM submissions s "
+      "JOIN users u ON u.id=s.student_id "
+      "LEFT JOIN case_versions cv ON cv.id=s.case_version_id "
+      "LEFT JOIN clinical_cases c ON c.id=cv.clinical_case_id "
+      "LEFT JOIN teacher_feedback f ON f.submission_id=s.id " +
+          filter + "ORDER BY s.submitted_at DESC);",
       values);
 }
 
 std::optional<std::string> Database::getSubmission(std::int64_t id,
-                                                    const SessionUser& user) {
+                                                   const SessionUser &user) {
   const bool admin = user.role == "admin";
   const bool teacher = user.role == "teacher";
+  if (nextJson("SELECT EXISTS(SELECT 1 FROM submissions s JOIN users owner ON "
+               "owner.id=s.student_id JOIN users actor ON actor.id=? AND "
+               "actor.institution_id=owner.institution_id WHERE s.id=?)",
+               {std::to_string(user.id), std::to_string(id)}) != "1")
+    return std::nullopt;
   Statement statement(
-      db_, "SELECT CASE WHEN s.raw_report_json IS NOT NULL "
-           "THEN json_set(s.raw_report_json,'$.studentId',s.student_id,"
-           "'$.studentName',u.full_name,'$.score',json_object("
-           "'initial',s.initial_score,'raw',s.raw_score,'displayed',s.displayed_score,"
-           "'ruleSetVersion',s.scoring_rule_set_version),"
-           "'$.isTest',json(s.is_test),'$.reviewStatus',s.review_status,"
-           "'$.scoreEvents',json(COALESCE((SELECT json_group_array(json_object("
-           "'sequence',sequence_number,'itemKey',item_key,'classification',classification,"
-           "'base',base_points,'bonus',priority_bonus,'efficiencyPenalty',efficiency_penalty,"
-           "'delta',delta,'rawAfter',raw_total_after,'displayedAfter',displayed_total_after)) "
-           "FROM submission_score_events WHERE submission_id=s.id),'[]'))) ELSE json_object("
-           "'id',s.id,'studentId',s.student_id,'studentName',u.full_name,"
-           "'submittedAt',s.submitted_at,'steps',json(COALESCE(("
-           "SELECT json_group_array(json_object('sequence',sequence_number,"
-           "'type',item_type,'title',title,'response',response,"
-           "'classification',pedagogical_classification,"
-           "'comment',pedagogical_comment,'recordedAt',recorded_at)) "
-           "FROM submission_steps WHERE submission_id=s.id),'[]')),"
-           "'attempts',json(COALESCE((SELECT json_group_array(json_object("
-           "'number',attempt_number,'hypothesis',hypothesis_label,"
-           "'justification',justification,'comparison',comparison_result,"
-           "'evidence',json(evidence_snapshot_json),'attemptedAt',attempted_at)) "
-           "FROM diagnostic_attempts WHERE submission_id=s.id),'[]'))) END "
-           "FROM submissions s JOIN users u ON u.id=s.student_id "
-           "WHERE s.id=? AND (?=1 OR (?=1 AND (s.reviewer_id=? OR s.imported_by=? OR EXISTS ("
-           "SELECT 1 FROM activities a WHERE a.id=s.activity_id "
-           "AND a.teacher_id=?))) OR (?=0 AND ?=0 AND s.student_id=?));");
+      db_,
+      "SELECT CASE WHEN s.raw_report_json IS NOT NULL "
+      "THEN json_set(s.raw_report_json,'$.studentId',s.student_id,"
+      "'$.studentName',u.full_name,'$.score',json_object("
+      "'initial',s.initial_score,'raw',s.raw_score,'displayed',s.displayed_"
+      "score,"
+      "'ruleSetVersion',s.scoring_rule_set_version),"
+      "'$.isTest',json(s.is_test),'$.reviewStatus',s.review_status,"
+      "'$.scoreEvents',json(COALESCE((SELECT json_group_array(json_object("
+      "'sequence',sequence_number,'itemKey',item_key,'classification',"
+      "classification,"
+      "'base',base_points,'bonus',priority_bonus,'efficiencyPenalty',"
+      "efficiency_penalty,"
+      "'delta',delta,'rawAfter',raw_total_after,'displayedAfter',displayed_"
+      "total_after)) "
+      "FROM submission_score_events WHERE submission_id=s.id),'[]'))) ELSE "
+      "json_object("
+      "'id',s.id,'studentId',s.student_id,'studentName',u.full_name,"
+      "'submittedAt',s.submitted_at,'steps',json(COALESCE(("
+      "SELECT json_group_array(json_object('sequence',sequence_number,"
+      "'type',item_type,'title',title,'response',response,"
+      "'classification',pedagogical_classification,"
+      "'comment',pedagogical_comment,'recordedAt',recorded_at)) "
+      "FROM submission_steps WHERE submission_id=s.id),'[]')),"
+      "'attempts',json(COALESCE((SELECT json_group_array(json_object("
+      "'number',attempt_number,'hypothesis',hypothesis_label,"
+      "'justification',justification,'comparison',comparison_result,"
+      "'evidence',json(evidence_snapshot_json),'attemptedAt',attempted_at)) "
+      "FROM diagnostic_attempts WHERE submission_id=s.id),'[]'))) END "
+      "FROM submissions s JOIN users u ON u.id=s.student_id "
+      "WHERE s.id=? AND (?=1 OR (?=1 AND (s.reviewer_id=? OR s.imported_by=? "
+      "OR EXISTS ("
+      "SELECT 1 FROM activities a WHERE a.id=s.activity_id "
+      "AND a.teacher_id=?))) OR (?=0 AND ?=0 AND s.student_id=?));");
   sqlite3_bind_int64(statement.get(), 1, id);
   sqlite3_bind_int(statement.get(), 2, admin ? 1 : 0);
   sqlite3_bind_int(statement.get(), 3, teacher ? 1 : 0);
@@ -880,17 +1193,25 @@ std::optional<std::string> Database::getSubmission(std::int64_t id,
   sqlite3_bind_int(statement.get(), 7, teacher ? 1 : 0);
   sqlite3_bind_int(statement.get(), 8, admin ? 1 : 0);
   sqlite3_bind_int64(statement.get(), 9, user.id);
-  if (sqlite3_step(statement.get()) != SQLITE_ROW) return std::nullopt;
+  if (sqlite3_step(statement.get()) != SQLITE_ROW)
+    return std::nullopt;
   return columnText(statement.get(), 0);
 }
 
-bool Database::canTeacherReviewSubmission(
-    std::int64_t submissionId, std::int64_t teacherId) {
+bool Database::canTeacherReviewSubmission(std::int64_t submissionId,
+                                          std::int64_t teacherId) {
+  if (nextJson("SELECT EXISTS(SELECT 1 FROM submissions s JOIN users owner ON "
+               "owner.id=s.student_id JOIN users actor ON actor.id=? AND "
+               "actor.institution_id=owner.institution_id WHERE s.id=?)",
+               {std::to_string(teacherId), std::to_string(submissionId)}) !=
+      "1")
+    return false;
   Statement statement(
       db_, "SELECT EXISTS(SELECT 1 FROM submissions s "
            "LEFT JOIN activities a ON a.id=s.activity_id "
            "WHERE s.id=? AND (EXISTS(SELECT 1 FROM admin_accounts ad "
-           "WHERE ad.user_id=?) OR s.reviewer_id=? OR s.imported_by=? OR a.teacher_id=?));");
+           "WHERE ad.user_id=?) OR s.reviewer_id=? OR s.imported_by=? OR "
+           "a.teacher_id=?));");
   sqlite3_bind_int64(statement.get(), 1, submissionId);
   sqlite3_bind_int64(statement.get(), 2, teacherId);
   sqlite3_bind_int64(statement.get(), 3, teacherId);
@@ -900,41 +1221,69 @@ bool Database::canTeacherReviewSubmission(
          sqlite3_column_int(statement.get(), 0) == 1;
 }
 
-bool Database::canTeacherReviewStudent(
-    std::int64_t studentId, std::int64_t teacherId) {
-  Statement statement(
-      db_, "SELECT EXISTS(SELECT 1 FROM submissions s "
-           "LEFT JOIN activities a ON a.id=s.activity_id "
-           "WHERE s.student_id=? AND (EXISTS(SELECT 1 FROM admin_accounts ad "
-           "WHERE ad.user_id=?) OR s.reviewer_id=? OR s.imported_by=? OR a.teacher_id=?));");
-  sqlite3_bind_int64(statement.get(), 1, studentId);
-  sqlite3_bind_int64(statement.get(), 2, teacherId);
-  sqlite3_bind_int64(statement.get(), 3, teacherId);
-  sqlite3_bind_int64(statement.get(), 4, teacherId);
-  sqlite3_bind_int64(statement.get(), 5, teacherId);
-  return sqlite3_step(statement.get()) == SQLITE_ROW &&
-         sqlite3_column_int(statement.get(), 0) == 1;
+bool Database::canTeacherReviewStudent(std::int64_t studentId,
+                                       std::int64_t teacherId) {
+  return nextJson(
+             "SELECT EXISTS(SELECT 1 FROM users owner JOIN users actor ON "
+             "actor.institution_id=owner.institution_id WHERE owner.id=? AND "
+             "actor.id=? AND actor.is_active=1 AND actor.role='teacher' AND "
+             "(EXISTS(SELECT 1 FROM admin_accounts WHERE user_id=actor.id) OR "
+             "EXISTS(SELECT 1 FROM submissions s LEFT JOIN activities a ON "
+             "a.id=s.activity_id WHERE s.student_id=owner.id AND "
+             "(s.reviewer_id=actor.id OR s.imported_by=actor.id OR "
+             "a.teacher_id=actor.id)) OR EXISTS(SELECT 1 FROM "
+             "class_enrollments ce JOIN classes c ON c.id=ce.class_id WHERE "
+             "ce.student_id=owner.id AND c.teacher_id=actor.id AND "
+             "c.institution_id=actor.institution_id) OR EXISTS(SELECT 1 FROM "
+             "activity_assignments aa JOIN activities a ON a.id=aa.activity_id "
+             "WHERE aa.student_id=owner.id AND a.teacher_id=actor.id)))",
+             {std::to_string(studentId), std::to_string(teacherId)}) == "1";
 }
 
 std::string Database::listFeedback(std::int64_t studentId,
-                                   const SessionUser& user) {
-  if (user.role != "teacher" && user.role != "admin" && user.id != studentId) return "[]";
+                                   const SessionUser &user) {
+  if (nextJson("SELECT EXISTS(SELECT 1 FROM users owner JOIN users actor ON "
+               "actor.institution_id=owner.institution_id WHERE owner.id=? AND "
+               "actor.id=?)",
+               {std::to_string(studentId), std::to_string(user.id)}) != "1")
+    return "[]";
+  if (user.role == "student" && user.id != studentId)
+    return "[]";
+  if (user.role == "teacher" && !canTeacherReviewStudent(studentId, user.id))
+    return "[]";
   return scalarJson(
-      db_, "SELECT COALESCE(json_group_array(json_object("
-           "'id',id,'submissionId',submission_id,'status',status,"
-           "'strengths',strengths,'difficulties',difficulties,"
-           "'nextAttemptGuidance',next_attempt_guidance,"
-           "'generalObservation',general_observation,"
-           "'updatedAt',updated_at,'completedAt',completed_at)),'[]') "
-           "FROM (SELECT f.* FROM teacher_feedback f JOIN submissions s "
-           "ON s.id=f.submission_id WHERE s.student_id=? "
-           "ORDER BY f.updated_at DESC);",
-      {std::to_string(studentId)});
+      db_,
+      "SELECT COALESCE(json_group_array(json_object("
+      "'id',id,'submissionId',submission_id,'status',status,"
+      // A consulta administrativa não concede autoria: o formulário recebe a
+      // permissão atual de edição, inclusive após mudanças de vínculo docente.
+      "'canEdit',json(CASE WHEN status='draft' AND teacher_id=? "
+      "AND ? IN ('teacher','admin') AND EXISTS("
+      "SELECT 1 FROM submissions permitted LEFT JOIN activities activity "
+      "ON activity.id=permitted.activity_id WHERE permitted.id=submission_id "
+      "AND (EXISTS(SELECT 1 FROM admin_accounts WHERE user_id=?) "
+      "OR permitted.reviewer_id=? OR permitted.imported_by=? OR activity.teacher_id=?)) "
+      "THEN 'true' ELSE 'false' END),"
+      "'strengths',strengths,'difficulties',difficulties,"
+      "'missedEvidence',missed_evidence,'prioritizationComment',prioritization_"
+      "comment,"
+      "'justificationComment',justification_comment,'nextAttemptGuidance',next_"
+      "attempt_guidance,"
+      "'generalObservation',general_observation,"
+      "'updatedAt',updated_at,'completedAt',completed_at)),'[]') "
+      "FROM (SELECT f.* FROM teacher_feedback f JOIN submissions s "
+      "ON s.id=f.submission_id WHERE s.student_id=? "
+      "AND (?<>'student' OR f.status='completed') "
+      "AND (?<>'teacher' OR f.teacher_id=?) "
+      "ORDER BY f.updated_at DESC);",
+      {std::to_string(user.id), user.role, std::to_string(user.id),
+       std::to_string(user.id), std::to_string(user.id), std::to_string(user.id),
+       std::to_string(studentId), user.role, user.role, std::to_string(user.id)});
 }
 
 std::int64_t Database::createFeedback(std::int64_t submissionId,
                                       std::int64_t teacherId,
-                                      const std::string& jsonBody) {
+                                      const std::string &jsonBody) {
   Statement statement(
       db_, "INSERT INTO teacher_feedback("
            "submission_id,teacher_id,strengths,difficulties,missed_evidence,"
@@ -955,38 +1304,50 @@ std::int64_t Database::createFeedback(std::int64_t submissionId,
            "next_attempt_guidance=excluded.next_attempt_guidance,"
            "general_observation=excluded.general_observation,"
            "updated_at=CURRENT_TIMESTAMP WHERE status='draft' "
-           "RETURNING id;");
+           "AND teacher_id=excluded.teacher_id RETURNING id;");
   sqlite3_bind_int64(statement.get(), 1, submissionId);
   sqlite3_bind_int64(statement.get(), 2, teacherId);
-  for (int i = 3; i <= 9; ++i) bindText(statement.get(), i, jsonBody);
-  if (sqlite3_step(statement.get()) != SQLITE_ROW) {
+  for (int i = 3; i <= 9; ++i)
+    bindText(statement.get(), i, jsonBody);
+  const auto result = sqlite3_step(statement.get());
+  // O conflito não altera autoria nem conteúdo concluído; zero sinaliza HTTP 409.
+  if (result == SQLITE_DONE)
+    return 0;
+  if (result != SQLITE_ROW) {
     throw std::runtime_error(sqlite3_errmsg(db_));
   }
   return sqlite3_column_int64(statement.get(), 0);
 }
 
-bool Database::updateFeedback(std::int64_t feedbackId,
-                              std::int64_t teacherId,
-                              const std::string& jsonBody, bool complete) {
-  const char* sql = complete
-      ? "UPDATE teacher_feedback SET status='completed',"
-        "completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP "
-        "WHERE id=? AND teacher_id=? AND status='draft';"
-      : "UPDATE teacher_feedback SET "
-        "strengths=COALESCE(json_extract(?,'$.strengths'),strengths),"
-        "difficulties=COALESCE(json_extract(?,'$.difficulties'),difficulties),"
-        "missed_evidence=COALESCE(json_extract(?,'$.missedEvidence'),missed_evidence),"
-        "prioritization_comment=COALESCE(json_extract(?,'$.prioritizationComment'),prioritization_comment),"
-        "justification_comment=COALESCE(json_extract(?,'$.justificationComment'),justification_comment),"
-        "next_attempt_guidance=COALESCE(json_extract(?,'$.nextAttemptGuidance'),next_attempt_guidance),"
-        "general_observation=COALESCE(json_extract(?,'$.generalObservation'),general_observation),"
-        "updated_at=CURRENT_TIMESTAMP WHERE id=? AND teacher_id=? AND status='draft';";
+bool Database::updateFeedback(std::int64_t feedbackId, std::int64_t teacherId,
+                              const std::string &jsonBody, bool complete) {
+  const char *sql =
+      complete ? "UPDATE teacher_feedback SET status='completed',"
+                 "completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP "
+                 "WHERE id=? AND teacher_id=? AND status='draft';"
+               : "UPDATE teacher_feedback SET "
+                 "strengths=COALESCE(json_extract(?,'$.strengths'),strengths),"
+                 "difficulties=COALESCE(json_extract(?,'$.difficulties'),"
+                 "difficulties),"
+                 "missed_evidence=COALESCE(json_extract(?,'$.missedEvidence'),"
+                 "missed_evidence),"
+                 "prioritization_comment=COALESCE(json_extract(?,'$."
+                 "prioritizationComment'),prioritization_comment),"
+                 "justification_comment=COALESCE(json_extract(?,'$."
+                 "justificationComment'),justification_comment),"
+                 "next_attempt_guidance=COALESCE(json_extract(?,'$."
+                 "nextAttemptGuidance'),next_attempt_guidance),"
+                 "general_observation=COALESCE(json_extract(?,'$."
+                 "generalObservation'),general_observation),"
+                 "updated_at=CURRENT_TIMESTAMP WHERE id=? AND teacher_id=? AND "
+                 "status='draft';";
   Statement statement(db_, sql);
   if (complete) {
     sqlite3_bind_int64(statement.get(), 1, feedbackId);
     sqlite3_bind_int64(statement.get(), 2, teacherId);
   } else {
-    for (int i = 1; i <= 7; ++i) bindText(statement.get(), i, jsonBody);
+    for (int i = 1; i <= 7; ++i)
+      bindText(statement.get(), i, jsonBody);
     sqlite3_bind_int64(statement.get(), 8, feedbackId);
     sqlite3_bind_int64(statement.get(), 9, teacherId);
   }
@@ -996,4 +1357,4 @@ bool Database::updateFeedback(std::int64_t feedbackId,
   return sqlite3_changes(db_) > 0;
 }
 
-}  // namespace devsphere
+} // namespace devsphere

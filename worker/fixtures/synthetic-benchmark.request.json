@@ -1,0 +1,12 @@
+{
+  "sourceId": "synthetic-benchmark",
+  "sourceHash": "b46ec62c24af0a2e768f008ea060ce05dd42c3fa55002063d33c50f16e7c436a",
+  "markdown": "## Página 1\nFONTE INTEIRAMENTE SINTÉTICA PARA TESTE DE SOFTWARE, NÃO VALIDADA CLINICAMENTE.\nExercício educacional fictício: pessoa adulta de55 anos relata cansaço, sede frequente, aumento da frequência urinária e perda de peso ao longo de um mês. Não há paciente real nesta fonte. Registro sintético: pressão128/82 mmHg, frequência88 bpm, temperatura36,7 C, glicemia de jejum248 mg/dL e HbA1c9,1%. Não há dor torácica, dispneia ou alteração de consciência descritas. Fonte não apresenta todos os antecedentes, exame físico, medicações ou testes necessários. Objetivos do exercício: selecionar perguntas úteis, integrar história e exames, comparar hipóteses plausíveis e justificar prioridades. Valores, sinais e histórico aqui são apenas dados fictícios para verificar a integração. Qualquer complemento inventado precisa ficar identificado em assumptions como acréscimo educacional sintético. Uma pessoa docente deverá revisar coerência, hipóteses, exames e desfecho antes de qualquer uso educacional. Não há referência clínica externa autorizada nesta fonte.",
+  "pages": [
+    1
+  ],
+  "allowedReferences": [
+    "source:synthetic-benchmark#page:1"
+  ],
+  "instructions": "Produza rascunho fictício compacto para teste estrutural. Exatamente18 perguntas e22 exames. Títulos até6 palavras; respostas e why até12 palavras cada. Use18 IDs q01..q18 e22 IDs e01..e22, quality válida, 3 hipóteses comid e label, outcome hypothesisId existente e explanation. Não crie dependências desnecessárias. Declare acréscimos sintéticos em assumptions e lacunas em missingData. Paciente fictício sem vínculo com pessoas reais. Nenhum dado produzido está clinicamente aprovado."
+}

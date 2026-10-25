@@ -1,195 +1,65 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>
-      Criar caso · Paciente Virtual
-    </title>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autoria de caso clínico · Paciente Virtual</title>
+    <!-- Preferência visual aplicada antes dos estilos; controle operável por teclado. -->
+    <script src="../scripts/theme.js"></script>
+<link rel="stylesheet" href="../vendor/bootstrap-5.3.8/bootstrap-grid.min.css">
     <link rel="stylesheet" href="../styles/teacher.css">
-  </head>
-  <body class="auth-pending" data-required-role="teacher">
-    <a class="skip-link" href="#conteudo">
-      Ir para o conteúdo
-    </a>
-    <!-- Cabeçalho persistente com identidade e navegação contextual. -->
-    <header class="site-header">
-      <div class="brand">
-        FIAP
-      </div>
-      <div>
-        <p class="site-title">
-          Paciente Virtual
-        </p>
-        <p class="site-subtitle">
-          Autoria de caso
-        </p>
-      </div>
-      <nav class="site-nav">
-        <ul>
-          <li>
-            <a href="teacher-cases.html">
-              Casos
-            </a>
-          </li>
-          <li>
-            <a aria-current="page" href="teacher-case-editor.html">
-              Criar caso
-            </a>
-          </li>
-        </ul>
-      </nav>
+<link rel="stylesheet" href="../styles/next-portals.css">
+    <link rel="stylesheet" href="../styles/institutional.css">
+</head>
+<body class="app-shell auth-pending" data-required-role="teacher">
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<!-- Navegação contextual: permissões reais são verificadas pelo backend. -->
+<header class="site-header">
+      <a class="brand-lockup" href="../index.html">
+        <span class="partner-marks">
+          <img class="brand-fiap" src="../assets/brand/fiap.png" alt="FIAP" width="500" height="500">
+          <span class="brand-plus" aria-hidden="true">+</span>
+          <img class="brand-moinhos" src="../assets/brand/moinhos_de_vento.png" alt="Faculdade Moinhos de Vento" width="500" height="233">
+        </span>
+        <span class="brand-product"><span class="brand-product-name">Paciente Virtual</span></span>
+      </a>
+<nav aria-label="Jornadas">
+<a href="student-cases.html">Praticar</a> · <a href="student-history.html">Meus atendimentos</a> · <a href="contributions.html">Contribuições</a> · <a href="teacher-cases.html">Curadoria</a> · <button class="button" type="button" data-logout>Sair</button>
+</nav>
+
+      <button id="themeToggle" class="button theme-toggle" type="button" aria-pressed="false" hidden><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-moon" aria-hidden="true" focusable="false">
+  <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+  <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+</svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-sun" aria-hidden="true" focusable="false">
+  <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>
+</svg><span class="visually-hidden">Tema escuro</span></button>
     </header>
-    <!-- Conteúdo principal específico desta etapa da jornada. -->
-    <main id="conteudo" class="page-main">
-      <header class="page-header">
-        <span class="eyebrow">
-          Rascunho docente
-        </span>
-        <h1>
-          Criar caso clínico
-        </h1>
-        <p>
-          Forneça os fatos clínicos. A geração assistida cria uma proposta; a revisão humana é obrigatória antes da publicação.
-        </p>
-      </header>
-      <!-- Dados clínicos e pedagógicos usados para gerar um rascunho revisável. -->
-      <form id="caseForm" class="stack">
-        <section class="card grid two" aria-labelledby="patientTitle">
-          <h2 id="patientTitle" class="full-span">
-            Paciente e contexto
-          </h2>
-          <div class="field">
-            <label for="title">
-              Título do caso
-            </label>
-            <input id="title" name="title" required>
-          </div>
-          <div class="field">
-            <label for="patientName">
-              Nome fictício
-            </label>
-            <input id="patientName" name="patientName" required>
-          </div>
-          <div class="field">
-            <label for="age">
-              Idade
-            </label>
-            <input id="age" name="age" type="number" min="0" max="120" required>
-          </div>
-          <div class="field">
-            <label for="careContext">
-              Contexto do atendimento
-            </label>
-            <input id="careContext" name="careContext" required>
-          </div>
-          <div class="field full-span">
-            <label for="chiefComplaint">
-              Queixa principal
-            </label>
-            <textarea id="chiefComplaint" name="chiefComplaint" required></textarea>
-          </div>
-        </section>
-        <section class="card grid two" aria-labelledby="clinicalTitle">
-          <h2 id="clinicalTitle" class="full-span">
-            Informações clínicas
-          </h2>
-          <div class="field">
-            <label for="history">
-              História clínica
-            </label>
-            <textarea id="history" name="history" required></textarea>
-          </div>
-          <div class="field">
-            <label for="background">
-              Antecedentes, medicamentos e alergias
-            </label>
-            <textarea id="background" name="background"></textarea>
-          </div>
-          <div class="field">
-            <label for="physicalExam">
-              Sinais vitais e exame físico
-            </label>
-            <textarea id="physicalExam" name="physicalExam"></textarea>
-          </div>
-          <div class="field">
-            <label for="tests">
-              Exames complementares
-            </label>
-            <textarea id="tests" name="tests"></textarea>
-          </div>
-          <div class="field">
-            <label for="diagnoses">
-              Hipóteses e diferenciais
-            </label>
-            <textarea id="diagnoses" name="diagnoses" required></textarea>
-          </div>
-          <div class="field">
-            <label for="outcome">
-              Diagnóstico ou desfecho esperado
-            </label>
-            <textarea id="outcome" name="outcome" required></textarea>
-          </div>
-        </section>
-        <section class="card grid two" aria-labelledby="educationTitle">
-          <h2 id="educationTitle" class="full-span">
-            Planejamento pedagógico
-          </h2>
-          <div class="field">
-            <label for="objectives">
-              Objetivos de aprendizagem
-            </label>
-            <textarea id="objectives" name="objectives" required></textarea>
-          </div>
-          <div class="field">
-            <label for="priorityEvidence">
-              Evidências prioritárias
-            </label>
-            <textarea id="priorityEvidence" name="priorityEvidence" required></textarea>
-          </div>
-          <div class="field full-span">
-            <label for="references">
-              Referências clínicas
-            </label>
-            <textarea id="references" name="references" required></textarea>
-            <span class="hint">
-              Informe fontes que o revisor possa verificar.
-            </span>
-          </div>
-        </section>
-        <div id="caseFormStatus" role="status" aria-live="polite">
-        </div>
-        <div class="cluster">
-          <button class="button primary" type="submit">
-            Gerar proposta estruturada
-          </button>
-          <a class="button" href="teacher-cases.html">
-            Cancelar
-          </a>
-        </div>
-      </form>
-      <section id="generatedDraft" class="card section-gap" hidden aria-labelledby="draftTitle">
-        <span class="badge draft">
-          Revisão obrigatória
-        </span>
-        <h2 id="draftTitle">
-          Proposta gerada
-        </h2>
-        <p id="draftSummary">
-        </p>
-        <div class="status warning">
-          A IA organiza uma proposta, mas não valida o conteúdo médico. Revise todas as perguntas, exames, respostas, dependências e referências antes de salvar.
-        </div>
-        <div class="cluster section-gap">
-          <button id="saveDraft" class="button primary" type="button">
-            Salvar como rascunho
-          </button>
-        </div>
-      </section>
-    </main>
-    <script type="module" src="../scripts/auth/route-guard.js"></script>
-    <!-- Controlador da página e integração com os serviços da API. -->
-    <script type="module" src="../scripts/cases/case-editor.js">
-    </script>
+<main id="conteudo" class="page-main" tabindex="-1">
+<h1>Autoria de caso clínico</h1>
+<p>Crie um rascunho completo ou gere uma proposta a partir de um PDF autorizado. Exatamente 18 perguntas e 22 exames são obrigatórios. Salvar não aprova nem publica o caso.</p>
+<p>
+<a class="button" href="contributions.html">Gerar a partir de PDF</a>
+</p>
+<form id="caseForm" class="card next-form">
+<label for="caseKey">Identificador estável</label>
+<input id="caseKey" name="key" required pattern="[a-z0-9_-]+" placeholder="caso-003">
+<label for="caseTitle">Título público sem pistas diagnósticas</label>
+<input id="caseTitle" name="title" required>
+<label for="caseArea">Área ou especialidade interna</label>
+<input id="caseArea" name="area" required>
+<label for="contentJson">Conteúdo estruturado completo</label>
+<textarea id="contentJson" class="next-json" spellcheck="false" required aria-describedby="jsonHelp">
+</textarea>
+<p id="jsonHelp">Informe patient, items (18 question e 22 exam), hypotheses, correctHypothesis e scoring. Respostas e desfecho são dados restritos. A validação estrutural ocorre no servidor.</p>
+<button class="button primary" type="submit">Salvar rascunho para revisão</button>
+</form>
+<p id="caseFormStatus" role="status" aria-live="polite">
+</p>
+</main>
+<script type="module" src="../scripts/auth/route-guard.js">
+</script>
+<script type="module" src="../scripts/cases/case-editor.js">
+</script>
+<footer class="site-footer"><p>&copy; 2026 Paciente Virtual · Todos os direitos reservados · Ambiente educacional · Casos fictícios sujeitos à validação docente</p></footer>
   </body>
 </html>

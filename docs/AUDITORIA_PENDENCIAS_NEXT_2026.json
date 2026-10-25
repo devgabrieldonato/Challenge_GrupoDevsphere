@@ -1,0 +1,25 @@
+{
+  "repository": {
+    "nameWithOwner": "devgabrieldonato/Challenge_GrupoDevsphere",
+    "url": "https://github.com/devgabrieldonato/Challenge_GrupoDevsphere",
+    "visibility": "PUBLIC"
+  },
+  "models": [
+    {
+      "name": "qwen3:8b",
+      "licenseTitle": "Apache License 2.0",
+      "licenseSha256": "d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12",
+      "quantization": "Q4_K_M",
+      "licensePresent": true
+    },
+    {
+      "name": "gemma3:4b",
+      "licenseTitle": "Gemma Terms of Use",
+      "licenseSha256": "dd084c7d92a3c1c14cc09ae77153b903fd2024b64a100a0cc8ec9316063d2dbc",
+      "quantization": "Q4_K_M",
+      "licensePresent": true
+    }
+  ],
+  "checkedOn": "2026-10-16",
+  "scope": "Consulta somente de leitura; sem mudança de visibilidade/permissões e sem aprovação jurídica das licenças."
+}

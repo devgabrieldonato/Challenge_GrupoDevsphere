@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Mantem scripts Bash com LF para execucao no Linux/WSL a partir do Windows.
+*.sh text eol=lf

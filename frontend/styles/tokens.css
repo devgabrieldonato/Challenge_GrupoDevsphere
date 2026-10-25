@@ -1,18 +1,137 @@
-/* Variáveis visuais compartilhadas por todas as jornadas da plataforma. */
+/* Temas compartilham papéis semânticos; o script aplica a preferência antes da pintura. */
 :root {
-  --color-brand: #ed145b;
-  --color-primary: #315bdf;
+  color-scheme: light;
+  --color-brand: #c70f4c;
+  --color-primary: #2447b7;
+  --color-primary-hover: #18368f;
   --color-primary-dark: #2447b7;
+  --color-link: #2447b7;
+  --color-on-primary: #ffffff;
   --color-ink: #15283e;
-  --color-muted: #607187;
-  --color-border: #dce4ed;
+  --color-muted: #475569;
+  --color-border: #c0cad6;
+  --color-control-border: #7a8798;
   --color-surface: #ffffff;
   --color-background: #f5f7fb;
-  --color-success: #147d58;
-  --color-warning: #a45c00;
+  --color-surface-subtle: #eef2f7;
+  --color-selected-background: #e8edff;
+  --color-selected-ink: #2447b7;
+  --color-focus: #875400;
+  --color-success: #126847;
+  --color-success-background: #e6f7ef;
+  --color-warning: #835000;
+  --color-warning-background: #fff2d8;
   --color-danger: #b42318;
+  --color-danger-background: #fff0ef;
+  --color-info-background: #eef2ff;
+  --color-question: #64409f;
+  --color-question-ink: #50337f;
+  --color-question-background: #f3eefb;
+  --color-exam: #087477;
+  --color-exam-ink: #09666b;
+  --color-exam-background: #eaf7f7;
+  --color-map-dot: #a0aec0;
+  --color-patient-background: #15283e;
+  --color-patient-ink: #ffffff;
+  --color-patient-muted: #c0cee0;
+  --color-patient-tag: #33475e;
+  --color-patient-caption: #23384f;
+  --color-patient-border: #76899f;
+  --color-overlay: #10243c88;
   --shadow-card: 0 12px 34px rgba(21, 40, 62, 0.1);
   --radius-small: 8px;
   --radius-medium: 14px;
   --content-width: 1180px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-brand: #ff8bb3;
+  --color-primary: #315bdf;
+  --color-primary-hover: #2447b7;
+  --color-primary-dark: #bad0ff;
+  --color-link: #a9c4ff;
+  --color-ink: #f3f4f6;
+  --color-muted: #c4cfde;
+  --color-border: #66758b;
+  --color-control-border: #8494ab;
+  --color-surface: #1f2937;
+  --color-background: #111827;
+  --color-surface-subtle: #263448;
+  --color-selected-background: #253c68;
+  --color-selected-ink: #d6e3ff;
+  --color-focus: #ffd166;
+  --color-success: #8be0b5;
+  --color-success-background: #173d32;
+  --color-warning: #ffd98a;
+  --color-warning-background: #493719;
+  --color-danger: #ffb4ad;
+  --color-danger-background: #4a262c;
+  --color-info-background: #26395a;
+  --color-question: #c3a0ff;
+  --color-question-ink: #e2ceff;
+  --color-question-background: #382950;
+  --color-exam: #70d5d3;
+  --color-exam-ink: #a7eeeb;
+  --color-exam-background: #173e42;
+  --color-map-dot: #5d718b;
+  --shadow-card: 0 12px 34px rgba(0, 0, 0, 0.25);
+}
+/* Aliases conservam o vocabulário da sessão sem manter uma segunda paleta fixa. */
+:root {
+  --ink: var(--color-ink);
+  --muted: var(--color-muted);
+  --line: var(--color-border);
+  --blue: var(--color-primary);
+  --purple: var(--color-question);
+  --teal: var(--color-exam);
+}
+
+/* Papel usa contraste claro mesmo quando a tela está no tema escuro. */
+@media print {
+:root, :root[data-theme="dark"] {
+  color-scheme: light;
+  --color-brand: #c70f4c;
+  --color-primary: #2447b7;
+  --color-primary-hover: #18368f;
+  --color-primary-dark: #2447b7;
+  --color-link: #2447b7;
+  --color-on-primary: #ffffff;
+  --color-ink: #15283e;
+  --color-muted: #475569;
+  --color-border: #c0cad6;
+  --color-control-border: #7a8798;
+  --color-surface: #ffffff;
+  --color-background: #f5f7fb;
+  --color-surface-subtle: #eef2f7;
+  --color-selected-background: #e8edff;
+  --color-selected-ink: #2447b7;
+  --color-focus: #875400;
+  --color-success: #126847;
+  --color-success-background: #e6f7ef;
+  --color-warning: #835000;
+  --color-warning-background: #fff2d8;
+  --color-danger: #b42318;
+  --color-danger-background: #fff0ef;
+  --color-info-background: #eef2ff;
+  --color-question: #64409f;
+  --color-question-ink: #50337f;
+  --color-question-background: #f3eefb;
+  --color-exam: #087477;
+  --color-exam-ink: #09666b;
+  --color-exam-background: #eaf7f7;
+  --color-map-dot: #a0aec0;
+  --color-patient-background: #15283e;
+  --color-patient-ink: #ffffff;
+  --color-patient-muted: #c0cee0;
+  --color-patient-tag: #33475e;
+  --color-patient-caption: #23384f;
+  --color-patient-border: #76899f;
+  --color-overlay: #10243c88;
+  --shadow-card: 0 12px 34px rgba(21, 40, 62, 0.1);
+  --radius-small: 8px;
+  --radius-medium: 14px;
+  --content-width: 1180px;
+}
+  .theme-toggle { display: none !important; }
+  body { background: var(--color-surface); }
 }

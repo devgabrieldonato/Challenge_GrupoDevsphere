@@ -1,4 +1,8 @@
 #include "http_server.hpp"
+#include "pipeline_api.hpp"
+#include "privileged_mfa.hpp"
+#include <ctime>
+#include <sys/stat.h>
 
 #include "security.hpp"
 
@@ -10,16 +14,16 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cstring>
 #include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <sstream>
-#include <string_view>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 namespace devsphere {
@@ -34,28 +38,37 @@ std::string lower(std::string value) {
 
 std::string trim(std::string value) {
   const auto isContent = [](unsigned char c) { return !std::isspace(c); };
-  value.erase(value.begin(), std::find_if(value.begin(), value.end(), isContent));
+  value.erase(value.begin(),
+              std::find_if(value.begin(), value.end(), isContent));
   value.erase(std::find_if(value.rbegin(), value.rend(), isContent).base(),
               value.end());
   return value;
 }
 
-std::optional<std::string> jsonString(const std::string& json,
-                                      const std::string& key) {
+std::optional<std::string> jsonString(const std::string &json,
+                                      const std::string &key) {
   const std::regex pattern("\\\"" + key +
                            "\\\"\\s*:\\s*\\\"((?:\\\\.|[^\\\"\\\\])*)\\\"");
   std::smatch match;
-  if (!std::regex_search(json, match, pattern)) return std::nullopt;
+  if (!std::regex_search(json, match, pattern))
+    return std::nullopt;
   std::string value = match[1];
   std::string decoded;
   for (std::size_t i = 0; i < value.size(); ++i) {
     if (value[i] == '\\' && i + 1 < value.size()) {
       ++i;
       switch (value[i]) {
-        case 'n': decoded.push_back('\n'); break;
-        case 'r': decoded.push_back('\r'); break;
-        case 't': decoded.push_back('\t'); break;
-        default: decoded.push_back(value[i]);
+      case 'n':
+        decoded.push_back('\n');
+        break;
+      case 'r':
+        decoded.push_back('\r');
+        break;
+      case 't':
+        decoded.push_back('\t');
+        break;
+      default:
+        decoded.push_back(value[i]);
       }
     } else {
       decoded.push_back(value[i]);
@@ -64,12 +77,12 @@ std::optional<std::string> jsonString(const std::string& json,
   return decoded;
 }
 
-std::optional<std::int64_t> jsonInteger(const std::string& json,
-                                                const std::string& key) {
-  const std::regex pattern("\"" + key +
-                           "\"\\s*:\\s*\"?([0-9]+)\"?");
+std::optional<std::int64_t> jsonInteger(const std::string &json,
+                                        const std::string &key) {
+  const std::regex pattern("\"" + key + "\"\\s*:\\s*\"?([0-9]+)\"?");
   std::smatch match;
-  if (!std::regex_search(json, match, pattern)) return std::nullopt;
+  if (!std::regex_search(json, match, pattern))
+    return std::nullopt;
   try {
     return std::stoll(match[1]);
   } catch (...) {
@@ -77,10 +90,11 @@ std::optional<std::int64_t> jsonInteger(const std::string& json,
   }
 }
 
-std::optional<std::string> decodeBase64(const std::string& encoded) {
+std::optional<std::string> decodeBase64(const std::string &encoded) {
   static const std::string alphabet =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-  if (encoded.empty() || encoded.size() % 4 != 0) return std::nullopt;
+  if (encoded.empty() || encoded.size() % 4 != 0)
+    return std::nullopt;
   std::string decoded;
   decoded.reserve(encoded.size() / 4 * 3);
 
@@ -93,9 +107,11 @@ std::optional<std::string> decodeBase64(const std::string& encoded) {
         ++padding;
         value <<= 6;
       } else {
-        if (padding > 0) return std::nullopt;
+        if (padding > 0)
+          return std::nullopt;
         const auto position = alphabet.find(character);
-        if (position == std::string::npos) return std::nullopt;
+        if (position == std::string::npos)
+          return std::nullopt;
         value = (value << 6) | static_cast<std::uint32_t>(position);
       }
     }
@@ -103,8 +119,10 @@ std::optional<std::string> decodeBase64(const std::string& encoded) {
       return std::nullopt;
     }
     decoded.push_back(static_cast<char>((value >> 16) & 0xff));
-    if (padding < 2) decoded.push_back(static_cast<char>((value >> 8) & 0xff));
-    if (padding < 1) decoded.push_back(static_cast<char>(value & 0xff));
+    if (padding < 2)
+      decoded.push_back(static_cast<char>((value >> 8) & 0xff));
+    if (padding < 1)
+      decoded.push_back(static_cast<char>(value & 0xff));
   }
   return decoded;
 }
@@ -115,38 +133,45 @@ struct MultipartFile {
   std::string data;
 };
 
-std::optional<MultipartFile> multipartFile(const HttpRequest& request,
-                                                const std::string& fieldName = "file") {
+std::optional<MultipartFile>
+multipartFile(const HttpRequest &request,
+              const std::string &fieldName = "file") {
   const auto contentType = request.headers.find("content-type");
-  if (contentType == request.headers.end()) return std::nullopt;
-  const std::regex boundaryPattern(R"REGEX(boundary=(?:"([^"]+)"|([^;\s]+)))REGEX");
+  if (contentType == request.headers.end())
+    return std::nullopt;
+  const std::regex boundaryPattern(
+      R"REGEX(boundary=(?:"([^"]+)"|([^;\s]+)))REGEX");
   std::smatch boundaryMatch;
-  if (!std::regex_search(contentType->second, boundaryMatch,
-                         boundaryPattern)) {
+  if (!std::regex_search(contentType->second, boundaryMatch, boundaryPattern)) {
     return std::nullopt;
   }
-  const std::string boundary =
-      boundaryMatch[1].matched ? boundaryMatch[1].str()
-                               : boundaryMatch[2].str();
-  if (boundary.empty() || boundary.size() > 200) return std::nullopt;
+  const std::string boundary = boundaryMatch[1].matched
+                                   ? boundaryMatch[1].str()
+                                   : boundaryMatch[2].str();
+  if (boundary.empty() || boundary.size() > 200)
+    return std::nullopt;
 
   const std::string delimiter = "--" + boundary;
   std::size_t part = request.body.find(delimiter);
   while (part != std::string::npos) {
     const auto headerStart = request.body.find("\r\n", part + delimiter.size());
-    if (headerStart == std::string::npos) return std::nullopt;
+    if (headerStart == std::string::npos)
+      return std::nullopt;
     const auto headerEnd = request.body.find("\r\n\r\n", headerStart + 2);
-    if (headerEnd == std::string::npos) return std::nullopt;
+    if (headerEnd == std::string::npos)
+      return std::nullopt;
     const std::string headers =
         request.body.substr(headerStart + 2, headerEnd - headerStart - 2);
     const std::string lowerHeaders = lower(headers);
     const auto dataStart = headerEnd + 4;
     const auto dataEnd = request.body.find("\r\n" + delimiter, dataStart);
-    if (dataEnd == std::string::npos) return std::nullopt;
+    if (dataEnd == std::string::npos)
+      return std::nullopt;
 
     if (lowerHeaders.find("content-disposition: form-data") !=
             std::string::npos &&
-        lowerHeaders.find("name=\"" + lower(fieldName) + "\"") != std::string::npos) {
+        lowerHeaders.find("name=\"" + lower(fieldName) + "\"") !=
+            std::string::npos) {
       const std::regex filenamePattern(R"REGEX(filename="([^"]*)")REGEX");
       const std::regex mimePattern(R"(content-type:\s*([^\r\n;]+))",
                                    std::regex::icase);
@@ -158,8 +183,10 @@ std::optional<MultipartFile> multipartFile(const HttpRequest& request,
       }
       std::string filename = filenameMatch[1];
       const auto separator = filename.find_last_of("/\\");
-      if (separator != std::string::npos) filename.erase(0, separator + 1);
-      if (filename.empty() || filename.size() > 255) return std::nullopt;
+      if (separator != std::string::npos)
+        filename.erase(0, separator + 1);
+      if (filename.empty() || filename.size() > 255)
+        return std::nullopt;
       return MultipartFile{filename, lower(trim(mimeMatch[1].str())),
                            request.body.substr(dataStart, dataEnd - dataStart)};
     }
@@ -170,26 +197,36 @@ std::optional<MultipartFile> multipartFile(const HttpRequest& request,
 
 // Extrai um campo textual do mesmo multipart usado pelo PDF. O limite de
 // requisição global impede que campos malformados provoquem consumo ilimitado.
-std::optional<std::string> multipartText(const HttpRequest& request,
-                                         const std::string& fieldName) {
+std::optional<std::string> multipartText(const HttpRequest &request,
+                                         const std::string &fieldName) {
   const auto contentType = request.headers.find("content-type");
-  if (contentType == request.headers.end()) return std::nullopt;
-  const std::regex boundaryPattern(R"REGEX(boundary=(?:"([^"]+)"|([^;\s]+)))REGEX");
+  if (contentType == request.headers.end())
+    return std::nullopt;
+  const std::regex boundaryPattern(
+      R"REGEX(boundary=(?:"([^"]+)"|([^;\s]+)))REGEX");
   std::smatch boundaryMatch;
-  if (!std::regex_search(contentType->second, boundaryMatch, boundaryPattern)) return std::nullopt;
-  const std::string boundary = boundaryMatch[1].matched ? boundaryMatch[1].str() : boundaryMatch[2].str();
-  if (boundary.empty() || boundary.size() > 200) return std::nullopt;
+  if (!std::regex_search(contentType->second, boundaryMatch, boundaryPattern))
+    return std::nullopt;
+  const std::string boundary = boundaryMatch[1].matched
+                                   ? boundaryMatch[1].str()
+                                   : boundaryMatch[2].str();
+  if (boundary.empty() || boundary.size() > 200)
+    return std::nullopt;
   const std::string delimiter = "--" + boundary;
   std::size_t part = request.body.find(delimiter);
   while (part != std::string::npos) {
     const auto headerStart = request.body.find("\r\n", part + delimiter.size());
-    if (headerStart == std::string::npos) return std::nullopt;
+    if (headerStart == std::string::npos)
+      return std::nullopt;
     const auto headerEnd = request.body.find("\r\n\r\n", headerStart + 2);
-    if (headerEnd == std::string::npos) return std::nullopt;
-    const std::string headers = request.body.substr(headerStart + 2, headerEnd - headerStart - 2);
+    if (headerEnd == std::string::npos)
+      return std::nullopt;
+    const std::string headers =
+        request.body.substr(headerStart + 2, headerEnd - headerStart - 2);
     const auto dataStart = headerEnd + 4;
     const auto dataEnd = request.body.find("\r\n" + delimiter, dataStart);
-    if (dataEnd == std::string::npos) return std::nullopt;
+    if (dataEnd == std::string::npos)
+      return std::nullopt;
     const std::regex namePattern("name=\\\"" + fieldName + "\\\"");
     if (std::regex_search(headers, namePattern) &&
         lower(headers).find("filename=") == std::string::npos) {
@@ -200,7 +237,7 @@ std::optional<std::string> multipartText(const HttpRequest& request,
   return std::nullopt;
 }
 
-std::optional<std::string> structuredReport(const std::string& pdf) {
+std::optional<std::string> structuredReport(const std::string &pdf) {
   constexpr std::string_view marker = "%PV_REPORT_V1:";
   const std::size_t tailStart =
       pdf.size() > 2'000'000 ? pdf.size() - 2'000'000 : 0;
@@ -221,41 +258,60 @@ HttpResponse jsonResponse(int status, std::string body) {
           std::move(body)};
 }
 
-HttpResponse jsonError(int status, const std::string& code,
-                       const std::string& message) {
+HttpResponse jsonError(int status, const std::string &code,
+                       const std::string &message) {
   return {status,
           {{"Content-Type", "application/json; charset=utf-8"}},
-          "{\"error\":{\"code\":\"" + jsonEscape(code) +
-              "\",\"message\":\"" + jsonEscape(message) + "\"}}"};
+          "{\"error\":{\"code\":\"" + jsonEscape(code) + "\",\"message\":\"" +
+              jsonEscape(message) + "\"}}"};
 }
 
 std::string reasonPhrase(int status) {
   switch (status) {
-    case 200: return "OK";
-    case 201: return "Created";
-    case 204: return "No Content";
-    case 400: return "Bad Request";
-    case 401: return "Unauthorized";
-    case 403: return "Forbidden";
-    case 404: return "Not Found";
-    case 409: return "Conflict";
-    case 413: return "Payload Too Large";
-    case 429: return "Too Many Requests";
-    case 500: return "Internal Server Error";
-    case 501: return "Not Implemented";
-    default: return "Error";
+  case 200:
+    return "OK";
+  case 201:
+    return "Created";
+  case 204:
+    return "No Content";
+  case 400:
+    return "Bad Request";
+  case 401:
+    return "Unauthorized";
+  case 403:
+    return "Forbidden";
+  case 404:
+    return "Not Found";
+  case 409:
+    return "Conflict";
+  case 413:
+    return "Payload Too Large";
+  case 429:
+    return "Too Many Requests";
+  case 500:
+    return "Internal Server Error";
+  case 501:
+    return "Not Implemented";
+  case 503:
+    return "Service Unavailable";
+  case 507:
+    return "Insufficient Storage";
+  default:
+    return "Error";
   }
 }
 
-std::optional<std::string> cookieValue(const HttpRequest& request,
-                                       const std::string& name) {
+std::optional<std::string> cookieValue(const HttpRequest &request,
+                                       const std::string &name) {
   const auto header = request.headers.find("cookie");
-  if (header == request.headers.end()) return std::nullopt;
+  if (header == request.headers.end())
+    return std::nullopt;
   std::stringstream stream(header->second);
   std::string part;
   while (std::getline(stream, part, ';')) {
     const auto separator = part.find('=');
-    if (separator == std::string::npos) continue;
+    if (separator == std::string::npos)
+      continue;
     if (trim(part.substr(0, separator)) == name) {
       return trim(part.substr(separator + 1));
     }
@@ -263,10 +319,11 @@ std::optional<std::string> cookieValue(const HttpRequest& request,
   return std::nullopt;
 }
 
-std::optional<std::int64_t> pathId(const std::string& path,
-                                   const std::regex& pattern) {
+std::optional<std::int64_t> pathId(const std::string &path,
+                                   const std::regex &pattern) {
   std::smatch match;
-  if (!std::regex_match(path, match, pattern)) return std::nullopt;
+  if (!std::regex_match(path, match, pattern))
+    return std::nullopt;
   try {
     return std::stoll(match[1]);
   } catch (...) {
@@ -274,43 +331,66 @@ std::optional<std::int64_t> pathId(const std::string& path,
   }
 }
 
-std::string mimeType(const std::filesystem::path& path) {
+std::string mimeType(const std::filesystem::path &path) {
   const auto extension = lower(path.extension().string());
-  if (extension == ".html") return "text/html; charset=utf-8";
-  if (extension == ".css") return "text/css; charset=utf-8";
-  if (extension == ".js") return "application/javascript; charset=utf-8";
-  if (extension == ".png") return "image/png";
-  if (extension == ".svg") return "image/svg+xml";
-  if (extension == ".pdf") return "application/pdf";
+  if (extension == ".html")
+    return "text/html; charset=utf-8";
+  if (extension == ".css")
+    return "text/css; charset=utf-8";
+  if (extension == ".js")
+    return "application/javascript; charset=utf-8";
+  if (extension == ".png")
+    return "image/png";
+  if (extension == ".svg")
+    return "image/svg+xml";
+  if (extension == ".pdf")
+    return "application/pdf";
   return "application/octet-stream";
 }
 
-std::optional<HttpResponse> staticFile(const HttpRequest& request) {
+std::optional<HttpResponse> staticFile(const HttpRequest &request) {
   if (request.method != "GET" || request.path.rfind("/api/", 0) == 0) {
     return std::nullopt;
   }
-  const char* configured = std::getenv("DEVSPHERE_FRONTEND_DIR");
+  const char *configured = std::getenv("DEVSPHERE_FRONTEND_DIR");
   std::filesystem::path root =
       configured ? configured : std::filesystem::path("../frontend");
-  if (!std::filesystem::exists(root / "index.html")) root = "..";
-
-  std::string relative = request.path == "/" ? "index.html" : request.path.substr(1);
-  if (relative.find("..") != std::string::npos) {
+  // Falha fechada: nunca recua à raiz do repositório ou segue links para fora.
+  if (!std::filesystem::exists(root / "index.html"))
+    return std::nullopt;
+  const std::string relative =
+      request.path == "/" ? "index.html" : request.path.substr(1);
+  if (relative.find("..") != std::string::npos ||
+      relative.find('%') != std::string::npos ||
+      relative.find('\\') != std::string::npos || relative.find('.') == 0) {
     return jsonError(400, "invalid_path", "Caminho inválido.");
   }
-  const auto file = root / relative;
-  if (!std::filesystem::is_regular_file(file)) return std::nullopt;
+  if (relative == "scripts/cases/clinical-cases.js" ||
+      relative.rfind("scripts/scoring/", 0) == 0)
+    return jsonError(404, "not_found", "Recurso indisponível.");
+  const auto rootPath = std::filesystem::weakly_canonical(root);
+  const auto file = std::filesystem::weakly_canonical(rootPath / relative);
+  const auto rel = file.lexically_relative(rootPath);
+  if (rel.empty() || rel.native().rfind("..", 0) == 0 ||
+      !std::filesystem::is_regular_file(file))
+    return std::nullopt;
+  const std::string extension = lower(file.extension().string());
+  if (extension != ".html" && extension != ".js" && extension != ".css" &&
+      extension != ".png" && extension != ".jpg" && extension != ".jpeg" &&
+      extension != ".svg" && extension != ".webp" && extension != ".ico" &&
+      extension != ".woff2")
+    return std::nullopt;
   std::ifstream input(file, std::ios::binary);
   std::ostringstream content;
   content << input.rdbuf();
   return HttpResponse{200, {{"Content-Type", mimeType(file)}}, content.str()};
 }
 
-std::string serialize(const HttpResponse& response) {
+std::string serialize(const HttpResponse &response) {
   std::ostringstream output;
   output << "HTTP/1.1 " << response.status << ' '
          << reasonPhrase(response.status) << "\r\n";
-  for (const auto& [name, value] : response.headers) {
+  for (const auto &[name, value] : response.headers) {
     output << name << ": " << value << "\r\n";
   }
   output << "Content-Length: " << response.body.size() << "\r\n"
@@ -325,13 +405,14 @@ std::string serialize(const HttpResponse& response) {
   return output.str();
 }
 
-std::optional<HttpRequest> readRequest(int socket, const std::string& remote) {
+std::optional<HttpRequest> readRequest(int socket, const std::string &remote) {
   std::string data;
   std::array<char, 8192> buffer{};
   std::size_t expected = 0;
   while (data.size() < kMaxRequestBytes) {
     const auto received = recv(socket, buffer.data(), buffer.size(), 0);
-    if (received <= 0) break;
+    if (received <= 0)
+      break;
     data.append(buffer.data(), static_cast<std::size_t>(received));
     const auto endHeaders = data.find("\r\n\r\n");
     if (endHeaders != std::string::npos) {
@@ -341,33 +422,42 @@ std::optional<HttpRequest> readRequest(int socket, const std::string& remote) {
         std::smatch match;
         if (std::regex_search(headers, match, lengthPattern)) {
           expected = endHeaders + 4 + std::stoul(match[1]);
-          if (expected > kMaxRequestBytes) return std::nullopt;
+          if (expected > kMaxRequestBytes)
+            return std::nullopt;
         } else {
           expected = endHeaders + 4;
         }
       }
-      if (data.size() >= expected) break;
+      if (data.size() >= expected)
+        break;
     }
   }
-  if (data.empty() || data.size() >= kMaxRequestBytes) return std::nullopt;
+  if (data.empty() || data.size() >= kMaxRequestBytes)
+    return std::nullopt;
 
   const auto endHeaders = data.find("\r\n\r\n");
-  if (endHeaders == std::string::npos) return std::nullopt;
+  if (endHeaders == std::string::npos)
+    return std::nullopt;
   std::stringstream headerStream(data.substr(0, endHeaders));
   HttpRequest request;
   request.remoteAddress = remote;
   std::string line;
-  if (!std::getline(headerStream, line)) return std::nullopt;
-  if (!line.empty() && line.back() == '\r') line.pop_back();
+  if (!std::getline(headerStream, line))
+    return std::nullopt;
+  if (!line.empty() && line.back() == '\r')
+    line.pop_back();
   std::stringstream requestLine(line);
   std::string version;
   requestLine >> request.method >> request.path >> version;
-  if (request.method.empty() || request.path.empty()) return std::nullopt;
+  if (request.method.empty() || request.path.empty())
+    return std::nullopt;
   const auto query = request.path.find('?');
-  if (query != std::string::npos) request.path.resize(query);
+  if (query != std::string::npos)
+    request.path.resize(query);
 
   while (std::getline(headerStream, line)) {
-    if (!line.empty() && line.back() == '\r') line.pop_back();
+    if (!line.empty() && line.back() == '\r')
+      line.pop_back();
     const auto separator = line.find(':');
     if (separator != std::string::npos) {
       request.headers[lower(trim(line.substr(0, separator)))] =
@@ -378,65 +468,77 @@ std::optional<HttpRequest> readRequest(int socket, const std::string& remote) {
   return request;
 }
 
-std::optional<std::string> allowedCorsOrigin(const HttpRequest& request,
-                                                    bool production) {
+std::optional<std::string> allowedCorsOrigin(const HttpRequest &request,
+                                             bool production) {
   const auto originHeader = request.headers.find("origin");
-  if (originHeader == request.headers.end()) return std::nullopt;
-  const std::string& origin = originHeader->second;
+  if (originHeader == request.headers.end())
+    return std::nullopt;
+  const std::string &origin = originHeader->second;
 
   // Em desenvolvimento, apenas as duas formas usuais do Live Server são
   // aceitas. Produção exige uma lista explícita no ambiente.
   if (!production &&
-      (origin == "http://127.0.0.1:5501" ||
-       origin == "http://localhost:5501" ||
+      (origin == "http://127.0.0.1:5501" || origin == "http://localhost:5501" ||
        origin == "http://127.0.0.1:8080" ||
        origin == "http://localhost:8080")) {
     return origin;
   }
 
-  const char* configured = std::getenv("DEVSPHERE_ALLOWED_ORIGINS");
-  if (!configured) return std::nullopt;
+  const char *configured = std::getenv("DEVSPHERE_ALLOWED_ORIGINS");
+  if (!configured)
+    return std::nullopt;
   std::stringstream origins(configured);
   std::string candidate;
   while (std::getline(origins, candidate, ',')) {
-    if (trim(candidate) == origin) return origin;
+    if (trim(candidate) == origin)
+      return origin;
   }
   return std::nullopt;
 }
 
-void applyCors(const HttpRequest& request, HttpResponse& response,
+void applyCors(const HttpRequest &request, HttpResponse &response,
                bool production) {
   const auto origin = allowedCorsOrigin(request, production);
-  if (!origin) return;
+  if (!origin)
+    return;
   response.headers["Access-Control-Allow-Origin"] = *origin;
   response.headers["Access-Control-Allow-Credentials"] = "true";
-  response.headers["Access-Control-Allow-Headers"] = "Content-Type, Idempotency-Key";
+  response.headers["Access-Control-Allow-Headers"] =
+      "Content-Type, Idempotency-Key, X-PV-Request";
   response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, OPTIONS";
   response.headers["Vary"] = "Origin";
 }
 
-bool isJson(const HttpRequest& request) {
+bool isJson(const HttpRequest &request) {
   const auto contentType = request.headers.find("content-type");
   return contentType != request.headers.end() &&
-         lower(contentType->second).find("application/json") != std::string::npos;
+         lower(contentType->second).find("application/json") !=
+             std::string::npos;
 }
-}  // namespace
+} // namespace
 
-HttpServer::HttpServer(Database& database, std::string host, int port,
+HttpServer::HttpServer(Database &database, std::string host, int port,
                        bool production)
-    : database_(database),
-      host_(std::move(host)),
-      port_(port),
+    : database_(database), host_(std::move(host)), port_(port),
       production_(production) {}
 
-std::optional<SessionUser> HttpServer::authenticate(
-    const HttpRequest& request) {
+std::optional<SessionUser>
+HttpServer::authenticate(const HttpRequest &request) {
   const auto token = cookieValue(request, "devsphere_session");
-  if (!token || token->size() != 64) return std::nullopt;
-  return database_.findSession(sha256Hex(*token));
+  if (!token || token->size() != 64)
+    return std::nullopt;
+  auto user = database_.findSession(sha256Hex(*token));
+  if (user && production_ &&
+      (user->role == "admin" || user->role == "teacher")) {
+    const char *db = std::getenv("DEVSPHERE_DB_PATH");
+    if (!PrivilegedMfa::verifiedSession(db ? db : "data/devsphere.db",
+                                        sha256Hex(*token)))
+      return std::nullopt;
+  }
+  return user;
 }
 
-HttpResponse HttpServer::route(const HttpRequest& request) {
+HttpResponse HttpServer::route(const HttpRequest &request) {
   // Rejeita também requisições simples de origens desconhecidas. Sem esta
   // verificação, o navegador esconderia a resposta, mas a ação poderia ocorrer.
   if (request.headers.contains("origin") &&
@@ -444,14 +546,26 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     return jsonError(403, "origin_not_allowed", "Origem não autorizada.");
   }
 
-  // Responde à verificação CORS feita pelo navegador antes de requisições com JSON.
+  // Responde à verificação CORS feita pelo navegador antes de requisições com
+  // JSON.
   if (request.method == "OPTIONS") {
     return allowedCorsOrigin(request, production_)
                ? HttpResponse{204, {{"Cache-Control", "no-store"}}, ""}
                : jsonError(403, "origin_not_allowed", "Origem não autorizada.");
   }
 
-  // Evita uma requisição 404 automática do navegador quando não há ícone configurado.
+  // Header não simples impede submissões por formulários de outra origem.
+  // CORS só autoriza origens explícitas; autorização continua sendo por sessão.
+  if (request.path.starts_with("/api/") && request.method != "GET" &&
+      request.method != "HEAD") {
+    auto marker = request.headers.find("x-pv-request");
+    if (marker == request.headers.end() || marker->second != "1")
+      return jsonError(403, "request_guard_required",
+                       "Requisição sem proteção de origem.");
+  }
+
+  // Evita uma requisição 404 automática do navegador quando não há ícone
+  // configurado.
   if (request.method == "GET" && request.path == "/favicon.ico") {
     return {204, {{"Cache-Control", "public, max-age=86400"}}, ""};
   }
@@ -492,12 +606,13 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
       const auto requestId = database_.createRegistration(
           trim(*name), email, hashPassword(*password), role, trim(className),
           trim(professionalRegistration));
-      return jsonResponse(
-          201, "{\"requestId\":" + std::to_string(requestId) +
-                   ",\"status\":\"pending\",\"message\":\"Cadastro enviado para análise da instituição.\"}");
-    } catch (const std::invalid_argument& error) {
+      return jsonResponse(201,
+                          "{\"requestId\":" + std::to_string(requestId) +
+                              ",\"status\":\"pending\",\"message\":\"Cadastro "
+                              "enviado para análise da instituição.\"}");
+    } catch (const std::invalid_argument &error) {
       return jsonError(400, "invalid_registration", error.what());
-    } catch (const std::runtime_error& error) {
+    } catch (const std::runtime_error &error) {
       const std::string message = error.what();
       if (message.find("UNIQUE constraint failed") != std::string::npos) {
         return jsonError(409, "email_already_registered",
@@ -515,11 +630,13 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     const auto emailInput = jsonString(request.body, "email");
     const auto password = jsonString(request.body, "password");
     if (!emailInput || !password) {
-      return jsonError(400, "invalid_request", "E-mail e senha são obrigatórios.");
+      return jsonError(400, "invalid_request",
+                       "E-mail e senha são obrigatórios.");
     }
     const auto email = normalizeEmail(*emailInput);
     if (!isValidEmail(email)) {
-      return jsonError(401, "invalid_credentials", "E-mail ou senha inválidos.");
+      return jsonError(401, "invalid_credentials",
+                       "E-mail ou senha inválidos.");
     }
     const std::string rateKey = request.remoteAddress + "|" + email;
     if (!limiter_.allow(rateKey)) {
@@ -530,29 +647,50 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     const auto user = database_.findUserByEmail(email);
     static const std::string dummyHash =
         hashPassword("credencial-ficticia-segura");
-    const bool passwordValid = verifyPassword(
-        *password, user ? user->passwordHash : dummyHash);
+    const bool passwordValid =
+        verifyPassword(*password, user ? user->passwordHash : dummyHash);
     if (!user || !user->active || !passwordValid) {
-      return jsonError(401, "invalid_credentials", "E-mail ou senha inválidos.");
+      return jsonError(401, "invalid_credentials",
+                       "E-mail ou senha inválidos.");
     }
 
+    // Nenhuma sessão privilegiada é criada antes da validação do segundo fator.
+    const bool privileged = user->role == "admin" || user->role == "teacher";
+    const bool needsMfa =
+        privileged && (production_ || PrivilegedMfa::configured(user->id));
+    const char *mfaDb = std::getenv("DEVSPHERE_DB_PATH");
+    if (needsMfa) {
+      if (!PrivilegedMfa::configured(user->id))
+        return jsonError(403, "mfa_not_enrolled",
+                         "Conta privilegiada exige provisionamento de MFA.");
+      const auto otp = jsonString(request.body, "otp").value_or("");
+      if (otp.empty())
+        return jsonError(403, "mfa_required",
+                         "Informe o código do autenticador ou de recuperação.");
+      if (!PrivilegedMfa::verify(mfaDb ? mfaDb : "data/devsphere.db", user->id,
+                                 otp, std::time(nullptr)))
+        return jsonError(403, "mfa_invalid",
+                         "Segundo fator inválido ou já utilizado.");
+    }
     limiter_.success(rateKey);
     const auto token = randomToken();
-    database_.createSession(user->id, sha256Hex(token),
-                            "+8 hours");
+    database_.createSession(user->id, sha256Hex(token), "+8 hours");
+    if (needsMfa)
+      PrivilegedMfa::markSession(mfaDb ? mfaDb : "data/devsphere.db",
+                                 sha256Hex(token), user->id);
     database_.recordLogin(user->id);
-    std::string cookie =
-        "devsphere_session=" + token +
-        "; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800";
-    if (production_) cookie += "; Secure";
+    std::string cookie = "devsphere_session=" + token +
+                         "; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800";
+    if (production_)
+      cookie += "; Secure";
     return {200,
             {{"Content-Type", "application/json; charset=utf-8"},
              {"Set-Cookie", cookie},
              {"Cache-Control", "no-store"}},
-            "{\"user\":{\"id\":" + std::to_string(user->id) +
-                ",\"name\":\"" + jsonEscape(user->fullName) +
-                "\",\"email\":\"" + jsonEscape(user->email) +
-                "\",\"role\":\"" + user->role + "\"}}"};
+            "{\"user\":{\"id\":" + std::to_string(user->id) + ",\"name\":\"" +
+                jsonEscape(user->fullName) + "\",\"email\":\"" +
+                jsonEscape(user->email) + "\",\"role\":\"" + user->role +
+                "\"}}"};
   }
 
   if (request.method == "POST" && request.path == "/api/v1/auth/logout") {
@@ -561,24 +699,132 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     }
     std::string cookie =
         "devsphere_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0";
-    if (production_) cookie += "; Secure";
+    if (production_)
+      cookie += "; Secure";
     return {204, {{"Set-Cookie", cookie}, {"Cache-Control", "no-store"}}, ""};
   }
 
   const auto user = authenticate(request);
   if (request.method == "GET" && request.path == "/api/v1/auth/session") {
-    if (!user) return jsonError(401, "unauthenticated", "Sessão ausente ou expirada.");
+    if (!user)
+      return jsonError(401, "unauthenticated", "Sessão ausente ou expirada.");
     return {200,
             {{"Cache-Control", "no-store"},
              {"Content-Type", "application/json; charset=utf-8"}},
-            "{\"user\":{\"id\":" + std::to_string(user->id) +
-                ",\"name\":\"" + jsonEscape(user->fullName) +
-                "\",\"email\":\"" + jsonEscape(user->email) +
-                "\",\"role\":\"" + user->role + "\"}}"};
+            "{\"user\":{\"id\":" + std::to_string(user->id) + ",\"name\":\"" +
+                jsonEscape(user->fullName) + "\",\"email\":\"" +
+                jsonEscape(user->email) + "\",\"role\":\"" + user->role +
+                "\"}}"};
   }
 
   if (request.path.rfind("/api/", 0) == 0 && !user) {
     return jsonError(401, "unauthenticated", "Faça login para continuar.");
+  }
+
+  if (user && request.path == "/api/v1/auth/revoke-sessions" &&
+      request.method == "POST") {
+    database_.nextExec("DELETE FROM sessions WHERE user_id=?",
+                       {std::to_string(user->id)});
+    return jsonResponse(200, "{\"status\":\"revoked\"}");
+  }
+  if (user && request.method == "POST") {
+    std::smatch jobMatch;
+    if (std::regex_match(
+            request.path, jobMatch,
+            std::regex("^/api/v1/jobs/([a-f0-9]{32})/contribution$"))) {
+      try {
+        return jsonResponse(201, database_.materializeJob(*user, jobMatch[1]));
+      } catch (const std::invalid_argument &error) {
+        return jsonError(409, "invalid_job_state", error.what());
+      }
+    }
+  }
+  if (user) {
+    if (auto response = pipelineRoute(request, *user))
+      return *response;
+  }
+
+  // APIs NEXT_2026: identidade da sessão e transições verificadas no banco.
+  if (user) {
+    try {
+      static const std::regex publicCasePattern(
+          R"(^/api/v1/cases/([A-Za-z0-9_-]+)/public$)");
+      std::smatch match;
+      if (request.method == "GET" &&
+          std::regex_match(request.path, match, publicCasePattern))
+        return jsonResponse(200, database_.publicCase(match[1], *user));
+      if (request.path == "/api/v1/clinical-sessions" &&
+          request.method == "POST") {
+        if (!isJson(request))
+          return jsonError(400, "invalid_json", "Envie JSON.");
+        return jsonResponse(
+            201, database_.startClinicalSession(*user, request.body));
+      }
+      static const std::regex sessionPattern(
+          R"(^/api/v1/clinical-sessions/([0-9]+)(?:/(actions|hypotheses))?$)");
+      if (std::regex_match(request.path, match, sessionPattern)) {
+        auto id = std::stoll(match[1]);
+        if (request.method == "GET" && !match[2].matched)
+          return jsonResponse(200, database_.clinicalSession(id, *user));
+        if (request.method == "POST" && isJson(request)) {
+          if (match[2] == "actions")
+            return jsonResponse(
+                200, database_.clinicalAction(id, *user, request.body));
+          if (match[2] == "hypotheses")
+            return jsonResponse(
+                200, database_.clinicalHypothesis(id, *user, request.body));
+        }
+      }
+      if (request.method == "GET" && request.path == "/api/v1/notifications")
+        return jsonResponse(200, database_.notifications(*user));
+      static const std::regex notificationPattern(
+          R"(^/api/v1/notifications/([0-9]+)/read$)");
+      if (request.method == "POST" &&
+          std::regex_match(request.path, match, notificationPattern)) {
+        if (!database_.readNotification(std::stoll(match[1]), *user))
+          return jsonError(404, "not_found", "Notificação não encontrada.");
+        return jsonResponse(200, "{\"ok\":true}");
+      }
+      if (request.path == "/api/v1/contributions") {
+        if (request.method == "GET")
+          return jsonResponse(200, database_.listContributions(*user));
+        if (request.method == "POST" && isJson(request))
+          return jsonResponse(201,
+                              database_.saveContribution(*user, request.body));
+      }
+      static const std::regex contributionPattern(
+          R"(^/api/v1/contributions/([0-9]+)$)");
+      if (std::regex_match(request.path, match, contributionPattern)) {
+        if (request.method == "GET")
+          return jsonResponse(
+              200, database_.getContribution(std::stoll(match[1]), *user));
+        if (request.method == "PUT" && isJson(request))
+          return jsonResponse(201,
+                              database_.saveContribution(*user, request.body,
+                                                         std::stoll(match[1])));
+      }
+      static const std::regex reviewCasePattern(
+          R"(^/api/v1/case-versions/([0-9]+)/review$)");
+      if (request.method == "POST" && isJson(request) &&
+          std::regex_match(request.path, match, reviewCasePattern))
+        return jsonResponse(200, database_.reviewCase(std::stoll(match[1]),
+                                                      *user, request.body));
+      if (request.method == "GET" &&
+          request.path == "/api/v1/admin/reviewer-areas")
+        return jsonResponse(200, database_.reviewerAreas(*user));
+      if (request.method == "GET" &&
+          request.path == "/api/v1/admin/review-assignments")
+        return jsonResponse(200, database_.reviewAssignments(*user));
+      if (request.method == "POST" && isJson(request) &&
+          request.path == "/api/v1/admin/reviewer-areas")
+        return jsonResponse(200,
+                            database_.configureReviewer(*user, request.body));
+      if (request.method == "POST" && isJson(request) &&
+          request.path == "/api/v1/admin/review-assignments")
+        return jsonResponse(200, database_.assignReviewer(*user, request.body));
+    } catch (const std::invalid_argument &error) {
+      return jsonError(400, "invalid_operation", error.what());
+    }
   }
 
   // O painel administrativo concentra solicitações, configuração institucional
@@ -604,14 +850,16 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     if (std::regex_match(request.path, decisionMatch,
                          registrationDecisionPattern)) {
       if (user->role != "admin") {
-        return jsonError(403, "forbidden", "Acesso exclusivo de administrador.");
+        return jsonError(403, "forbidden",
+                         "Acesso exclusivo de administrador.");
       }
       if (!isJson(request)) {
         return jsonError(400, "invalid_content_type", "Envie JSON.");
       }
       const auto id = std::stoll(decisionMatch[1].str());
       const bool approve = decisionMatch[2].str() == "approve";
-      const std::string note = trim(jsonString(request.body, "note").value_or(""));
+      const std::string note =
+          trim(jsonString(request.body, "note").value_or(""));
       if (!approve && note.size() < 3) {
         return jsonError(400, "review_note_required",
                          "Informe o motivo da recusa.");
@@ -630,7 +878,8 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
   // idempotente. O servidor deriva a identidade do cookie autenticado.
   if (request.method == "POST" && request.path == "/api/v1/submissions") {
     if (user->role != "student" && user->role != "admin") {
-      return jsonError(403, "forbidden", "Somente aluno ou administrador pode concluir um caso.");
+      return jsonError(403, "forbidden",
+                       "Somente aluno ou administrador pode concluir um caso.");
     }
     const auto clientId = multipartText(request, "clientSubmissionId");
     const auto report = multipartText(request, "report");
@@ -638,47 +887,57 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
     const auto file = multipartFile(request, "pdf");
     static const std::regex uuidPattern(
         R"(^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$)");
-    if (!clientId || !std::regex_match(*clientId, uuidPattern) || !report || !file) {
+    if (!clientId || !std::regex_match(*clientId, uuidPattern) || !report ||
+        !file) {
       return jsonError(400, "invalid_submission",
                        "Envie clientSubmissionId UUID, report e arquivo PDF.");
     }
     if (file->mimeType != "application/pdf" ||
-        lower(std::filesystem::path(file->filename).extension().string()) != ".pdf") {
+        lower(std::filesystem::path(file->filename).extension().string()) !=
+            ".pdf") {
       return jsonError(400, "invalid_pdf_type", "Envie exclusivamente um PDF.");
     }
     const auto embeddedReport = structuredReport(file->data);
     if (!embeddedReport || *embeddedReport != *report) {
-      return jsonError(400, "pdf_report_mismatch",
-                       "O relatório embutido no PDF não coincide com os dados enviados.");
+      return jsonError(
+          400, "pdf_report_mismatch",
+          "O relatório embutido no PDF não coincide com os dados enviados.");
     }
     std::optional<std::int64_t> activityId;
     if (activityText && !trim(*activityText).empty()) {
       try {
         std::size_t consumed = 0;
         const auto value = std::stoll(trim(*activityText), &consumed);
-        if (consumed != trim(*activityText).size() || value <= 0) throw std::invalid_argument("activity");
+        if (consumed != trim(*activityText).size() || value <= 0)
+          throw std::invalid_argument("activity");
         activityId = value;
       } catch (...) {
-        return jsonError(400, "invalid_activity", "Identificador de atividade inválido.");
+        return jsonError(400, "invalid_activity",
+                         "Identificador de atividade inválido.");
       }
     }
     try {
       const PlatformSubmissionResult result = database_.submitPlatform(
-          *user, PlatformSubmissionInput{*clientId, activityId, file->filename,
-                                         file->data, sha256Hex(file->data), *report});
+          *user,
+          PlatformSubmissionInput{*clientId, activityId, file->filename,
+                                  file->data, sha256Hex(file->data), *report});
       return jsonResponse(
           result.created ? 201 : 200,
-          "{\"id\":" + std::to_string(result.id) +
-              ",\"created\":" + (result.created ? "true" : "false") +
-              ",\"status\":\"" + jsonEscape(result.reviewStatus) +
-              "\",\"score\":{\"initial\":" + std::to_string(result.initialScore) +
+          "{\"id\":" + std::to_string(result.id) + ",\"created\":" +
+              (result.created ? "true" : "false") + ",\"status\":\"" +
+              jsonEscape(result.reviewStatus) + "\",\"score\":{\"initial\":" +
+              std::to_string(result.initialScore) +
               ",\"raw\":" + std::to_string(result.rawScore) +
               ",\"displayed\":" + std::to_string(result.displayedScore) + "}}");
-    } catch (const std::domain_error&) {
+    } catch (const std::domain_error &) {
       return jsonError(409, "idempotency_conflict",
                        "A chave já foi usada com conteúdo diferente.");
-    } catch (const std::invalid_argument& error) {
+    } catch (const std::invalid_argument &error) {
       return jsonError(400, "invalid_submission", error.what());
+    } catch (const std::runtime_error &) {
+      return jsonError(503, "official_pdf_unavailable",
+                       "Não foi possível gerar o PDF oficial. Verifique o "
+                       "renderizador e tente novamente.");
     }
   }
 
@@ -724,15 +983,23 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
                        "A versão ou os campos do relatório são incompatíveis.");
     }
 
-    const char* configured = std::getenv("DEVSPHERE_UPLOAD_DIR");
+    const char *configured = std::getenv("DEVSPHERE_UPLOAD_DIR");
     const std::filesystem::path uploadRoot =
-        configured ? configured : std::filesystem::path("data/uploads");
+        configured
+            ? std::filesystem::path(configured)
+            : (std::filesystem::path(std::getenv("DEVSPHERE_DB_PATH")
+                                         ? std::getenv("DEVSPHERE_DB_PATH")
+                                         : "data/devsphere.db")
+                   .parent_path() /
+               "uploads");
     std::filesystem::create_directories(uploadRoot);
+    chmod(uploadRoot.c_str(), 0700);
     const std::string digest = sha256Hex(file->data);
     const auto storedFile = uploadRoot / (digest + ".pdf");
     const bool created = !std::filesystem::exists(storedFile);
     if (created) {
       std::ofstream output(storedFile, std::ios::binary);
+      chmod(storedFile.c_str(), 0600);
       output.write(file->data.data(),
                    static_cast<std::streamsize>(file->data.size()));
       if (!output) {
@@ -746,20 +1013,21 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
           user->id, *studentId, file->filename, storedFile.string(), digest,
           static_cast<std::int64_t>(file->data.size()), *report,
           std::to_string(*schemaVersion));
-      return jsonResponse(
-          201, "{\"id\":" + std::to_string(submissionId) +
-                   ",\"status\":\"imported\"}");
-    } catch (const std::invalid_argument& error) {
-      if (created) std::filesystem::remove(storedFile);
+      return jsonResponse(201, "{\"id\":" + std::to_string(submissionId) +
+                                   ",\"status\":\"imported\"}");
+    } catch (const std::invalid_argument &error) {
+      if (created)
+        std::filesystem::remove(storedFile);
       return jsonError(400, "invalid_report", error.what());
     } catch (...) {
-      if (created) std::filesystem::remove(storedFile);
+      if (created)
+        std::filesystem::remove(storedFile);
       throw;
     }
   }
 
   if (request.method == "GET" && request.path == "/api/v1/cases") {
-    return jsonResponse(200, database_.listCases(user->role));
+    return jsonResponse(200, database_.listCases(*user));
   }
 
   if (request.method == "GET" && request.path == "/api/v1/submissions") {
@@ -771,21 +1039,25 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
   if (request.method == "GET") {
     if (const auto id = pathId(request.path, submissionPdfPattern)) {
       const auto pdf = database_.getSubmissionPdf(*id, *user);
-      if (!pdf) return jsonError(404, "not_found", "PDF não encontrado.");
-      return HttpResponse{200,
-                          {{"Content-Type", "application/pdf"},
-                           {"Content-Disposition", "inline; filename=\"atendimento.pdf\""},
-                           {"ETag", "\"" + pdf->sha256 + "\""},
-                           {"Cache-Control", "private, no-store"}},
-                          pdf->data};
+      if (!pdf)
+        return jsonError(404, "not_found", "PDF não encontrado.");
+      return HttpResponse{
+          200,
+          {{"Content-Type", "application/pdf"},
+           {"Content-Disposition", "inline; filename=\"atendimento.pdf\""},
+           {"ETag", "\"" + pdf->sha256 + "\""},
+           {"Cache-Control", "private, no-store"}},
+          pdf->data};
     }
   }
 
-  static const std::regex submissionPattern(R"(^/api/v1/submissions/([0-9]+)$)");
+  static const std::regex submissionPattern(
+      R"(^/api/v1/submissions/([0-9]+)$)");
   if (request.method == "GET") {
     if (const auto id = pathId(request.path, submissionPattern)) {
       const auto submission = database_.getSubmission(*id, *user);
-      if (!submission) return jsonError(404, "not_found", "Atendimento não encontrado.");
+      if (!submission)
+        return jsonError(404, "not_found", "Atendimento não encontrado.");
       return jsonResponse(200, *submission);
     }
   }
@@ -805,6 +1077,11 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
       }
       const auto feedbackId =
           database_.createFeedback(*id, user->id, request.body);
+      // A decisão vem do upsert atômico, sem janela entre verificar e gravar.
+      if (feedbackId == 0) {
+        return jsonError(409, "feedback_conflict",
+                         "A devolutiva pertence a outro docente ou já foi concluída.");
+      }
       return jsonResponse(201, "{\"id\":" + std::to_string(feedbackId) +
                                    ",\"status\":\"draft\"}");
     }
@@ -816,8 +1093,19 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
       if (user->role != "teacher" && user->role != "admin") {
         return jsonError(403, "forbidden", "Acesso exclusivo de professor.");
       }
+      // A autoria não substitui o vínculo atual: uma revogação também bloqueia
+      // alterações em rascunhos abertos antes da mudança de acesso.
+      const auto submissionId = std::stoll(database_.nextJson(
+          "SELECT COALESCE((SELECT submission_id FROM teacher_feedback "
+          "WHERE id=? AND teacher_id=?),0)",
+          {std::to_string(*id), std::to_string(user->id)}));
+      if (submissionId > 0 &&
+          !database_.canTeacherReviewSubmission(submissionId, user->id)) {
+        return jsonError(403, "forbidden", "Acesso ao atendimento revogado.");
+      }
       if (!database_.updateFeedback(*id, user->id, request.body, false)) {
-        return jsonError(404, "not_found", "Devolutiva não encontrada ou concluída.");
+        return jsonError(404, "not_found",
+                         "Devolutiva não encontrada ou concluída.");
       }
       return jsonResponse(200, "{\"id\":" + std::to_string(*id) +
                                    ",\"status\":\"draft\"}");
@@ -831,8 +1119,18 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
       if (user->role != "teacher" && user->role != "admin") {
         return jsonError(403, "forbidden", "Acesso exclusivo de professor.");
       }
+      // Concluir exige a mesma autorização atual utilizada para editar o rascunho.
+      const auto submissionId = std::stoll(database_.nextJson(
+          "SELECT COALESCE((SELECT submission_id FROM teacher_feedback "
+          "WHERE id=? AND teacher_id=?),0)",
+          {std::to_string(*id), std::to_string(user->id)}));
+      if (submissionId > 0 &&
+          !database_.canTeacherReviewSubmission(submissionId, user->id)) {
+        return jsonError(403, "forbidden", "Acesso ao atendimento revogado.");
+      }
       if (!database_.updateFeedback(*id, user->id, "{}", true)) {
-        return jsonError(404, "not_found", "Devolutiva não encontrada ou concluída.");
+        return jsonError(404, "not_found",
+                         "Devolutiva não encontrada ou concluída.");
       }
       return jsonResponse(200, "{\"id\":" + std::to_string(*id) +
                                    ",\"status\":\"completed\"}");
@@ -862,13 +1160,15 @@ HttpResponse HttpServer::route(const HttpRequest& request) {
                      "O provedor de IA ainda não foi configurado no backend.");
   }
 
-  if (const auto file = staticFile(request)) return *file;
+  if (const auto file = staticFile(request))
+    return *file;
   return jsonError(404, "not_found", "Recurso não encontrado.");
 }
 
 void HttpServer::run() {
   const int listener = socket(AF_INET, SOCK_STREAM, 0);
-  if (listener < 0) throw std::runtime_error("não foi possível criar o socket");
+  if (listener < 0)
+    throw std::runtime_error("não foi possível criar o socket");
   int reuse = 1;
   setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
@@ -879,7 +1179,7 @@ void HttpServer::run() {
     close(listener);
     throw std::runtime_error("endereço de escuta inválido");
   }
-  if (bind(listener, reinterpret_cast<sockaddr*>(&address), sizeof(address)) <
+  if (bind(listener, reinterpret_cast<sockaddr *>(&address), sizeof(address)) <
       0) {
     const auto message = std::string("falha no bind: ") + std::strerror(errno);
     close(listener);
@@ -894,9 +1194,18 @@ void HttpServer::run() {
   while (true) {
     sockaddr_in clientAddress{};
     socklen_t clientSize = sizeof(clientAddress);
-    const int client =
-        accept(listener, reinterpret_cast<sockaddr*>(&clientAddress), &clientSize);
-    if (client < 0) continue;
+    const int client = accept(
+        listener, reinterpret_cast<sockaddr *>(&clientAddress), &clientSize);
+    if (client < 0)
+      continue;
+    // Limita clientes lentos para não reter indefinidamente a API local.
+    timeval timeout{10, 0};
+    setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+#ifdef SO_NOSIGPIPE
+    int noSigPipe = 1;
+    setsockopt(client, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, sizeof(noSigPipe));
+#endif
     char remote[INET_ADDRSTRLEN]{};
     inet_ntop(AF_INET, &clientAddress.sin_addr, remote, sizeof(remote));
 
@@ -904,17 +1213,31 @@ void HttpServer::run() {
     std::optional<HttpRequest> request;
     try {
       request = readRequest(client, remote);
-      response = request ? route(*request)
-                         : jsonError(400, "invalid_request", "Requisição inválida.");
-    } catch (const std::exception& error) {
+      response =
+          request ? route(*request)
+                  : jsonError(400, "invalid_request", "Requisição inválida.");
+    } catch (const std::exception &error) {
       std::cerr << "Erro de requisição: " << error.what() << '\n';
       response = jsonError(500, "internal_error", "Erro interno do servidor.");
     }
-    if (request) applyCors(*request, response, production_);
+    if (request)
+      applyCors(*request, response, production_);
     const auto serialized = serialize(response);
-    send(client, serialized.data(), serialized.size(), 0);
+    std::size_t sent = 0;
+    while (sent < serialized.size()) {
+#ifdef MSG_NOSIGNAL
+      const auto count = send(client, serialized.data() + sent,
+                              serialized.size() - sent, MSG_NOSIGNAL);
+#else
+      const auto count =
+          send(client, serialized.data() + sent, serialized.size() - sent, 0);
+#endif
+      if (count <= 0)
+        break;
+      sent += static_cast<std::size_t>(count);
+    }
     close(client);
   }
 }
 
-}  // namespace devsphere
+} // namespace devsphere

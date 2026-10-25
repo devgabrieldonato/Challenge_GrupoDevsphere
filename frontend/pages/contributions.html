@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Materiais e minhas contribuições · Paciente Virtual</title>
+    <!-- Preferência visual aplicada antes dos estilos; controle operável por teclado. -->
+    <script src="../scripts/theme.js"></script>
+<link rel="stylesheet" href="../vendor/bootstrap-5.3.8/bootstrap-grid.min.css">
+    <link rel="stylesheet" href="../styles/teacher.css">
+<link rel="stylesheet" href="../styles/next-portals.css">
+    <link rel="stylesheet" href="../styles/institutional.css">
+</head>
+<body class="app-shell auth-pending" data-required-role="any">
+<a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+<!-- Navegação contextual: permissões reais são verificadas pelo backend. -->
+<header class="site-header">
+      <a class="brand-lockup" href="../index.html">
+        <span class="partner-marks">
+          <img class="brand-fiap" src="../assets/brand/fiap.png" alt="FIAP" width="500" height="500">
+          <span class="brand-plus" aria-hidden="true">+</span>
+          <img class="brand-moinhos" src="../assets/brand/moinhos_de_vento.png" alt="Faculdade Moinhos de Vento" width="500" height="233">
+        </span>
+        <span class="brand-product"><span class="brand-product-name">Paciente Virtual</span></span>
+      </a>
+<nav aria-label="Jornadas">
+<a href="student-cases.html">Praticar</a> · <a href="student-history.html">Meus atendimentos</a> · <a href="contributions.html">Contribuições</a> · <a data-teacher-only href="teacher-cases.html">Curadoria</a> · <button class="button" type="button" data-logout>Sair</button>
+</nav>
+
+      <button id="themeToggle" class="button theme-toggle" type="button" aria-pressed="false" hidden><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-moon" aria-hidden="true" focusable="false">
+  <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+  <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+</svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-sun" aria-hidden="true" focusable="false">
+  <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>
+</svg><span class="visually-hidden">Tema escuro</span></button>
+    </header>
+<main id="conteudo" class="page-main" tabindex="-1">
+<h1>Materiais e minhas contribuições</h1>
+<p>Envie apenas PDFs autorizados e previamente desidentificados. Um caso gerado é um rascunho e exige revisão docente antes da publicação.</p>
+<!-- A política vem do servidor; o navegador apenas explica o bloqueio. -->
+<section id="inferencePolicy" class="card runtime-policy" aria-labelledby="inferencePolicyTitle">
+<h2 id="inferencePolicyTitle">Disponibilidade da geração</h2>
+<p id="inferencePolicyStatus" role="status" aria-live="polite">Consultando política e worker…</p>
+<details id="workerDiagnostics" hidden><summary>Diagnóstico operacional do worker</summary><dl id="workerDiagnosticFields"></dl></details>
+</section>
+<section class="card">
+<h2>Enviar PDF</h2>
+<form id="uploadForm" class="next-form">
+<!-- Cada rótulo fica imediatamente antes do campo correspondente. -->
+<label for="sourcePdf">Caso clínico ou livro em PDF</label>
+<input id="sourcePdf" type="file" accept="application/pdf,.pdf" required>
+<label for="sourceArea">Área/especialidade interna</label><input id="sourceArea" required value="general">
+<label>
+<input id="authorized" type="checkbox" required> Tenho autorização para usar este material.</label>
+<label>
+<input id="deidentified" type="checkbox" required> Conferi que o documento não contém dados identificáveis de pacientes.</label>
+<button class="button primary" type="submit">Enviar material</button>
+</form>
+</section>
+<p id="contributionStatus" role="status" aria-live="polite">
+</p>
+<button id="refreshContributions" class="button" type="button">Atualizar documentos e trabalhos</button>
+<section>
+<h2>Documentos</h2>
+<label for="documentFilter">Materiais exibidos</label>
+<select id="documentFilter"><option value="active">Ativos</option><option value="withdrawn">Retirados</option><option value="all">Todos</option></select>
+<p id="documentCounts" role="status" aria-live="polite"></p>
+<div id="documents" class="next-list">
+</div>
+</section>
+<section>
+<h2>Trabalhos de processamento</h2>
+<!-- Remover organiza a lista sem apagar fontes, resultados ou rastreabilidade. -->
+<p>Você pode remover da lista trabalhos concluídos, com falha ou cancelados e restaurá-los depois. O documento, o Markdown, os rascunhos e o histórico são preservados.</p>
+<label for="jobFilter">Trabalhos exibidos</label>
+<select id="jobFilter"><option value="visible">Visíveis</option><option value="archived">Removidos da lista</option><option value="all">Todos</option></select>
+<p id="jobCounts" role="status" aria-live="polite"></p>
+<div id="jobs" class="next-list">
+</div>
+</section>
+<section>
+<h2>Rascunhos e contribuições</h2>
+<div id="drafts" class="next-list">
+</div>
+</section>
+<section class="card"><h2>Buscar referências aprovadas</h2><p>São retornados apenas trechos aprovados de fontes que sua conta pode acessar.</p><form id="librarySearchForm" class="next-form"><label for="libraryQuery">Tema ou termo</label><input id="libraryQuery" required maxlength="200"><button class="button" type="submit">Buscar fontes</button></form><p id="librarySearchStatus" role="status" aria-live="polite" aria-atomic="true"></p><div id="libraryResults" class="next-list"></div></section><dialog id="documentDialog" aria-labelledby="documentDialogTitle">
+<h2 id="documentDialogTitle">Documento e conteúdo extraído</h2>
+<label for="documentPreview">Markdown extraído (conteúdo não validado)</label><textarea id="documentPreview" class="next-json" rows="18"></textarea><button id="saveMarkdown" class="button" type="button">Salvar correção da extração</button>
+<button id="closeDocument" class="button" type="button">Fechar</button>
+</dialog>
+</main>
+<script type="module" src="../scripts/auth/route-guard.js">
+</script>
+<script type="module" src="../scripts/contributions/workspace.js">
+</script>
+<footer class="site-footer"><p>&copy; 2026 Paciente Virtual · Todos os direitos reservados · Ambiente educacional · Casos fictícios sujeitos à validação docente</p></footer>
+  </body>
+</html>

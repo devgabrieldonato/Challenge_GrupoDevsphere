@@ -7,3 +7,18 @@ backend/data/
 *.db-wal
 __pycache__/
 .DS_Store
+# Segredos, fontes clínicas e artefatos operacionais privados.
+.env
+.env.*
+!.env.example
+.local/
+backups/
+*.pvb
+*.pem
+*.key
+
+data/
+.venv*/
+
+# Relatórios locais de validação de IA, recriados em cada máquina.
+validation-reports/

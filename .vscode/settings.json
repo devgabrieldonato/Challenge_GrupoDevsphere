@@ -1,5 +1,6 @@
 {
-    "liveServer.settings.port": 5501,
-    "cmake.sourceDirectory": "${workspaceFolder}/backend",
-    "task.allowAutomaticTasks": "on"
+  "liveServer.settings.port": 5501,
+  "cmake.sourceDirectory": "${workspaceFolder}/backend",
+  "task.allowAutomaticTasks": "on",
+  "liveServer.settings.root": "/frontend"
 }

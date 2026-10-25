@@ -5,27 +5,42 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Paciente Virtual · Challenge FIAP</title>
+    <!-- Preferência visual aplicada antes dos estilos; controle operável por teclado. -->
+    <script src="../scripts/theme.js"></script>
+    <link rel="stylesheet" href="../vendor/bootstrap-5.3.8/bootstrap-grid.min.css">
     <link rel="stylesheet" href="../styles/student-session.css">
-  </head>
+      <link rel="stylesheet" href="../styles/institutional.css">
+</head>
   <body class="auth-pending" data-required-role="student">
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
     <!-- Cabeçalho com a identidade do projeto e as ações disponíveis durante o atendimento. -->
-    <header>
-      <div class="brand">FIAP</div>
-      <div class="divider" aria-hidden="true"></div>
-      <div>
-        <h1>Paciente Virtual</h1>
-        <small>Challenge · Laboratório de raciocínio clínico</small>
-      </div>
-      <div class="header-actions">
+    <header class="site-header">
+      <a class="brand-lockup" href="../index.html">
+        <span class="partner-marks">
+          <img class="brand-fiap" src="../assets/brand/fiap.png" alt="FIAP" width="500" height="500">
+          <span class="brand-plus" aria-hidden="true">+</span>
+          <img class="brand-moinhos" src="../assets/brand/moinhos_de_vento.png" alt="Faculdade Moinhos de Vento" width="500" height="233">
+        </span>
+        <div class="brand-product"><h1 class="brand-product-name">Paciente Virtual</h1></div>
+      </a>
+<div class="header-actions">
+        <a class="btn" href="student-history.html">Meus atendimentos e devolutivas</a><a class="btn" href="contributions.html">Enviar material</a>
         <div id="caseActions" hidden>
           <button class="btn" id="reset" type="button">Reiniciar</button>
           <button class="btn primary" id="diagnose" type="button">Formular hipótese ↗</button>
         </div>
         <button class="btn" type="button" data-logout>Sair</button>
       </div>
+
+      <button id="themeToggle" class="button theme-toggle" type="button" aria-pressed="false" hidden><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-moon" aria-hidden="true" focusable="false">
+  <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+  <path d="M10.794 3.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387a1.73 1.73 0 0 0-1.097 1.097l-.387 1.162a.217.217 0 0 1-.412 0l-.387-1.162A1.73 1.73 0 0 0 9.31 6.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387a1.73 1.73 0 0 0 1.097-1.097zM13.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732l-.774-.258a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>
+</svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" class="theme-icon theme-icon-sun" aria-hidden="true" focusable="false">
+  <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>
+</svg><span class="visually-hidden">Tema escuro</span></button>
     </header>
     <!-- Conteúdo principal: escolha do paciente e sessão de investigação clínica. -->
-    <main>
+    <main id="conteudo" tabindex="-1">
       <!-- Seleção inicial do paciente; o formulário inicia o caso escolhido pelo estudante. -->
       <section
         class="case-choice"
@@ -37,14 +52,12 @@
           Escolha um caso para iniciar sua investigação. Cada atendimento tem 18
           perguntas e 22 exames.
         </p>
+        <p id="catalogStatus" role="status" aria-live="polite"></p><button id="catalogRetry" class="btn" type="button">Atualizar catálogo</button><p id="caseMetadata"></p>
+        <div class="catalog-filters"><label for="catalogSearch">Buscar por título e habilidades públicas</label><input id="catalogSearch" type="search" placeholder="Filtrar casos"><label for="catalogDifficulty">Dificuldade</label><select id="catalogDifficulty"><option value="">Todas</option><option value="introductory">Introdutório</option><option value="intermediate">Intermediário</option><option value="advanced">Avançado</option></select></div>
         <form id="caseForm">
           <label for="caseSelect">Caso clínico</label>
           <select id="caseSelect" required>
             <option value="">Selecione um paciente</option>
-            <option value="joao">João, 54 anos — dor no peito</option>
-            <option value="marina">
-              Marina, 23 anos — dor abdominal e vômitos
-            </option>
           </select>
           <div class="actions">
             <button class="btn primary" type="submit">Iniciar atendimento</button>
@@ -53,11 +66,13 @@
       </section>
       <!-- Área do atendimento, exibida pelo JavaScript após a seleção do caso. -->
       <div id="caseSession" hidden>
+        <!-- Status fora do mapa decorativo mantém o anúncio independente das conexões. -->
+        <p id="investigationStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
         <!-- Apresentação do caso e indicação da quantidade de opções de investigação. -->
         <section class="intro" aria-labelledby="caseIntroTitle">
           <div>
             <div class="eyebrow">Caso 01 / Pronto atendimento</div>
-            <h2 id="caseIntroTitle">Uma queixa. Mais possibilidades.</h2>
+            <h2 id="caseIntroTitle" tabindex="-1">Uma queixa. Mais possibilidades.</h2>
             <p>
               Compare hipóteses, escolha as prioridades e conecte as evidências.
             </p>
@@ -167,23 +182,7 @@
           </aside>
         </div>
         <!-- Contexto educacional, referências do caso e orientação sobre a exportação do percurso. -->
-        <footer>
-          Caso fictício com resultados simulados. MVP educacional; conteúdo
-          sujeito à validação docente. Exames com resultado são apresentados
-          sem espera; solicitações registradas sem execução não constituem
-          evidência negativa. Referência:
-          <a
-            href="https://www.acc.org/latest-in-cardiology/ten-points-to-remember/2021/10/27/14/06/2021-guideline-for-chest-pain-gl_chestpain"
-            target="_blank"
-            rel="noopener"
-          >Diretriz de avaliação da dor torácica · AHA/ACC</a>
-          e
-          <a
-            href="https://www.escardio.org/guidelines/clinical-practice-guidelines/all-esc-practice-guidelines/acute-pulmonary-embolism/"
-            target="_blank"
-            rel="noopener"
-          >diretriz de embolia pulmonar · ESC</a>. Ao finalizar, o percurso e o PDF são enviados automaticamente ao professor.
-        </footer>
+        <p class="session-disclaimer">Paciente fictício para prática educacional. O atendimento e PDF serão enviados automaticamente ao professor. Conteúdo sujeito à revisão docente. A ordem das escolhas não representa tempo clínico.</p>
       </div>
     </main>
     <!-- Janela para formular a hipótese diagnóstica e justificar o raciocínio. -->
@@ -200,19 +199,6 @@
         <label for="hypothesis">Qual é a principal hipótese?</label>
         <select id="hypothesis" required>
           <option value="">Selecione uma hipótese</option>
-          <option value="reflux">Refluxo gastroesofágico</option>
-          <option value="stemi">
-            Infarto agudo do miocárdio com supradesnivelamento de ST
-          </option>
-          <option value="anxiety">Crise de ansiedade</option>
-          <option value="stable">Angina estável</option>
-          <option value="embolism">Tromboembolismo pulmonar</option>
-          <option value="aortic">Síndrome aórtica aguda</option>
-          <option value="pericarditis">Pericardite aguda</option>
-          <option value="muscular">Dor musculoesquelética</option>
-          <option value="nstemi">
-            Síndrome coronariana aguda sem supra de ST
-          </option>
         </select>
         <label for="reason">
           Quais achados sustentam sua escolha e enfraquecem as alternativas?
@@ -262,7 +248,7 @@
     <!-- Confirmação antes de apagar o percurso atual e reiniciar o mesmo caso. -->
     <dialog id="restart" aria-labelledby="restartTitle" aria-describedby="restartDescription">
       <h2 id="restartTitle">Recomeçar este caso?</h2>
-      <p id="restartDescription">O percurso atual será apagado desta sessão.</p>
+      <p id="restartDescription">Uma nova tentativa será criada. O atendimento anterior ficará preservado no servidor.</p>
       <div class="actions">
         <button class="btn" data-close="restart" type="button">Cancelar</button>
         <button class="btn primary" id="confirmReset" type="button">Reiniciar caso</button>
@@ -276,5 +262,6 @@
     <script src="../vendor/pdfmake/pdfmake.min.js"></script>
     <script src="../vendor/pdfmake/vfs_fonts.js"></script>
     <script type="module" src="../scripts/student/clinical-session.js"></script>
+  <footer class="site-footer"><p>&copy; 2026 Paciente Virtual · Todos os direitos reservados · Ambiente educacional · Casos fictícios sujeitos à validação docente</p></footer>
   </body>
 </html>

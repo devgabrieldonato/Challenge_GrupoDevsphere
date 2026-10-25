@@ -1,0 +1,269 @@
+/* Identidade editorial FIAP + Faculdade Moinhos: azul institucional e rosa como acento. */
+:root {
+  --color-primary: #163e70;
+  --color-primary-hover: #102e54;
+  --color-primary-border: #163e70;
+  --color-primary-dark: #163e70;
+  --color-link: #163e70;
+  --color-background: #f6f7f9;
+  --color-selected-background: #e8eef5;
+  --color-selected-ink: #163e70;
+  --color-info-background: #eaf0f7;
+  --color-question: #335d88;
+  --color-question-ink: #163e70;
+  --color-question-background: #edf2f7;
+  --color-map-dot: #a0aec0;
+  --radius-small: 4px;
+  --radius-medium: 6px;
+  --shadow-card: none;
+  --content-width: 1200px;
+}
+:root[data-theme="dark"] {
+  --color-primary: #1f4f85;
+  --color-primary-hover: #163e70;
+  --color-primary-border: #8cb6e6;
+  --color-primary-dark: #b9d4f4;
+  --color-link: #b9d4f4;
+  --color-selected-background: #263f5e;
+  --color-selected-ink: #d8e8fa;
+  --color-info-background: #24394f;
+  --color-question: #a3c3e7;
+  --color-question-ink: #d5e7fb;
+  --color-question-background: #26394e;
+  --shadow-card: none;
+}
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li, dd, label { overflow-wrap: anywhere; }
+
+/* Marcas transparentes integram o cabeçalho; o nome do produto permanece ao lado. */
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  min-height: 104px;
+  padding: 1.15rem max(1.25rem, calc((100% - var(--content-width)) / 2));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  gap: 1rem;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+.partner-marks {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  gap: .6rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.partner-marks img {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  height: 56px;
+  object-fit: contain;
+}
+.partner-marks .brand-fiap { width: 80px; }
+.partner-marks .brand-moinhos { width: 140px; }
+.brand-plus { flex: 0 0 auto; color: var(--color-muted); font-size: 1rem; font-weight: 500; }
+.brand-product { display: grid; gap: .15rem; min-width: 0; }
+.brand-product-name { color: var(--color-ink); font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 750; line-height: 1.25; letter-spacing: -.025em; }
+.site-header .site-nav { flex: 1 1 20rem; min-width: 0; margin-left: auto; }
+.site-nav ul { flex-wrap: wrap; justify-content: flex-end; gap: .15rem .3rem; }
+.site-nav a, .teacher-sidebar a { border-radius: 2px; border-bottom: 2px solid transparent; }
+.site-nav a[aria-current="page"], .teacher-sidebar a[aria-current="page"] {
+  background: var(--color-selected-background);
+  color: var(--color-selected-ink);
+  border-bottom-color: currentColor;
+}
+.site-header .header-actions { flex: 1 1 24rem; justify-content: flex-end; flex-wrap: wrap; margin-left: auto; }
+.site-header #caseActions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.site-header .theme-toggle { flex: 0 0 auto; margin-left: auto; }
+
+/* A versão branca no tema escuro preserva a forma da marca, sem editar o PNG original. */
+:root[data-theme="dark"] .partner-marks img { filter: brightness(0) invert(1); }
+
+/* O nome acessível permanece estável; o ícone comunica a alternância sem ocupar a navegação. */
+.theme-toggle.button, .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: .65rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.theme-icon { display: block; width: 1.2rem; height: 1.2rem; flex: 0 0 auto; }
+.theme-icon-sun { display: none; }
+:root[data-theme="dark"] .theme-icon-moon { display: none; }
+:root[data-theme="dark"] .theme-icon-sun { display: block; }
+
+/* A página de entrada apresenta a proposta pedagógica antes de pedir a escolha de perfil. */
+.brand-product-name { margin: 0; }
+.landing-intro { align-items: start; margin-bottom: 2.75rem; }
+.landing-intro .page-header { margin-bottom: 0; }
+.landing-intro .page-header h1 { max-width: 19ch; font-size: clamp(2.1rem, 4.8vw, 4rem); letter-spacing: -.045em; line-height: 1.08; }
+.landing-intro .page-header p { max-width: 55ch; font-size: 1.05rem; }
+.landing-note { margin-top: .3rem; padding: .25rem 1.5rem; border-left: 2px solid var(--color-brand); color: var(--color-muted); }
+.landing-note h2, .landing-note h3 { margin: .35rem 0 .75rem; font-size: 1rem; line-height: 1.4; color: var(--color-ink); }
+.landing-note p { margin: 0 0 .5rem; font-size: .9rem; line-height: 1.75; }
+.role-number { display: block; margin-bottom: .85rem; font-size: .8rem; line-height: 1; font-weight: 600; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.role-kicker { color: var(--color-primary-dark); font-size: .72rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.link-arrow { width: 1rem; height: 1rem; margin-left: .5rem; flex: 0 0 auto; }
+.session-disclaimer { margin: 1rem 1.25rem 1.5rem; font-size: .8rem; color: var(--color-muted); }
+
+/* Hierarquia tipográfica e espaço em branco substituem sombras e contornos ornamentais. */
+.page-main { padding-top: clamp(1.75rem, 4vw, 3.5rem); padding-bottom: 4rem; }
+.page-header { max-width: 58rem; margin-bottom: 2.25rem; }
+.page-header h1 { margin: .5rem 0 .85rem; max-width: 26ch; font-size: clamp(1.8rem, 3.5vw, 2.75rem); font-weight: 720; letter-spacing: -.035em; line-height: 1.15; }
+.page-header p { max-width: 68ch; line-height: 1.7; }
+.eyebrow { font-size: .72rem; letter-spacing: .11em; font-weight: 750; color: var(--color-primary-dark); }
+.card, .next-list article { box-shadow: none; border-radius: 5px; }
+.card { padding: 1.5rem; }
+.card h2 { font-size: 1.35rem; letter-spacing: -.02em; }
+.card h3 { font-size: 1.1rem; }
+.button, .btn { min-height: 44px; border-radius: 4px; font-weight: 650; line-height: 1.45; }
+.button.primary, .btn.primary { background: var(--color-primary); border-color: var(--color-primary-border); color: var(--color-on-primary); }
+.button.primary:hover, .btn.primary:hover { background: var(--color-primary-hover); }
+.badge { border-radius: 3px; font-size: .75rem; letter-spacing: .02em; }
+.status { border-radius: 2px; }
+input, select, textarea { accent-color: var(--color-primary); }
+
+/* O grid Bootstrap controla as colunas; cada cartão ocupa toda a altura da coluna. */
+.role-grid.row { display: flex; gap: 0; grid-template-columns: none; }
+.role-grid.row > [class*="col-"] { display: flex; min-width: 0; }
+.role-grid.row .role-card { flex: 1 1 auto; width: 100%; }
+.role-card {
+  min-height: 20rem;
+  padding: 1.65rem;
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-primary-dark);
+  border-radius: 3px;
+  box-shadow: none;
+}
+.role-card .badge { align-self: flex-start; padding: 0; background: transparent; color: var(--color-primary-dark); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; }
+.role-card h2 { margin: 1.2rem 0 .7rem; font-size: 1.45rem; line-height: 1.25; }
+.role-card p { margin: 0 0 1.75rem; line-height: 1.7; }
+.role-card .button { align-self: flex-start; margin-top: auto; }
+.auth-layout { gap: clamp(2rem, 5vw, 5rem); align-items: start; min-height: auto; padding-top: 1rem; }
+.auth-copy h1 { max-width: 16ch; font-size: clamp(2rem, 4vw, 3.1rem); letter-spacing: -.04em; line-height: 1.13; }
+.auth-copy p { max-width: 48ch; line-height: 1.75; }
+.auth-card { border-top: 3px solid var(--color-primary-dark); padding: 1.75rem; }
+.auth-card h2 { margin-bottom: 1.25rem; }
+.auth-card form { gap: 1.15rem; }
+.teacher-sidebar { box-shadow: none; }
+.teacher-sidebar a { padding: .7rem .8rem; }
+.upload-zone { background: var(--color-surface); border-radius: 4px; }
+.metric { border-top: 2px solid var(--color-primary-dark); }
+
+/* A investigação conserva distinções semânticas sem a aparência de blocos decorativos. */
+.workspace { border-radius: 4px; }
+.map { background-image: none; background-color: var(--color-background); }
+.patient, .node, dialog, .case-choice { border-radius: 5px; box-shadow: none; }
+.patient-scene img { border-radius: 5px 5px 0 0; }
+.block { border-radius: 3px; }
+.block::before { content: none; }
+.node { border-top-width: 2px; }
+.case-choice { border-top: 3px solid var(--color-primary-dark); }
+.score-card, .submission-summary, .score-summary > div, .feedback, .tip { border-radius: 4px; }
+
+/* Rodapé institucional pertence ao fluxo da página, sem sobrepor conteúdo ampliado. */
+.site-footer {
+  margin-top: 1rem;
+  padding: 1.5rem max(1.25rem, calc((100% - var(--content-width)) / 2));
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-size: .75rem;
+  line-height: 1.7;
+  text-align: left;
+}
+.site-footer p { margin: 0; max-width: 90ch; }
+.site-footer a { color: var(--color-link); }
+
+/* Os pontos de quebra continuam funcionando quando o zoom reduz a largura CSS disponível. */
+@media (max-width: 1100px) {
+  .site-header .site-nav { flex-basis: 100%; order: 3; }
+  .site-nav ul { justify-content: flex-start; }
+  .site-header .header-actions { flex-basis: 100%; order: 3; justify-content: flex-start; }
+}
+@media (max-width: 900px) {
+  .auth-layout { grid-template-columns: minmax(0, 1fr); }
+  .auth-copy h1 { max-width: 24ch; }
+  .landing-note { margin-top: 1rem; }
+}
+@media (max-width: 600px) {
+  .site-header { gap: .85rem; padding: 1rem; }
+  .brand-lockup { flex: 1 1 0; gap: .7rem; }
+  .brand-product { flex: 1 1 auto; }
+  .partner-marks { gap: .35rem; flex: 0 0 auto; }
+  .partner-marks img { height: 44px; }
+  .partner-marks .brand-fiap { width: 40px; }
+  .partner-marks .brand-moinhos { width: 90px; }
+  .brand-product-name { font-size: 1.5rem; }
+  .landing-intro { margin-bottom: 2rem; }
+  .landing-note { padding-inline: 1rem; }
+  .page-main { padding-top: 1.75rem; padding-bottom: 2.5rem; }
+  .page-header { margin-bottom: 1.65rem; }
+  .card, .auth-card, .role-card { padding: 1.2rem; }
+  .role-card { min-height: 18rem; }
+  .role-card .button { width: 100%; }
+  .site-footer { padding: 1.25rem 1rem; }
+}
+@media (max-width: 360px) {
+  .partner-marks { gap: .25rem; }
+  .partner-marks .brand-fiap { width: 32px; }
+  .partner-marks .brand-moinhos { width: 72px; }
+  .brand-plus { font-size: .85rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media (forced-colors: active) {
+  .partner-marks { forced-color-adjust: auto; }
+  .theme-toggle, .button, .btn { border-color: ButtonText; }
+  .role-card, .case-choice, .auth-card { border-top-color: CanvasText; }
+}
+/* A folha institucional não deixa os tokens escuros reaparecerem na impressão. */
+@media print {
+  :root, :root[data-theme="dark"] {
+    --color-primary: #163e70; --color-primary-hover: #102e54; --color-primary-border: #163e70;
+    --color-primary-dark: #163e70; --color-link: #163e70;
+    --color-background: #ffffff; --color-selected-background: #e8eef5;
+    --color-selected-ink: #163e70; --color-info-background: #eaf0f7;
+    --color-question: #335d88; --color-question-ink: #163e70;
+    --color-question-background: #edf2f7; --shadow-card: none;
+  }
+  :root[data-theme="dark"] .partner-marks img { filter: none; }
+  .theme-toggle { display: none !important; }
+  .site-header, .site-footer { background: #ffffff; }
+}
+
+/* Número e perfil formam uma linha discreta; o rodapé acompanha páginas curtas sem sobreposição. */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+body > main { flex: 1 0 auto; }
+body > .site-footer { margin-top: auto; }
+.site-footer p { max-width: none; }
+.role-card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.role-kicker { color: var(--color-primary-dark); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.role-number { color: var(--color-muted); font-size: .8rem; font-variant-numeric: tabular-nums; }

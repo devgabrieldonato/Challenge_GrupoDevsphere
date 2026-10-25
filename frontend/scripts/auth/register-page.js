@@ -6,6 +6,12 @@ const status = document.querySelector("#formStatus");
 const password = document.querySelector("#password");
 const confirmation = document.querySelector("#passwordConfirmation");
 
+// Limpa o erro anterior ao editar qualquer senha: a validação nativa ocorre antes
+// de submit e bloquearia a nova tentativa mesmo depois de corrigir a divergência.
+for (const input of [password, confirmation]) {
+  input?.addEventListener("input", () => confirmation.setCustomValidity(""));
+}
+
 document.querySelector("[data-toggle-password]")?.addEventListener("click", (event) => {
   const showing = password.type === "text";
   password.type = showing ? "password" : "text";

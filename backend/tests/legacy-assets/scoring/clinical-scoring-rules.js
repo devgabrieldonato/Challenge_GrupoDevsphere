@@ -4,7 +4,7 @@
  * Este módulo concentra apenas metadados pedagógicos. As respostas clínicas
  * continuam no catálogo original, evitando duplicação e divergência de conteúdo.
  */
-import { joaoItems, marinaCase } from "../cases/clinical-cases.js";
+import { joaoItems, marinaCase } from "../clinical-cases.js";
 
 /** Categorias estáveis usadas no relatório, na auditoria e no cálculo. */
 const SCORE_CLASSIFICATIONS = Object.freeze({

@@ -2,11 +2,11 @@
 import {
   BASE_POINTS_BY_CLASSIFICATION,
   CLINICAL_SCORING_RULE_SETS,
-} from "../scripts/scoring/clinical-scoring-rules.js";
+} from "../scoring/clinical-scoring-rules.js";
 import {
   ClinicalScoring,
   calculateClinicalScore,
-} from "../scripts/scoring/clinical-scoring.js";
+} from "../scoring/clinical-scoring.js";
 
 const results = document.querySelector("#test-results");
 let failures = 0;

@@ -1,5 +1,15 @@
 # Conversor de casos clínicos para Markdown
 
+A evolução integrada do Paciente Virtual está na `main`. Consulte o
+[relatório do merge de 25/10/2026](../docs/MERGE_NEXT_2026_MAIN.md) para o estado
+verificado e as pendências, incluindo geração real reservada ao Windows.
+
+Este README descreve somente o **protótipo independente em Streamlit**, na porta 8501.
+O fluxo integrado atual da plataforma usa API C++20/SQLite, autenticação e worker
+com OCR/fila; suas instruções estão no [README principal](../README.md) e no
+[README do worker](../worker/README.md). As limitações abaixo pertencem ao
+protótipo e não devem ser atribuídas automaticamente à plataforma integrada.
+
 Aplicação Python para o Challenge FIAP. Professores e alunos podem enviar um PDF ou DOCX pelo navegador, converter o conteúdo textual e baixar um arquivo `.md` em UTF-8. Esta entrega é um protótipo local, sem cadastro de usuários ou armazenamento permanente.
 
 O projeto não interpreta, resume ou corrige informações clínicas. A conferência do texto convertido com o original faz parte do uso, especialmente para números, unidades e tabelas.

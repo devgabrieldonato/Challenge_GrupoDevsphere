@@ -28,7 +28,7 @@ form?.addEventListener("submit", async (event) => {
   status.className = "status";
   status.textContent = "Verificando suas credenciais…";
   try {
-    const result = await AuthService.login(form.email.value.trim(), form.password.value, form.dataset.role);
+    const result = await AuthService.login(form.email.value.trim(), form.password.value, form.dataset.role, form.otp?.value.trim());
     if (result.user?.role && result.user.role !== form.dataset.role && result.user.role !== "admin") {
       await AuthService.logout();
       throw new Error("Este acesso pertence a outro perfil.");
@@ -36,7 +36,9 @@ form?.addEventListener("submit", async (event) => {
     window.location.assign(form.dataset.successUrl);
   } catch (error) {
     status.className = "status error";
-    status.textContent = error.status === 401 ? "E-mail ou senha inválidos." : (error.message || "Não foi possível entrar. Tente novamente.");
-    password.focus();
+    status.textContent = error.details?.error?.code === "mfa_required" ? "Informe o código do autenticador ou um código de recuperação." : (error.message || "Não foi possível entrar. Tente novamente.");
+    // O desafio MFA deve levar ao código, sem exigir nova digitação da senha.
+    const focusTarget = error.details?.error?.code === "mfa_required" ? form.otp : password;
+    (focusTarget || password).focus();
   } finally { submit.disabled = false; }
 });

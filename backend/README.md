@@ -1,5 +1,56 @@
 # API C++20 do Paciente Virtual
 
+> **Modo local protegido:** inferência desabilitada por padrão. Para executar e apresentar no Mac, siga o [roteiro protegido](../docs/MODO_APRESENTACAO_MAC.md). Conversão e orçamento não carregam Qwen/Gemma. Geração integral permanece pendente no Windows.
+
+## Integração na main — 25/10/2026
+
+As evoluções da `NEXT_2026` foram reunidas na `main`, preservando a branch de
+origem e os registros históricos abaixo. Consulte o [relatório desta integração](../docs/MERGE_NEXT_2026_MAIN.md)
+para referências Git, testes executados, limites e pendências. Resultados antigos
+não substituem as verificações do merge. A geração integral com Qwen3:8b e
+Gemma3:4b permanece pendente no Windows; o Mac usa inferência desabilitada.
+
+## Histórico verificado — 24/10/2026
+
+- API C++20/SQLite em 8080 e frontend pelo Live Server em 5501; o Live Server continua dependendo da API.
+- Modo protegido no Mac: conversão/OCR limitado e orçamento disponíveis, inferência desabilitada. Geração integral Qwen3/Gemma3 fica para reteste no Windows/WSL2; exige habilitação operacional explícita nesse ambiente. Não habilitar no M1.
+- Reconciliação com plano/quarentena/restauração por hash, quotas de PDFs-fonte, reserva de disco e painel administrativo já implementados. Não há descarte automático.
+- Retornos manuais positivos do usuário sobre VoiceOver no Safari e Chrome. Novo PDF oficial tem estrutura lógica testada, sem declaração de conformidade PDF/UA.
+- Regressão histórica de 24/10: 118 ferramentas + 85 worker + 2 CTest aprovados; três testes de IA real não executados. Os testes desta integração estão no relatório do merge. Bancos, ambientes e relatórios privados permanecem fora do Git.
+
+Guias atuais: [execução protegida](../docs/MODO_APRESENTACAO_MAC.md), [operação e recuperação](../docs/OPERACAO_E_RECUPERACAO.md) e [acessibilidade](../docs/ACESSIBILIDADE_SAFARI_PDF.md). Registros datados anteriores preservam evidências históricas; não atribuir os benchmarks Windows ao Mac.
+
+## Execução macOS e Windows/WSL2
+
+Siga o [roteiro completo dos dois sistemas](../README.md#executar-localmente-no-macos-e-windows)
+antes dos exemplos de referência deste componente: dependências, configuração
+por terminal, banco/fontes, contas/MFA, Ollama, inicialização, saúde e encerramento.
+Os blocos Bash executam no macOS ou Ubuntu/WSL2; não são comandos PowerShell.
+
+| Componente | macOS | Windows/WSL2 neste PC |
+| --- | --- | --- |
+| Python | `repo/.venv-worker/bin/python` | `/home/pacientevirtual/.venvs/pacientevirtual/bin/python` |
+| API C++20 | `repo/build/backend/devsphere-api` | `/home/pacientevirtual/build/pacientevirtual/backend/devsphere-api` |
+| Banco/fontes | `repo/backend/data` e `sources` | `/home/pacientevirtual/.local/share/pacientevirtual` e `sources` |
+
+Carregue `source .local/ambiente-local.sh` em Bash na raiz do clone, conforme o
+roteiro. Para compilar/testar: `cmake --build "$PV_BUILD" -j 2` e
+`ctest --test-dir "$PV_BUILD" --output-on-failure`, com `DEVSPHERE_PYTHON` explícito.
+API: `"$PV_API"`; worker: `"$DEVSPHERE_PYTHON" -m worker.run --db "$DEVSPHERE_DB_PATH" --storage "$DEVSPHERE_SOURCE_DIR"`.
+Interface/saúde: `http://127.0.0.1:8080` e `/api/v1/health`. Ctrl+C nos próprios
+terminais encerra os processos. MFA é carregado apenas no terminal da API.
+
+Benchmark Windows nativo usa `repo/.venv-worker/Scripts/python.exe`, Ollama
+Windows e [comandos PowerShell completos](../docs/VALIDACAO_IA_OUTRA_MAQUINA.md#benchmark-real).
+Esse benchmark não executa o daemon POSIX nem demonstra backend C++ nativo Windows.
+A conferência de comandos de 20/10 foi por leitura no macOS e execução no Windows/WSL.
+Em 23–24/10, fluxos leves e regressões foram executados no Mac, sem inferência.
+Há OOM comprovado em uma tentativa histórica do M1 e um travamento posterior de causa não confirmada; não atribuir ao M1 os êxitos da RTX 3060.
+
+Os exemplos posteriores com `build/backend` e `.venv-worker/bin/python` são
+referência macOS/Ubuntu com build no clone; no WSL deste PC use os caminhos acima.
+
+
 A API mantém autenticação, regras pedagógicas, dados acadêmicos, PDFs e
 etapas de revisão fora do navegador. O SQLite permanece no backend.
 
@@ -10,6 +61,7 @@ Volte para a [visão geral do projeto](../README.md).
 - CMake 3.20 ou superior;
 - compilador compatível com C++20;
 - SQLite 3;
+- Python 3.11+, ReportLab e pypdf para gerar e estruturar o PDF oficial;
 - macOS Security/CommonCrypto ou OpenSSL em outras plataformas.
 
 Argon2id está vendorizado em `backend/vendor/argon2`, com licença e referência
@@ -35,6 +87,7 @@ WAL. As migrations são aplicadas em ordem e dentro de transações.
 Execute na raiz do repositório:
 
 ```bash
+export DEVSPHERE_PYTHON="$PWD/.venv-worker/bin/python"
 cmake -S backend -B build/backend -DBUILD_TESTING=ON
 cmake --build build/backend
 ctest --test-dir build/backend --output-on-failure
@@ -76,6 +129,13 @@ ambiente, nunca por código, argumentos, arquivos de documentação ou Git.
 
 ## Recriar banco e contas locais
 
+Prefira a sequência do roteiro principal acima, incluindo leitura silenciosa da
+senha e provisionamento MFA. Em produção, professor/admin exigem MFA; em
+desenvolvimento, ele é solicitado quando configurado para a conta no processo
+da API. O roteiro local também o configura. Live Server e sistema operacional
+não alteram essa regra.
+As etapas abaixo são referência do CLI, com caminhos do build no clone.
+
 Use este procedimento depois de criar um clone, iniciar outra pasta ou apagar o
 banco. Pare a API antes de substituir arquivos SQLite.
 
@@ -107,7 +167,7 @@ build/backend/devsphere-api --allow-domain devsphere.local
 Defina a senha apenas no ambiente:
 
 ```bash
-export DEVSPHERE_SEED_PASSWORD='defina-uma-senha-local-segura'
+export DEVSPHERE_SEED_PASSWORD="$("$DEVSPHERE_PYTHON" -c 'import getpass; print(getpass.getpass("Senha local: "))')"
 
 DEVSPHERE_DB_PATH=backend/data/devsphere.db \
 DEVSPHERE_MIGRATIONS_DIR=backend/migrations \
@@ -124,7 +184,7 @@ O último argumento é o endereço local de notificação administrativa.
 Redefina a variável se desejar uma senha diferente:
 
 ```bash
-export DEVSPHERE_SEED_PASSWORD='defina-a-senha-local-do-aluno'
+export DEVSPHERE_SEED_PASSWORD="$("$DEVSPHERE_PYTHON" -c 'import getpass; print(getpass.getpass("Senha local: "))')"
 
 DEVSPHERE_DB_PATH=backend/data/devsphere.db \
 DEVSPHERE_MIGRATIONS_DIR=backend/migrations \
@@ -137,7 +197,7 @@ build/backend/devsphere-api --create-user \
 ### 6. Criar o professor
 
 ```bash
-export DEVSPHERE_SEED_PASSWORD='defina-a-senha-local-do-professor'
+export DEVSPHERE_SEED_PASSWORD="$("$DEVSPHERE_PYTHON" -c 'import getpass; print(getpass.getpass("Senha local: "))')"
 
 DEVSPHERE_DB_PATH=backend/data/devsphere.db \
 DEVSPHERE_MIGRATIONS_DIR=backend/migrations \
@@ -151,6 +211,9 @@ build/backend/devsphere-api --create-user \
 
 ```bash
 unset DEVSPHERE_SEED_PASSWORD
+# Arquivos provisionados conforme roteiro principal; não criar novamente se existentes.
+source "$HOME/.config/pacientevirtual/admin-mfa.env"
+source "$HOME/.config/pacientevirtual/professor-mfa.env"
 ./tools/start-local-api.sh
 ```
 
@@ -235,7 +298,13 @@ portas para preservar o cookie `SameSite=Strict`: `127.0.0.1` com
 - `DEVSPHERE_PORT`: porta HTTP;
 - `DEVSPHERE_ENV=production`: ativa atributos destinados à produção;
 - `DEVSPHERE_ALLOWED_ORIGINS`: origens permitidas, separadas por vírgula;
-- `DEVSPHERE_SEED_PASSWORD`: senha usada apenas pelos comandos de criação.
+- `DEVSPHERE_SEED_PASSWORD`: senha usada apenas pelos comandos de criação;
+- `DEVSPHERE_CASE_SEED`: JSON privado com os casos legados (padrão ao lado das migrations);
+- `DEVSPHERE_SOURCE_DIR`: diretório privado de PDFs, compartilhado somente com o worker;
+- `DEVSPHERE_PYTHON`: interpretador com ReportLab e dependências necessárias;
+- `DEVSPHERE_PDF_RENDERER`: caminho de `tools/render_official_report.py`;
+- variáveis de MFA e segurança: consulte [Segurança NEXT_2026](../docs/SEGURANCA_NEXT_2026.md);
+- variáveis do Ollama e modelos: consulte [Worker](../worker/README.md).
 
 Em desenvolvimento, a API aceita `http://127.0.0.1:5501` e
 `http://localhost:5501`. Produção deve usar HTTPS, origem explícita e uma camada
@@ -281,9 +350,11 @@ schema v2 em `docs/schemas/submission-report.schema.json`. Reenvio do mesmo
 conteúdo retorna a submissão existente; conteúdo divergente com a mesma chave
 gera conflito.
 
-O backend recalcula a pontuação, compara o JSON incorporado no PDF com o
-relatório, valida o documento e persiste tudo na mesma transação. O PDF é
-limitado a 20 MiB.
+O relatório deve informar `clinicalSessionId`. O backend confere o histórico,
+a identidade e a versão contra a sessão persistida. O documento oficial é gerado
+no servidor a partir desses dados, com `tools/render_official_report.py` e ReportLab.
+O PDF recebido do navegador não pode alterar o conteúdo oficial. O upload continua
+limitado a 20 MiB. Detalhes do contrato estão no OpenAPI e na documentação de PDF.
 
 `GET /api/v1/submissions/{id}/pdf` entrega o documento ao aluno proprietário,
 professor responsável ou administrador. A importação manual em
@@ -299,20 +370,330 @@ navegador não promove usuários nem define a identidade acadêmica da submissã
 Submissões, etapas, tentativas e eventos de pontuação preservam auditoria e
 imutabilidade. Não versione bancos, PDFs clínicos locais, chaves ou credenciais.
 
+## Contratos NEXT_2026
+
+- `GET /cases`: catálogo público autorizado, com versões e metadados sem desfecho.
+- `POST /clinical-sessions`: inicia um atendimento com a versão fixada.
+- `POST /clinical-sessions/{id}/actions`: aceita uma escolha, libera sua resposta e calcula pontos.
+- `POST /clinical-sessions/{id}/hypotheses`: registra hipótese e justificativa no estado atual.
+- `GET /students/{id}/feedback`: aluno recebe somente devolutivas concluídas próprias.
+- `GET /notifications` e `POST /notifications/{id}/read`: avisos internos do proprietário.
+- `/contributions` e `/case-versions/{id}/review`: autoria, novas versões e curadoria.
+- `/admin/reviewer-areas` e `/admin/review-assignments`: habilitação e atribuição explícitas.
+- `/documents` e `/jobs`: upload autorizado e processamento assíncrono.
+- `POST /library/search`: consulta de fontes aprovadas com autorização antes da recuperação.
+
+As operações mutáveis exigem `X-PV-Request: 1`, além da sessão e das autorizações.
+O cliente oficial já envia o cabeçalho. Ele auxilia a proteção contra CSRF e não
+substitui autenticação. Requisições diretas estão sujeitas às mesmas regras.
+
+Instale dependências e inicie o processo auxiliar conforme o [README do worker](../worker/README.md).
+Para os PDFs oficiais, o interpretador definido em `DEVSPHERE_PYTHON` precisa ter
+`reportlab` e `pypdf` (este já listado em `worker/requirements.txt`). Para backup cifrado e ferramentas MFA, instale
+`tools/requirements-security.txt`. Não aplique os procedimentos de teste ao banco pessoal.
+
 ## Limitações
 
-- O envio externo de e-mail ainda não possui provedor.
-- Rotas de geração clínica respondem `501 ai_not_configured` até a integração de
-  um provedor revisado.
-- Extração controlada de texto e OCR de PDFs clínicos ainda não estão ativas.
-- FIWARE, MQTT e Edge Computing não fazem parte da implementação atual.
-- O servidor HTTP embutido é adequado ao desenvolvimento. Produção exige TLS,
-  limites de upload, logs estruturados e armazenamento protegido.
+- Envio externo de e-mail ainda não possui provedor.
+- Ollama, Qwen3:8b e Gemma3:4b exigem instalação local; a integração não equivale
+  a geração real validada, qualidade clínica aprovada ou benchmark concluído.
+- OCR depende de Poppler/Tesseract e seus idiomas; ausência gera falha recuperável.
+- A migração preserva João e Marina sem conferir uma nova aprovação clínica.
+- Não há autorização institucional para anunciar provas certificadas ou produção hospitalar.
+- FIWARE, MQTT e Edge Computing não foram implementados nesta evolução.
+- Produção requer HTTPS, isolamento do worker, segredos externos, recuperação testada,
+  avaliação independente e resolução dos bloqueios da matriz de segurança.
 
 ## Referências
+
+- [Portais NEXT_2026](../docs/PORTAIS_NEXT_2026.md)
+- [Segurança NEXT_2026](../docs/SEGURANCA_NEXT_2026.md)
+- [Worker local](../worker/README.md)
 
 - [Arquitetura do backend](../docs/ARQUITETURA_BACKEND_CPP20.md)
 - [Pontuação pedagógica](../docs/PONTUACAO_PEDAGOGICA.md)
 - [Relatório PDF versionado](../docs/RELATORIO_PDF_VERSIONADO.md)
 - [Geração e importação de casos](../docs/GERACAO_E_IMPORTACAO_DE_CASOS.md)
 - [Contrato OpenAPI](openapi/openapi.yaml)
+
+## Backup antes de migrations — NEXT_2026
+
+Ao iniciar, a API verifica se há migrations pendentes. Para banco existente,
+cria antes um snapshot pela API SQLite, incluindo os dados do WAL, no diretório
+`backups` ao lado do banco. Sem mudança de esquema, não repete o snapshot.
+Em desenvolvimento, a cópia sem cifra recebe permissões 0600 em diretório 0700.
+Configure `DEVSPHERE_BACKUP_PASSWORD` (mínimo 16 caracteres, via ambiente protegido)
+e `DEVSPHERE_PYTHON` com `cryptography` para gerar `.pvb` cifrado. Produção bloqueia
+migrations sem esse segredo ou se o backup falhar. Não coloque a senha no Git.
+`DEVSPHERE_BACKUP_TOOL` permite indicar o caminho absoluto de `tools/secure_backup.py`.
+Restauração exige destino novo; consulte `docs/SEGURANCA_NEXT_2026.md` na raiz do projeto.
+
+## Instalar OCR e conferir as dependências locais
+
+No macOS com Homebrew, OCR de páginas digitalizadas requer:
+
+```bash
+brew install tesseract tesseract-lang poppler
+tesseract --list-langs
+pdftoppm -v
+```
+
+A lista deve conter `por` e `eng`. PDFs textuais usam as dependências Python.
+Instale Ollama pelo site oficial, abra o aplicativo e confira `ollama --version`
+e `curl http://127.0.0.1:11434/api/tags`. Os modelos não são baixados automaticamente.
+Consulte `worker/README.md` na raiz para configuração e benchmark real.
+
+Antes dos testes C++ que geram relatórios, exporte `DEVSPHERE_PYTHON` apontando
+para o Python do ambiente com ReportLab; o Python padrão da máquina pode não ter
+essa dependência. Testes HTTP e navegador criam suas próprias bases temporárias.
+
+Resultado técnico e limites: [Evidências da integração NEXT_2026](../docs/ENTREGA_NEXT_2026.md).
+
+## Estado dos modelos locais — 16/10/2026
+
+Ollama 0.40.5 instalado manualmente e API local ativa. `qwen3:8b` (5,2 GB) e
+`gemma3:4b` (3,4 GB) foram baixados, verificados pelo Ollama e listados pela API.
+O CLI pode ser chamado pelo caminho `/Applications/Ollama.app/Contents/Resources/ollama`,
+mesmo sem o comando no PATH. Mantenha o aplicativo aberto.
+
+O Gemma respondeu ao teste JSON real em aproximadamente 17 segundos. Qwen teve
+timeouts em testes reais, inclusive com contexto de 4096 e CPU; não foi concluída
+a geração integral de 18 perguntas e 22 exames. A tentativa de contexto16384
+ocupou aproximadamente7,9GB no M1/8GB e causou pressão de memória. A causa exata
+dos timeouts ainda não foi isolada; não há comprovação de funcionamento integral
+ou adequação clínica. Não foi substituído nenhum modelo por simulação.
+
+O ambiente `.venv-worker` foi preparado localmente, é ignorado no Git e precisa
+ser recriado em outra máquina conforme a preparação acima. Os scripts de API e
+worker agora o preferem automaticamente; `DEVSPHERE_PYTHON` explícito prevalece.
+O worker continua sendo iniciado separadamente: `./tools/start-worker.sh` na raiz.
+
+Limites do adaptador são configuráveis (valores iniciais, ainda sujeitos a benchmark):
+
+- `DEVSPHERE_OLLAMA_CONTEXT=8192`;
+- `DEVSPHERE_OLLAMA_MAX_TOKENS=6000` (menor que o contexto);
+- `DEVSPHERE_OLLAMA_BATCH=64`.
+
+Esses limites menores reduzem reserva de memória; não significam que a geração
+completa foi validada no equipamento. Aumente-os somente após medir recursos.
+Timeout retorna erro recuperável e saída cortada é rejeitada; não há sucesso com
+caso incompleto. Hashes e resultados técnicos estão em
+`docs/MODELOS_LOCAIS_NEXT_2026.json`, a partir da raiz do projeto.
+
+## Worker: erro `no such table: source_documents`
+
+Esse erro significa que o worker abriu uma base anterior às migrations da fila,
+ou que API e worker estão usando caminhos diferentes. Ativar o ambiente Python
+não cria tabelas. O backend C++20 aplica migrations; o worker não altera o schema.
+
+Na raiz do projeto, com a API parada, atualize explicitamente a base correta:
+
+```bash
+export DEVSPHERE_DB_PATH="$PWD/backend/data/devsphere.db"
+./tools/start-local-api.sh --migrate
+./tools/start-local-api.sh
+```
+
+O modo `--migrate` compila o backend, usa o backup pré-migration quando necessário
+e encerra sem abrir servidor. Se uma API já responder na porta, solicita que ela
+seja encerrada no terminal original antes da atualização. A inicialização normal
+também aplica migrations, desde que execute o binário novo; um health positivo de
+uma instância antiga não comprova versão nem caminho do banco.
+
+Em outro terminal, novamente na raiz do projeto:
+
+```bash
+export DEVSPHERE_DB_PATH="$PWD/backend/data/devsphere.db"
+./tools/start-worker.sh --check
+./tools/start-worker.sh
+```
+
+`--check` valida as tabelas e colunas necessárias sem indexar fontes nem consumir
+a fila. O worker informa o caminho do banco e só começa após essa verificação.
+Um caminho inexistente nunca cria base vazia. Não execute o binário C++ diretamente
+na raiz sem configurar o banco: seu default de CLI é `data/devsphere.db`, diferente
+do caminho canônico utilizado pelos scripts (`backend/data/devsphere.db`). Não
+apague nem misture bancos para corrigir esse problema.
+
+Verificação em16/10/2026: banco local atualizado de001–005 para001–014 com snapshot
+SQLite consistente; registros anteriores comparados por hash e preservados;
+apenas as tabelas de casos antes vazias receberam João e Marina. Integridade `ok`;
+worker `--check` passou sem processar trabalhos.
+
+## Continuação das pendências — 16/10/2026
+
+O painel administrativo agora lista habilitações e atribuições, permite revogar
+uma área e substituir revisor com motivo auditado. A revogação impede acesso pela
+atribuição, edição e decisão de revisão; autoria própria continua sendo vínculo
+separado. Decisões históricas não são apagadas. A política de suplência institucional
+continua pendente.
+
+A área de contribuições permite ao proprietário/admin consultar destinatários de
+uma fonte e versões dependentes. O admin pode conceder/revogar grants com motivo.
+Resultados de geração deixam de ser entregues quando uma fonte necessária perde
+a autorização, inclusive se o trabalho já estava concluído. Isso não apaga o
+histórico nem substitui a política de retenção e revisão de casos derivados.
+
+O editor oferece a [rubrica opcional de dificuldade](../docs/RUBRICA_DIFICULDADE.md),
+com confirmação explícita e justificativa de divergência. Nenhum nível clínico
+foi atribuído automaticamente a João ou Marina. O mapa completo está em
+[Pendências NEXT](../docs/PENDENCIAS_NEXT_2026.md).
+
+Para carregar estas alterações, pare as instâncias antigas nos respectivos
+terminais e execute novamente os scripts de API e worker. Não é necessária nova
+migration além da014. Não apague a base nem rode duas APIs concorrentes no mesmo
+banco. A instalação sozinha não comprova geração: o histórico do M1 apresentou timeout.
+Os testes completos Windows/WSL e os limites atuais estão na validação de 20/10/2026.
+
+## Diagnóstico local e limites de processamento
+
+Na raiz do repositório, confira as dependências antes de processar PDFs:
+
+```bash
+./tools/check-local-ai.sh
+# Inventário estruturado, sem conteúdo clínico:
+./tools/check-local-ai.sh --json --timeout 3
+```
+
+O diagnóstico consulta somente inventário do Ollama, modelos instalados/em memória,
+Tesseract, idiomas `por+eng`, Poppler e recursos básicos da máquina. Não inicia
+serviços, não baixa modelos, não acessa SQLite e não executa inferência. Retorno0
+significa dependências encontradas; não significa geração validada. Falta de
+componente retorna código não zero e orientações legíveis. Prefere `.venv-worker`;
+`DEVSPHERE_PYTHON` explícito prevalece. A API8080 e o worker continuam precisando
+ser iniciados separadamente, conforme os comandos acima.
+
+A fila aceita por padrão **12 solicitações por usuário por hora**, somando conversão,
+geração e retentativas manuais aceitas. Prévias têm quota própria de 30/hora,
+incluindo retries da categoria; não consomem a quota de geração. Cancelar, concluir
+ou falhar não devolve quota. Repetir a mesma solicitação idempotente retorna o trabalho anterior sem
+consumir novamente. Tentativas automáticas continuam limitadas pelo próprio job;
+não se confundem com uma nova solicitação manual. A concorrência por usuário
+continua limitada a3 trabalhos pendentes. Configuração do backend:
+
+- `DEVSPHERE_JOB_REQUEST_LIMIT=12`: conversão/geração, inteiro entre1 e120;
+- `DEVSPHERE_BUDGET_REQUEST_LIMIT=30`: prévias sem inferência, inteiro entre1 e120;
+- `DEVSPHERE_JOB_WINDOW_SECONDS=3600`: inteiro entre60 e86400.
+
+Configuração inválida bloqueia novas solicitações com erro503; quota atingida
+retorna429. Esses são limites técnicos conservadores do MVP, sujeitos a revisão
+institucional. A contagem persiste no SQLite em trabalhos e eventos de retry;
+reiniciar a API ou cancelar repetidamente não reinicia a janela.
+
+A conversão agora interpreta seleção opcional vazia de páginas como todas as
+páginas, igual ao que a interface envia. PDFs protegidos, falsos ou acima do limite
+são rejeitados sem substituir documentos existentes.
+
+### Histórico do Qwen no M1 — 16/10/2026
+
+Nesta rodada, Qwen3:8b respondeu JSON técnico curto em27,84s com contexto512,
+mas excedeu60s no contexto4096 usado como mínimo pelo worker. Os modelos foram
+descarregados após os diagnósticos. Esse avanço comprova apenas execução curta;
+ainda não há geração integral18/22 verificada. Não reduza o contexto de produção
+para512: esse teste não comporta o contrato do caso clínico.
+
+`DEVSPHERE_OLLAMA_TIMEOUT=600` configura o tempo da chamada do worker (inteiro1–900).
+Não aumenta memória nem garante conclusão. O adaptador rejeita falta de conclusão,
+modelo inesperado, JSON inválido e saída cortada; registra tokens e tempos de carga,
+prompt e avaliação quando disponíveis, sem registrar texto clínico.
+
+## Fila compartilhada, uploads e Live Server — terceira rodada
+
+Os limites de3 pendentes por usuário e12 solicitações/h continuam. A API também
+limita trabalhos `queued`/`running` compartilhados entre usuários:
+
+- `DEVSPHERE_JOB_INSTITUTION_PENDING_LIMIT=12` (inteiro1–120);
+- `DEVSPHERE_JOB_GLOBAL_PENDING_LIMIT=24` (inteiro1–1000).
+
+Criação e retry verificam esses tetos na mesma transação; reenvio idempotente é
+resolvido antes. Excesso retorna429 `institution_queue_full`/`global_queue_full`.
+Cancelamento de um processo ainda em execução não libera capacidade antes de seu
+encerramento. São defaults técnicos conservadores, não políticas homologadas.
+
+Uploads são criados exclusivamente com permissão0600. Registro e auditoria são
+transacionais; falhas tratáveis removem o arquivo novo e desfazem alterações.
+Isso não torna SQLite e filesystem uma única transação contra desligamento abrupto:
+as correções posteriores acrescentaram reconciliação explícita, quotas de PDFs-fonte
+e reserva de disco. Não há descarte automático nem transação única FS+SQLite.
+Consulte o estado atual e os procedimentos vinculados acima.
+
+O teste com o **módulo real da extensão Live Server** passou em5501→8080 sem proxy:
+login, CORS, HttpOnly, catálogo, ação e persistência ao reabrir a página. As duas
+portas precisam estar livres; se ocupadas, o teste não acessa serviços existentes
+e retorna SKIP77. Detalhes: `docs/LIVE_SERVER_VALIDACAO.md` (na raiz do projeto).
+Não automatiza o botão “Go Live” do VS Code nem o fechamento completo do navegador.
+
+### Geração local: resultado e próximo equipamento
+
+Um perfil experimental isolado permitiu JSON curto Qwen em4096/18,74s, mas a
+tentativa de caso completo em8192 registrou **falta de memória da GPU**. Nenhum
+resultado parcial foi aceito; Gemma não foi alcançado. O aplicativo Ollama instalado
+não foi reconfigurado nem reiniciado. Os pesos dos modelos não mudaram.
+
+No registro histórico de 16/10/2026, o PC Windows com16GB/RTX3060 ainda não
+havia sido testado. Os testes reais concluídos em 19–20/10 estão na seção final;
+roteiro e entrada sintética estão em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md` e
+`worker/fixtures/synthetic-benchmark.request.json`. A instalação não prova capacidade.
+
+A crítica pode ter contexto separado por `DEVSPHERE_OLLAMA_CRITIC_CONTEXT`; se
+omitido, herda o contexto do gerador. Benchmark distingue RSS e alocação reportada
+por `/api/ps`; ausência de amostra é `null`. No M1 a geração completa ficou
+pendente; a validação Windows/WSL está registrada ao final. Revisão clínica
+permanece pendente, mesmo com testes de software aprovados.
+
+## Auditoria de armazenamento
+
+A ferramenta `tools/audit_source_storage.py` compara registros e PDFs somente em
+leitura, identificando ausências, órfãos, divergências de hash e caminhos/links
+inválidos. Não apaga nem repara fontes. Veja `docs/AUDITORIA_ARMAZENAMENTO.md` na
+raiz do projeto para execução com snapshot/janela coerente, limites e códigos.
+Não foi executada sobre a base pessoal nesta implementação.
+
+## Histórico da IA no PC Windows — 19–20/10/2026
+
+Windows + WSL2/Ubuntu 24.04.5 preparado, preservando o backend C++20. Perfil v4
+Qwen3:8b + Gemma3:4b concluiu18 perguntas/22 exames: RAG 225,529 s, textual WSL
+195,138 s e textual Windows96,891 s. Falhas anteriores preservadas.
+Passaram CTest 2/2, workerLinux 61, PythonWindows 53 selecionados,
+ferramentas 41+1skip opt-in e RAG real 3/3 separado. Interface/LiveServer
+passaram após correções de rascunho, autoria e teclado. Sem publicação de casos,
+aprovação clínica ou homologação de 100% de usabilidade. Comandos/versões/métricas e
+pendências em `docs/VALIDACAO_IA_OUTRA_MAQUINA.md`.
+
+
+## Validação M1 de 22/10/2026
+
+Extração sem duplicação e orçamento compartilhado implementados. O teste real interrompeu-se com travamento e reinício relatados pelo usuário; geração local integral não indicada para apresentação neste Mac. Nenhum caso completo foi salvo. Consulte [evidências, limites e decisão C](../docs/VALIDACAO_MAC_M1.md). Não repetir geração pesada automaticamente.
+
+**Próximo teste: Windows/RTX 3060 — pendente para estas correções.** Validar extração, orçamento, geração Qwen3:8b, crítica Gemma3:4b e rascunho pela interface, medindo tempo e memória. Resultados Windows anteriores não validam automaticamente esta revisão.
+
+## Remover trabalhos da listagem
+
+Na página **Contribuições → Trabalhos de processamento**, use **Remover da lista** em um trabalho concluído, cancelado ou com falha. A confirmação explica o alcance: o PDF, o Markdown, o resultado, rascunhos e histórico são preservados. Use o filtro **Removidos da lista** e **Restaurar na lista** para recuperar a exibição. O filtro padrão mostra somente visíveis; **Todos** reúne os registros retornados. A listagem mantém o limite de 100 registros e prioriza os visíveis.
+
+Um trabalho na fila ou em execução deve ser cancelado antes: clique em **Cancelar**, atualize e aguarde o estado **Cancelado** (ou outro estado terminal). Solicitação de cancelamento não é confirmação de encerramento. Arquivar não interrompe o worker. Se não gostou do resultado, remova o trabalho encerrado e faça uma **nova solicitação no cartão do documento**; a conversão/geração continua sujeita a permissões, quotas e à política operacional. No Mac protegido, geração real continua bloqueada.
+
+O backend usa `POST /api/v1/jobs/{id}/archive` e `/restore`, exclusivamente para o titular, sem privilégio especial de administrador sobre trabalhos alheios. A migration `016_job_archive.sql` adiciona `archived_at`; não apaga registros ou arquivos. Transições são transacionais, auditadas e idempotentes. Retentativa de arquivado retorna `409 job_archived`; trabalho ativo retorna `409 job_active`. Arquivar não reinicia tentativas, renova prazos nem devolve quota. Exclusão física de documentos e retirada de contribuições são operações distintas.
+
+## Operação, armazenamento e acessibilidade — etapa de 23/10/2026
+
+O modo local protegido continua com `DEVSPHERE_INFERENCE_ENABLED=0`; nenhum modelo precisa ser carregado para estas funções.
+
+- **Administração → Operação e recuperação:** mostra fila, heartbeat, falhas recorrentes, espaço disponível e alertas com ações sugeridas. Atualização manual ou a cada 30 segundos enquanto a página estiver visível; não executa reparos automaticamente. Endpoint autenticado e restrito a administrador: `GET /api/v1/operations`, com escopo institucional.
+- **Limites de PDFs-fonte:** padrões configuráveis no processo da API: `DEVSPHERE_STORAGE_USER_BYTES=209715200`, `DEVSPHERE_STORAGE_INSTITUTION_BYTES=1073741824` e `DEVSPHERE_STORAGE_MIN_FREE_BYTES=536870912`. São 200 MiB/conta, 1 GiB/instituição e reserva de 512 MiB. PDFs retirados continuam contando. Não representa quota de todo o banco, relatórios, logs ou backups. Veja [limites, erros e legados](../docs/LIMITES_ARMAZENAMENTO.md).
+- **Reconciliação após queda:** plano somente leitura, manutenção com API/worker parados e aplicação explícita para quarentena/restauração por hash. Não apagar órfãos automaticamente nem reconstruir um PDF a partir de Markdown. Veja [procedimento de reconciliação](../docs/RECONCILIACAO_ARQUIVOS.md).
+- **PDF oficial:** novos relatórios possuem idioma, título, marcadores e estrutura lógica real para leitura assistiva. O Python da API precisa de **ReportLab e pypdf**; pypdf já consta em `worker/requirements.txt`. PDFs antigos não são reescritos. Veja [Safari, VoiceOver e PDF](../docs/ACESSIBILIDADE_SAFARI_PDF.md).
+
+A migration incremental `017_storage_bytes.sql` preserva fontes antigas com tamanho desconhecido (`NULL`). A admissão seguinte confere caminho/hash/arquivo antes de preencher bytes; fonte ausente/divergente bloqueia novos envios da instituição em vez de ser ignorada. O diagnóstico de leitura não altera essa contabilidade. Migrations devem seguir o backup consistente já documentado.
+
+O usuário confirmou funcionamento correto do VoiceOver no Safari e no Google Chrome do Mac em 24/10/2026. São relatos manuais positivos, sem enumeração de cenários ou certificação PDF/UA. A automação remota do SafariDriver continua desativada; essa limitação é separada da navegação manual e nenhuma preferência foi alterada pelo agente.
+
+As variáveis acima valem apenas no terminal/processo que as recebeu. Preserve o modo protegido ao reiniciar a API e mantenha banco/raiz de fontes coerentes com o worker. Encerramento: Ctrl+C no terminal original; não mate processos por nome. Os guias vinculados explicam manutenção e recuperação, sem apagar dados locais.
+
+Roteiro do painel, alertas, inicialização e recuperação: [Operação e recuperação](../docs/OPERACAO_E_RECUPERACAO.md).
+
+## Correção das ilustrações — 25/10/2026
+
+O catálogo `GET /api/v1/cases` agora inclui o campo público `image`, com os mesmos caminhos das ilustrações de João e Marina já informados pelo detalhe público. A tela inicia o atendimento pelos dados desse catálogo; sem o campo, ocultava a figura apesar de os PNGs estarem disponíveis. Casos sem ilustração continuam com `null`. A legenda acompanha o paciente selecionado. Não houve mudança nos PNGs ou no conteúdo clínico.
+
+Regressão: o teste HTTP novo reproduziu a ausência nas duas entradas antes da correção e passou depois. Chrome verificou imagem visível e decodificada de João na origem da API e Marina em origem 5501 com proxy isolado de teste, além das jornadas/PDF/devolutiva; CTest 2/2 passou. Os arquivos reais responderam HTTP 200 tanto em 8080 quanto no Live Server 5501. Nenhuma inferência ou alteração de dados pessoais.

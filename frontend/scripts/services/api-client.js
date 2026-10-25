@@ -8,6 +8,9 @@ export class ApiError extends Error {
 }
 export async function apiRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
+  // Cabeçalho não simples exige preflight e ajuda a bloquear requisições forjadas entre origens.
+  const method = (options.method || "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) headers.set("X-PV-Request", "1");
   const isFormData = options.body instanceof FormData;
   if (options.body && !isFormData && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   let response;

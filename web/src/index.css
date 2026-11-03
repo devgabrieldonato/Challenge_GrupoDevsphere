@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design system: mesmos papéis semânticos de frontend/styles/tokens.css (Sprint 3). */
+:root {
+  color-scheme: light;
+  --c-brand: #c70f4c; --c-primary: #2447b7; --c-primary-hover: #18368f; --c-on-primary: #ffffff;
+  --c-ink: #15283e; --c-muted: #475569; --c-border: #c0cad6; --c-control-border: #7a8798;
+  --c-surface: #ffffff; --c-background: #f5f7fb; --c-surface-subtle: #eef2f7;
+  --c-selected-bg: #e8edff; --c-selected-ink: #2447b7; --c-focus: #875400;
+  --c-success: #126847; --c-success-bg: #e6f7ef; --c-warning: #835000; --c-warning-bg: #fff2d8;
+  --c-danger: #b42318; --c-danger-bg: #fff0ef; --c-info-bg: #eef2ff;
+  --c-question-ink: #50337f; --c-question-bg: #f3eefb; --c-exam-ink: #09666b; --c-exam-bg: #eaf7f7;
+  --shadow-card: 0 12px 34px rgba(21, 40, 62, 0.1);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-brand: #ff8bb3; --c-primary: #315bdf; --c-primary-hover: #2447b7;
+  --c-ink: #f3f4f6; --c-muted: #c4cfde; --c-border: #66758b; --c-control-border: #8494ab;
+  --c-surface: #1f2937; --c-background: #111827; --c-surface-subtle: #263448;
+  --c-selected-bg: #253c68; --c-selected-ink: #d6e3ff; --c-focus: #ffd166;
+  --c-success: #8be0b5; --c-success-bg: #173d32; --c-warning: #ffd98a; --c-warning-bg: #493719;
+  --c-danger: #ffb4ad; --c-danger-bg: #4a262c; --c-info-bg: #26395a;
+  --c-question-ink: #e2ceff; --c-question-bg: #382950; --c-exam-ink: #a7eeeb; --c-exam-bg: #173e42;
+  --shadow-card: 0 12px 34px rgba(0, 0, 0, 0.25);
+}
+
+@layer base {
+  body { @apply bg-page font-sans text-ink antialiased; }
+  h1 { @apply text-2xl font-bold leading-tight sm:text-3xl lg:text-4xl; }
+  h2 { @apply text-xl font-semibold leading-snug sm:text-2xl; }
+  h3 { @apply text-lg font-semibold; }
+  a { @apply text-primary underline-offset-2 hover:underline; }
+  /* Foco sempre visível, em qualquer tema. */
+  :focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; }
+  main:focus { outline: none; }
+}
+
+@layer components {
+  .card { @apply rounded-md2 border border-line bg-surface p-5 shadow-card sm:p-6; }
+  .btn {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-sm2 border border-control bg-surface
+      px-4 py-2 text-sm font-semibold text-ink no-underline transition-colors hover:bg-surface-subtle hover:no-underline
+      disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-primary { @apply border-primary bg-primary text-primary-on hover:bg-primary-hover; }
+  .btn-danger { @apply border-danger text-danger; }
+  .field { @apply min-h-[44px] w-full rounded-sm2 border border-control bg-surface px-3 py-2 text-ink placeholder:text-muted; }
+  .label { @apply mb-1 block text-sm font-semibold; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-widest text-brand; }
+  .badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+}

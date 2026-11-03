@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Paciente Virtual: prática de raciocínio clínico com supervisão docente." />
+    <title>Paciente Virtual</title>
+    <!-- Aplica o tema salvo antes da primeira pintura, evitando flash de tema errado. -->
+    <script>
+      try {
+        var saved = localStorage.getItem("pv-theme");
+        var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

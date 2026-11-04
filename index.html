@@ -11,6 +11,7 @@
   </head>
 
   <body>
+    <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
     <!-- Cabeçalho do projeto -->
     <header>
       <div class="brand">FIAP</div>
@@ -30,7 +31,7 @@
       </div>
     </header>
 
-    <main>
+    <main id="conteudo" tabindex="-1">
       <!--
         Primeira tela do sistema.
         O aluno escolhe qual paciente quer atender antes de começar.
@@ -264,7 +265,7 @@
               <h2 id="mathTitle">Evolução da troponina no caso do João</h2>
               <p class="sub">Observe como o tempo influencia a concentração de troponina e por que uma coleta muito precoce pode ainda não mostrar uma elevação importante.</p>
             </div>
-            <span class="math-badge">Limite + derivada</span>
+            <span class="math-badge">Limite + derivada + integral</span>
           </div>
 
           <div class="math-grid">
@@ -277,10 +278,19 @@
 
               <div class="math-reference">
                 <span><strong>João:</strong> coleta inicial em aproximadamente 40 min</span>
-                <span><strong>Resultado:</strong> 12 ng/L</span>
+                <span><strong>Dosagens do caso:</strong> 12 ng/L (40 min) e 186 ng/L (amostra de 2 h). A curva sintética não ajusta a segunda dosagem.</span>
               </div>
 
+              <fieldset class="math-interval">
+                <legend>Intervalo da integral (horas)</legend>
+                <label for="mathStart">Início</label>
+                <input id="mathStart" type="number" min="0" max="12" step="0.01" value="0">
+                <label for="mathEnd">Fim</label>
+                <input id="mathEnd" type="number" min="0" max="12" step="0.01" value="1">
+              </fieldset>
+              <p id="mathError" role="status"></p>
               <div class="math-metrics">
+                <div><span>Área simulada</span><strong id="mathArea">—</strong><small>ng·h/L</small></div>
                 <div><span>Troponina T(t)</span><strong id="mathValue">12,0</strong><small>ng/L</small></div>
                 <div><span>Derivada T'(t)</span><strong id="mathDerivative">17,1</strong><small>ng/L por hora</small></div>
                 <div><span>Limite da função</span><strong>120</strong><small>ng/L · platô do modelo</small></div>
@@ -297,27 +307,12 @@
               </div>
               <div class="math-chart-wrap">
                 <svg id="mathChart" viewBox="0 0 720 320" role="img" aria-label="Gráfico da evolução matemática da troponina ao longo do tempo">
-                  <line class="math-chart-axis" x1="54" y1="20" x2="54" y2="278"></line>
-                  <line class="math-chart-axis" x1="54" y1="278" x2="702" y2="278"></line>
-                  <path class="math-chart-line" d="M54,278 C140,220 230,174 324,139 C430,100 548,72 702,55"></path>
-                  <line class="math-chart-marker initial" x1="90" y1="20" x2="90" y2="278"></line>
-                  <line class="math-chart-marker repeat" x1="216" y1="20" x2="216" y2="278"></line>
-                  <circle class="math-chart-point" cx="90" cy="252" r="7"></circle>
-                  <circle class="math-chart-point repeat-point" cx="216" cy="196" r="6"></circle>
-                  <text class="math-chart-label" x="62" y="32">Troponina (ng/L)</text>
-                  <text class="math-chart-marker-label" x="95" y="42">João · 40 min</text>
-                  <text class="math-chart-marker-label" x="221" y="58">Recoleta · 3 h</text>
-                  <text class="math-chart-label" x="52" y="300">0h</text>
-                  <text class="math-chart-label" x="216" y="300">3h</text>
-                  <text class="math-chart-label" x="378" y="300">6h</text>
-                  <text class="math-chart-label" x="540" y="300">9h</text>
-                  <text class="math-chart-label" x="686" y="300">12h</text>
                 </svg>
               </div>
               <div class="math-legend">
                 <span><i class="legend-line"></i>Curva T(t)</span>
-                <span><i class="legend-initial"></i>Coleta do João: 0,67 h</span>
-                <span><i class="legend-repeat"></i>Exemplo de recoleta: 3 h</span>
+                <span><i class="legend-initial"></i>Ponto simulado: 40 min</span>
+                <span><i class="legend-repeat"></i>Ponto simulado: 3 h</span>
               </div>
             </div>
 
@@ -331,10 +326,10 @@
                 <strong>Derivada</strong>
                 <span>T'(t) = 18,96e<sup>−0,158t</sup></span>
               </div>
-              <p id="mathInterpretation">Na coleta de aproximadamente 40 minutos, o modelo mostra 12 ng/L. A derivada ainda é positiva, indicando que a curva continua subindo.</p>
+              <p id="mathInterpretation"></p>
               <div class="decision-box">
                 <strong>Apoio à decisão</strong>
-                <span id="mathDecision">Um resultado inicial baixo pode estar em um ponto precoce da curva. No simulador, compare o ponto de 40 minutos com uma recoleta posterior para visualizar a mudança.</span>
+                <span id="mathDecision" aria-live="polite"></span>
               </div>
             </div>
           </div>

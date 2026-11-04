@@ -1,7 +1,7 @@
 /* Paleta compartilhada: cores do texto, das bordas, das ações, das perguntas e dos exames. */
 :root {
   --ink: #15283e;
-  --muted: #607187;
+  --muted: #4b6077;
   --line: #dce4ed;
   --blue: #315bdf;
   --purple: #7950bd;
@@ -811,7 +811,7 @@ textarea {
 }
 .math-chart-point.repeat-point { fill: #7a8797; }
 .math-chart-current-point {
-  fill: #1f8a70;
+  fill: #146452;
   stroke: white;
   stroke-width: 3;
 }
@@ -820,11 +820,39 @@ textarea {
   font: 600 11px system-ui, sans-serif;
 }
 .math-chart-marker-label { fill: #315bdf; }
-.math-chart-current-label { fill: #1f8a70; }
+.math-chart-current-label { fill: #146452; }
 
 @media (max-width: 650px) {
   .math-legend { display: grid; gap: 7px; }
   .math-reference { font-size: 11px; }
   .math-chart-marker-label,
   .math-chart-current-label { font-size: 10px; }
+}
+
+/* Os limites da janela ficam agrupados e mantêm foco nativo por teclado. */
+.math-interval { display: grid; gap: .4rem; min-inline-size: 0; margin: 1rem 0; }
+.math-interval input { width: 100%; max-width: 12rem; }
+#mathError { color: #9b1c1c; }
+
+/* Foco e navegação por teclado seguem a referência da main. */
+:focus-visible { outline: 3px solid #2346a8; outline-offset: 3px; }
+.skip-link {
+  position: absolute; inset: .75rem auto auto .75rem; z-index: 20;
+  padding: .65rem 1rem; color: #fff; background: #15283e;
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
+.math-card { min-inline-size: 0; overflow-wrap: anywhere; }
+.math-interval input { min-block-size: 44px; padding: .45rem; }
+.math-controls input[type="range"] { min-block-size: 44px; }
+
+@media (max-width: 420px) {
+  .math-card { padding: 12px; }
+  .chart-title-row { flex-wrap: wrap; }
+  .math-chart-card { min-height: 0; }
+  .math-reference { font-size: .875rem; }
+}
+@media (forced-colors: active) {
+  :focus-visible { outline-color: Highlight; }
+  button, select, input { border-color: ButtonText; }
 }
